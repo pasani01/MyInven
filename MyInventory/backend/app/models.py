@@ -1,7 +1,7 @@
 from django.db import models
+from user_app.models import Company, CustomUser
 import datetime
-from user_app.models import Company, CustomUser 
-# Create your models here.
+
 class Depo(models.Model):
     name = models.CharField(max_length=50)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -9,33 +9,31 @@ class Depo(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='depolar')
 
     def __str__(self):
-        return self.name
-
+        return f"{self.name} ({self.company.name})"
 
 class Item(models.Model):
     name = models.CharField(max_length=50)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='items')
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.company.name})"
     
 class MoneyType(models.Model):
     type = models.CharField(max_length=50)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='moneytypes')
 
     def __str__(self):
         return self.type
 
 class Unit(models.Model):
     unit = models.CharField(max_length=50)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='units')
 
     def __str__(self):
-        return self.unit
+        return f"{self.unit} ({self.company.name})"
 
-
-
-    def __str__(self):
-        return str(datetime.datetime.now())
-    
 class BuyList(models.Model):
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='buylist')
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     item_count = models.FloatField()
     item_unit = models.ForeignKey(Unit, on_delete=models.CASCADE)
@@ -45,7 +43,4 @@ class BuyList(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return str(datetime.datetime.now())
-    
-
-    
+        return f"{self.item.name} x{self.item_count} ({self.company.name})"
