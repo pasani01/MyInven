@@ -2,8 +2,11 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from .models import BuyList, Item, Unit, MoneyType, Depo
-from .serializers import BuyListSerializer, ItemSerializer, UnitSerializer, MoneyTypeSerializer, DepoSerializer
-
+from .serializers import BuyListSerializer, ItemSerializer, UnitSerializer, MoneyTypeSerializer, DepoSerializer,BuyListTotalSerializer
+from django.db.models import F, Sum, DecimalField,ExpressionWrapper
+from django.db.models.functions import Coalesce
+from rest_framework.decorators import action
+from rest_framework.response import Response
 class ItemViewSet(viewsets.ModelViewSet):
     serializer_class = ItemSerializer
     permission_classes = [IsAuthenticated]
@@ -54,6 +57,7 @@ class DepoViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(company=self.request.user.company)
 
+
 class BuyListViewSet(viewsets.ModelViewSet):
     serializer_class = BuyListSerializer
     permission_classes = [IsAuthenticated]
@@ -65,3 +69,21 @@ class BuyListViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(company=self.request.user.company)
+
+    @action(detail=False, methods=['get'])
+    def total_price(self, request):
+        queryset = self.get_queryset()
+
+        total_expression = ExpressionWrapper(
+            F('item_count') * F('item_price'),
+            output_field=DecimalField(max_digits=18, decimal_places=2)
+        )
+
+        total = queryset.aggregate(
+            total=Coalesce(
+                Sum(total_expression),
+                0
+            )
+        )
+
+        return Response(total)

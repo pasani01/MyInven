@@ -9,6 +9,7 @@ router.register(r'unitler', UnitViewSet, basename='unit')
 router.register(r'moneytypes', MoneyTypeViewSet, basename='moneytype')
 router.register(r'buylist', BuyListViewSet, basename='buylist')
 
+
 urlpatterns = [
     path('', include(router.urls)),
 ]

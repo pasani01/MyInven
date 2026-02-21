@@ -27,6 +27,7 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('admin/logout/', admin.site.logout, name='admin-logout'),
     path('accounts/', include('django.contrib.auth.urls')),
     path('', include('app.urls')),
     path('user_app/', include('user_app.urls')),

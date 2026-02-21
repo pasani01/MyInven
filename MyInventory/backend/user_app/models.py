@@ -40,3 +40,13 @@ class CustomUser(AbstractUser):
             self.is_staff = False
             self.is_superuser = False
         super().save(*args, **kwargs)
+
+
+
+class UserSettings(models.Model):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    dark_mode = models.BooleanField(default=False)
+    language = models.CharField(max_length=10, default='en')
+    fone_color = models.IntegerField(default=0)
+    def __str__(self):
+        return f"Settings for {self.user.username}"
