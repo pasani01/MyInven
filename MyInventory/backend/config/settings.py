@@ -49,12 +49,26 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'corsheaders',
 ]
+CORS_ALLOW_CREDENTIALS = True
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5173",   # ← Vite portu
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+]
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication', # Token kullanıyorsan
+        'rest_framework.authentication.SessionAuthentication', # Tarayıcı/Admin paneli için
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
 }
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # frontend URL
+]
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',

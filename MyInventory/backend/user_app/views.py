@@ -1,12 +1,12 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from .models import CustomUser, Company
-from .serializers import CustomUserSerializer, CompanySerializer,UserLoginSerializer
+from .serializers import CustomUserSerializer, CompanySerializer, UserLoginSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework.authtoken.models import Token
-
+from django.contrib.auth import authenticate
 
 class CompanyViewSet(viewsets.ModelViewSet):
     queryset = Company.objects.all()
@@ -30,20 +30,31 @@ class CustomUserViewSet(viewsets.ModelViewSet):
 
 
 class UserLoginView(APIView):
-    permission_classes = [permissions.AllowAny]  # login için izin var
-    
+    permission_classes = [permissions.AllowAny]
+
     def post(self, request):
-        serializer = UserLoginSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
+        username = request.data.get("username")
+        password = request.data.get("password")
+        user = authenticate(request, username=username, password=password)
         
-        # Token oluştur veya al
+        if user is None:
+            return Response(
+                {"detail": "Kullanıcı veya şifre yanlış"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # ✅ Token oluştur veya mevcut olanı getir
         token, created = Token.objects.get_or_create(user=user)
+        
         return Response({
-            'token': token.key,
-            'username': user.username,
-            'role': user.role,
-            'company_id': user.company.company_id if user.company else None
+            "token": token.key,          # ← Frontend bunu bekliyor
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "role": getattr(user, 'role', 'staff'),
+                "company": getattr(user, 'company_id', None),
+            }
         })
 
 
@@ -51,5 +62,8 @@ class UserLogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def post(self, request):
-        request.user.auth_token.delete()  # token iptal
+        try:
+            request.user.auth_token.delete()
+        except Exception:
+            pass
         return Response({"detail": "Başarıyla çıkış yapıldı."}, status=status.HTTP_200_OK)

@@ -55,7 +55,7 @@ class DepoViewSet(viewsets.ModelViewSet):
         return Depo.objects.filter(company=self.request.user.company)
     
     def perform_create(self, serializer):
-        serializer.save(company=self.request.user.company)
+        serializer.save(company=self.request.user.company,created_by=self.request.user)
 
 
 class BuyListViewSet(viewsets.ModelViewSet):

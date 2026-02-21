@@ -4,25 +4,88 @@ import { useState, useEffect, useCallback } from "react";
 const BASE = "http://127.0.0.1:8000";
 
 /* ═══════════════════ AUTH TOKEN ═══════════════════ */
-let _token = "";
-function setToken(t) { _token = t; }
-function getToken() { return _token; }
+function setToken(token) {
+  if (token) {
+    localStorage.setItem("token", token); // ✅ DÜZELTİLDİ: 't' → 'token'
+  } else {
+    localStorage.removeItem("token");
+  }
+}
+
+function getToken() {
+  return localStorage.getItem("token");
+}
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
+    for (let cookie of cookies) {
+      cookie = cookie.trim();
+      if (cookie.startsWith(name + "=")) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
 
 async function api(path, method = "GET", body = null) {
-  const headers = { "Content-Type": "application/json" };
-  if (getToken()) headers["Authorization"] = `Token ${getToken()}`;
-  const opts = { method, headers };
-  if (body) opts.body = JSON.stringify(body);
-  const res = await fetch(`${BASE}${path}`, opts);
-  if (res.status === 204) return null;
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const msg = data?.detail || data?.non_field_errors?.[0]
-      || Object.values(data).flat().join(", ") || `HTTP ${res.status}`;
-    throw Object.assign(new Error(msg), { data });
+  // 1. Header'ları hazırla
+  const headers = { 
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+  };
+  
+  // 2. Token'ı ekle (LocalStorage'dan taze oku)
+  const token = getToken();
+  if (token) {
+    // Django Rest Framework varsayılan olarak "Token <anahtar>" bekler
+    headers["Authorization"] = `Token ${token}`;
   }
-  return data;
+
+  // 3. CSRF Token'ı ekle (Cookie'den oku)
+  const csrfToken = getCookie("csrftoken");
+  if (csrfToken) {
+    headers["X-CSRFToken"] = csrfToken;
+  }
+
+  const opts = {
+    method,
+    headers,
+    // ÖNEMLİ: Cookie'lerin (csrftoken) backend'e ulaşması için "include" şarttır
+    credentials: "include", 
+  };
+
+  // 4. Body varsa ekle
+  if (body && (method === "POST" || method === "PUT" || method === "PATCH")) {
+    opts.body = JSON.stringify(body);
+  }
+
+  try {
+    const res = await fetch(`${BASE}${path}`, opts);
+
+    // 401 Unauthorized hatası gelirse token'ı temizle
+    if (res.status === 401) {
+      console.warn("Oturum geçersiz, token temizlendi.");
+      setToken(null); // ✅ DÜZELTİLDİ: Token temizleme aktif edildi
+    }
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      const msg = data?.detail || data?.non_field_errors?.[0] 
+        || Object.values(data).flat().join(", ") || `Hata: ${res.status}`;
+      throw Object.assign(new Error(msg), { data, status: res.status });
+    }
+
+    return data;
+  } catch (err) {
+    console.error("API Hatası:", err);
+    throw err;
+  }
 }
+// AuthPage içindeki handleLogin kullanılıyor (aşağıda)
 
 const authAPI = {
   login: (username, password) => api("/user_app/login/", "POST", { username, password }),
