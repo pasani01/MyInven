@@ -167,46 +167,48 @@ function normalizeItem(item) {
 }
 
 function normalizeMoneytype(m) {
+  // Backend serializer'da source='type' → 'name' olarak geliyor
+  const name = m.name ?? m.type ?? m.nomi ?? m.valyuta ?? `MT #${m.id}`;
   return {
     id: m.id,
-    name: m.name ?? m.nomi ?? m.valyuta ?? `MT #${m.id}`,
-    code: m.code ?? m.kod ?? m.name ?? "USD",
+    name,
+    code: m.code ?? m.kod ?? name ?? "USD",
     _raw: m,
   };
 }
 
 function normalizeUnit(u) {
+  // Backend serializer'da source='unit' → 'name' olarak geliyor
   return {
     id: u.id,
-    name: u.name ?? u.nomi ?? u.birlik ?? `Unit #${u.id}`,
+    name: u.name ?? u.unit ?? u.nomi ?? u.birlik ?? `Unit #${u.id}`,
     _raw: u,
   };
 }
 
 function normalizeBuylist(b, itemler = [], moneytypes = [], unitler = []) {
-  // Handle both nested object and ID reference for FK fields
+  // Backend serializer artık frontend ile aynı alan adlarını döndürüyor:
+  // qty, narx, unit, moneytype, depolar
   const itemId = typeof b.item === "object" ? b.item?.id : (b.item ?? null);
   const itemName = typeof b.item === "object"
     ? (b.item?.name ?? b.item?.nomi)
-    : (itemler.find(i => i.id === itemId)?.name ?? b.name ?? b.nomi ?? b.mahsulot ?? "Item");
+    : (itemler.find(i => i.id === itemId)?.name ?? `Item #${itemId}`);
 
   const moneytypeId = typeof b.moneytype === "object" ? b.moneytype?.id : (b.moneytype ?? null);
   const moneytypeName = typeof b.moneytype === "object"
-    ? (b.moneytype?.name ?? b.moneytype?.code)
-    : (moneytypes.find(m => m.id === moneytypeId)?.name ?? b.currency ?? b.valyuta ?? b.cur ?? "USD");
+    ? (b.moneytype?.name ?? b.moneytype?.type)
+    : (moneytypes.find(m => m.id === moneytypeId)?.name ?? "USD");
 
   const unitId = typeof b.unit === "object" ? b.unit?.id : (b.unit ?? null);
   const unitName = typeof b.unit === "object"
-    ? (b.unit?.name ?? b.unit?.nomi)
-    : (unitler.find(u => u.id === unitId)?.name ?? b.birlik ?? "pcs");
+    ? (b.unit?.name ?? b.unit?.unit)
+    : (unitler.find(u => u.id === unitId)?.name ?? "pcs");
 
   const depolarId = typeof b.depolar === "object" ? b.depolar?.id : (b.depolar ?? null);
 
-  const qty = Number(b.qty ?? b.miqdor ?? b.quantity ?? 0);
-  const price = String(b.narx ?? b.price ?? b.narxi ?? "0");
-  const total = b.total
-    ? String(b.total)
-    : String((qty * parseFloat(price.replace(/,/g, "") || 0)).toFixed(2));
+  const qty = Number(b.qty ?? b.item_count ?? 0);
+  const price = String(b.narx ?? b.item_price ?? "0");
+  const total = String((qty * parseFloat(price.replace(/,/g, "") || "0")).toFixed(2));
 
   return {
     id: b.id,
@@ -1055,7 +1057,7 @@ function Dashboard({ currentUser, onLogout }) {
           {page === "intake" && <IntakePage buylist={buylist} setBuylist={setBuylist} warehouses={warehouses} itemler={itemler} moneytypes={moneytypes} unitler={unitler} addToast={addToast} T={T} />}
           {page === "reports" && <ReportsPage warehouses={warehouses} buylist={buylist} shipments={shipments} addToast={addToast} T={T} />}
           {page === "itemler" && <RefPage title={T.items} icon="pkg" data={itemler} setData={setItemler} api={itemlerAPI} normalize={normalizeItem} fields={[{ k: "name", l: "Name *", required: true }]} addToast={addToast} T={T} />}
-          {page === "moneytypes" && <RefPage title={T.moneytypes} icon="dr" data={moneytypes} setData={setMoneytypes} api={moneytypesAPI} normalize={normalizeMoneytype} fields={[{ k: "name", l: "Name *", required: true }, { k: "code", l: "Code (USD, UZS)" }]} addToast={addToast} T={T} />}
+          {page === "moneytypes" && <RefPage title={T.moneytypes} icon="dr" data={moneytypes} setData={setMoneytypes} api={moneytypesAPI} normalize={normalizeMoneytype} fields={[{ k: "name", l: "Name * (USD, UZS, EUR)", required: true }]} addToast={addToast} T={T} />}
           {page === "unitler" && <RefPage title={T.units} icon="tag" data={unitler} setData={setUnitler} api={unitlerAPI} normalize={normalizeUnit} fields={[{ k: "name", l: "Name *", required: true }]} addToast={addToast} T={T} />}
           {page === "users" && <UsersPage users={users} companies={companies} onRefresh={fetchUsers} addToast={addToast} T={T} />}
           {page === "companies" && <CompaniesPage companies={companies} onRefresh={fetchCompanies} addToast={addToast} T={T} />}
@@ -1355,16 +1357,15 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
   const lowCount = whBl.filter(i => i.low).length;
   const grad = WC_GRADIENT[wh.wc] || WC_GRADIENT.bl;
 
-  // Build API payload for buylist — sends FK IDs
+  // Build API payload for buylist — serializer alan adlarıyla eşleşiyor
   function buildBlPayload(f) {
     return {
-      item: Number(f.item) || undefined,
+      item:      Number(f.item)      || undefined,
       moneytype: Number(f.moneytype) || undefined,
-      unit: Number(f.unit) || undefined,
-      depolar: wh.id,
-      qty: Number(f.qty) || 0,
-      narx: f.narx || "0",
-      low_stock: (Number(f.qty) || 0) < 20,
+      unit:      Number(f.unit)      || undefined,
+      depolar:   wh.id,
+      qty:       Number(f.qty)       || 0,
+      narx:      f.narx              || "0",
     };
   }
 
@@ -1852,11 +1853,12 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
         const mtId = moneytypes.find(m => m.code === line.cur || m.name === line.cur)?.id || moneytypes[0]?.id || null;
         const unitId = unitler[0]?.id || null;
         const created = await buylistAPI.create({
-          item: itemId, moneytype: mtId, unit: unitId,
-          depolar: selWh || null,
-          qty: Number(line.qty) || 0,
-          narx: line.price || "0",
-          low_stock: Number(line.qty) < 20,
+          item:      itemId,
+          moneytype: mtId,
+          unit:      unitId,
+          depolar:   selWh || null,
+          qty:       Number(line.qty) || 0,
+          narx:      line.price || "0",
         });
         setBuylist(prev => [...prev, normalizeBuylist(created, itemler, moneytypes, unitler)]);
         success++;
