@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import DepoViewSet, ItemViewSet, UnitViewSet, MoneyTypeViewSet, BuyListViewSet
-
+from .scan_view import InvoiceScanView
 router = DefaultRouter()
 router.register(r'depolar', DepoViewSet, basename='depo')
 router.register(r'itemler', ItemViewSet, basename='item')
@@ -12,4 +12,5 @@ router.register(r'buylist', BuyListViewSet, basename='buylist')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('scan/', InvoiceScanView.as_view(), name='invoice-scan'),
 ]

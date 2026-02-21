@@ -1805,28 +1805,93 @@ function ReportsPage({ warehouses, buylist, shipments, addToast, T }) {
 
 /* ═══════════════════ SMART INVOICE INTAKE ═══════════════════ */
 let INTAKE_ID = 100;
-const DEFAULT_LINES = [
-  { id: 1, desc: "Oak Hardwood Planks (Grade A)", qty: 120, price: "28.50", cur: "USD", warn: false },
-  { id: 2, desc: "High-Performance Wood Glue 5L", qty: 10, price: "45.00", cur: "USD", warn: false },
-  { id: 3, desc: "Finishing Wax (Satin Clear)", qty: 15, price: "18.99", cur: "USD", warn: false },
-  { id: 4, desc: "Premium Sandpaper Grit 220", qty: 50, price: "2.15", cur: "USD", warn: true },
-];
+const DEFAULT_LINES = [];
 
 function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unitler, addToast, T }) {
-  const [lines, setLines] = useState(DEFAULT_LINES);
+  const [lines, setLines] = useState([]);
   const [approved, setApproved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [selWh, setSelWh] = useState(warehouses[0]?.id || "");
-  const [refId, setRefId] = useState("INV-2023-8821");
-  const [editingCell, setEditingCell] = useState(null); // { id, field }
+  const [refId, setRefId] = useState("");
+  const [editingCell, setEditingCell] = useState(null);
   const [showAddLine, setShowAddLine] = useState(false);
-  const [newLine, setNewLine] = useState({ desc: "", qty: "", price: "", cur: "USD" });
+  const [newLine, setNewLine] = useState({ desc: "", qty: "", price: "", cur: "UZS" });
+
+  // Upload state
+  const [uploadedFile, setUploadedFile] = useState(null);       // File objesi
+  const [previewUrl, setPreviewUrl] = useState(null);           // Önizleme URL'i
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = { current: null };
 
   useEffect(() => {
     if (warehouses.length && !selWh) setSelWh(warehouses[0].id);
   }, [warehouses]);
 
   const total = lines.reduce((acc, l) => acc + (Number(l.qty) * parseFloat(l.price || 0)), 0);
+
+  // Dosya seçildiğinde
+  function handleFileSelect(file) {
+    if (!file) return;
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+    if (!allowed.includes(file.type)) {
+      addToast("Sadece JPG, PNG veya WEBP yükleyebilirsiniz", "error");
+      return;
+    }
+    setUploadedFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+    setLines([]);
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    handleFileSelect(file);
+  }
+
+  // OCR + AI Scan
+  async function handleScan() {
+    if (!uploadedFile) { addToast("Önce bir fatura resmi yükleyin", "error"); return; }
+    setScanning(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", uploadedFile);
+
+      const token = getToken();
+      const res = await fetch(`${BASE}/scan/`, {
+        method: "POST",
+        headers: {
+          ...(token ? { "Authorization": `Token ${token}` } : {}),
+        },
+        credentials: "include",
+        body: formData,  // Content-Type otomatik multipart/form-data olur
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.detail || `Hata: ${res.status}`);
+      }
+
+      const scannedLines = (data.lines || []).map((l, i) => ({
+        ...l,
+        id: ++INTAKE_ID,
+        warn: false,
+      }));
+
+      if (scannedLines.length === 0) {
+        addToast("Faturadan ürün çıkarılamadı. Daha net bir resim deneyin.", "error");
+      } else {
+        setLines(scannedLines);
+        setRefId(`INV-${Date.now().toString().slice(-6)}`);
+        addToast(`${scannedLines.length} ürün başarıyla tarandı!`, "success");
+      }
+    } catch (e) {
+      addToast(`Tarama hatası: ${e.message}`, "error");
+    } finally {
+      setScanning(false);
+    }
+  }
 
   function updateLine(id, field, value) {
     setLines(prev => prev.map(l => l.id === id ? { ...l, [field]: value } : l));
@@ -1839,7 +1904,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
   function addLine() {
     if (!newLine.desc.trim()) return;
     setLines(prev => [...prev, { id: ++INTAKE_ID, desc: newLine.desc, qty: Number(newLine.qty) || 1, price: newLine.price || "0", cur: newLine.cur, warn: false }]);
-    setNewLine({ desc: "", qty: "", price: "", cur: "USD" });
+    setNewLine({ desc: "", qty: "", price: "", cur: "UZS" });
     setShowAddLine(false);
   }
 
@@ -1851,7 +1916,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
       try {
         const itemId = itemler[0]?.id || null;
         const mtId = moneytypes.find(m => m.code === line.cur || m.name === line.cur)?.id || moneytypes[0]?.id || null;
-        const unitId = unitler[0]?.id || null;
+        const unitId = unitler.find(u => u.name === line.birlik)?.id || unitler[0]?.id || null;
         const created = await buylistAPI.create({
           item:      itemId,
           moneytype: mtId,
@@ -1869,18 +1934,18 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
     setApproved(true);
   }
 
-  const whName = warehouses.find(w => String(w.id) === String(selWh))?.name || "Select location";
-
   if (approved) return (
     <div className="fu" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 420 }}>
       <div style={{ textAlign: "center" }}>
         <div style={{ width: 70, height: 70, background: "var(--green-bg)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px", border: "2px solid var(--green)" }}>
           <I n="ck" s={30} c="var(--green)" />
         </div>
-        <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", marginBottom: 8 }}>Successfully Approved!</h2>
-        <p style={{ color: "var(--text3)", marginBottom: 26, fontSize: 14 }}>{lines.length} line items have been added to your inventory.</p>
-        <button className="btn bp" style={{ padding: "10px 28px", fontSize: 14 }} onClick={() => { setApproved(false); setLines(DEFAULT_LINES); setRefId("INV-2023-8821"); }}>
-          <I n="sc" s={15} c="#fff" />Scan Another Invoice
+        <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", marginBottom: 8 }}>Muvaffaqiyatli qo'shildi!</h2>
+        <p style={{ color: "var(--text3)", marginBottom: 26, fontSize: 14 }}>{lines.length} ta mahsulot inventarga qo'shildi.</p>
+        <button className="btn bp" style={{ padding: "10px 28px", fontSize: 14 }} onClick={() => {
+          setApproved(false); setLines([]); setUploadedFile(null); setPreviewUrl(null); setRefId("");
+        }}>
+          <I n="sc" s={15} c="#fff" />Yangi Fatura Skan
         </button>
       </div>
     </div>
@@ -1892,7 +1957,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 22 }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-            <span style={{ fontSize: 13, color: "var(--text3)", cursor: "pointer" }}>Inventory</span>
+            <span style={{ fontSize: 13, color: "var(--text3)" }}>Inventory</span>
             <span style={{ color: "var(--border2)" }}>›</span>
             <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>Smart Invoice Intake</span>
           </div>
@@ -1900,67 +1965,107 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "420px 1fr", gap: 20, alignItems: "start" }}>
-        {/* ── LEFT: PDF Preview ── */}
+
+        {/* ── LEFT: Upload Panel ── */}
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r)", boxShadow: "var(--sh)", overflow: "hidden" }}>
-          {/* PDF header bar */}
+          {/* Header */}
           <div style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 28, height: 28, background: "var(--blue-l)", border: "1px solid var(--blue-m)", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <I n="fi" s={14} c="var(--blue)" />
               </div>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text2)", letterSpacing: ".03em" }}>SCANNED_INVOICE_8821.PDF</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text2)", letterSpacing: ".03em" }}>
+                {uploadedFile ? uploadedFile.name.toUpperCase() : "FATURA YUKLASH"}
+              </span>
             </div>
-            <div style={{ display: "flex", gap: 6 }}>
-              <button className="ib" style={{ width: 28, height: 28 }}><I n="sr" s={13} /></button>
-              <button className="ib" style={{ width: 28, height: 28 }}><I n="dl" s={13} /></button>
-            </div>
+            {uploadedFile && (
+              <button className="ib" onClick={() => { setUploadedFile(null); setPreviewUrl(null); setLines([]); }}
+                title="Tozalash">
+                <I n="x" s={13} />
+              </button>
+            )}
           </div>
-          {/* PDF doc simulation */}
-          <div style={{ padding: 20, background: "#f5f6f8", minHeight: 500, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ background: "#fff", borderRadius: 6, boxShadow: "0 4px 20px rgba(0,0,0,.12)", width: "100%", maxWidth: 340, padding: "28px 26px", border: "1px solid #e8eaed" }}>
-              {/* Doc header */}
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24, alignItems: "flex-start" }}>
-                <div>
-                  <div style={{ width: 110, height: 12, background: "#d1d5db", borderRadius: 3, marginBottom: 8 }} />
-                  <div style={{ width: 80, height: 10, background: "#e5e7eb", borderRadius: 3 }} />
+
+          {/* Upload area veya preview */}
+          <div style={{ padding: 16, background: "#f5f6f8", minHeight: 460 }}>
+            {!previewUrl ? (
+              /* Drop zone */
+              <div
+                onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleDrop}
+                onClick={() => document.getElementById("invoice-file-input").click()}
+                style={{
+                  border: `2px dashed ${isDragging ? "var(--blue)" : "var(--border2)"}`,
+                  borderRadius: "var(--r)",
+                  background: isDragging ? "var(--blue-l)" : "var(--surface)",
+                  minHeight: 420,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  transition: "all .2s",
+                  padding: 24,
+                  textAlign: "center",
+                }}>
+                <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--blue-l)", border: "1.5px solid var(--blue-m)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+                  <I n="dl" s={24} c="var(--blue)" />
                 </div>
-                <div style={{ width: 60, height: 40, background: "#e5e7eb", borderRadius: 4 }} />
+                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>
+                  Fatura rasmini yuklang
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text3)", marginBottom: 18, lineHeight: 1.6 }}>
+                  Sudrab tashlang yoki bosing<br />JPG, PNG, WEBP · Max 10MB
+                </div>
+                <button className="btn bp" style={{ pointerEvents: "none" }}>
+                  <I n="fi" s={14} c="#fff" />Fayl tanlash
+                </button>
+                <input
+                  id="invoice-file-input"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  style={{ display: "none" }}
+                  onChange={e => handleFileSelect(e.target.files[0])}
+                />
               </div>
-              {/* Divider */}
-              <div style={{ height: 1, background: "#e5e7eb", marginBottom: 20 }} />
-              {/* Lines */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <div style={{ width: "100%", height: 10, background: "#f3f4f6", borderRadius: 3 }} />
-                <div style={{ width: "85%", height: 10, background: "#f3f4f6", borderRadius: 3 }} />
-                <div style={{ height: 14 }} />
-                {/* Highlighted row */}
-                <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 4, padding: "8px 10px" }}>
-                  <div style={{ width: "70%", height: 10, background: "#93c5fd", borderRadius: 3 }} />
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <div style={{ flex: 1, height: 10, background: "#f3f4f6", borderRadius: 3 }} />
-                  <div style={{ width: 55, height: 10, background: "#f3f4f6", borderRadius: 3 }} />
-                </div>
-                <div style={{ height: 14 }} />
-                {[78, 92, 65, 80, 55].map((w, i) => (
-                  <div key={i} style={{ width: `${w}%`, height: 9, background: "#f3f4f6", borderRadius: 3 }} />
-                ))}
-                <div style={{ height: 14 }} />
-                <div style={{ display: "flex", gap: 8 }}>
-                  <div style={{ flex: 1, height: 9, background: "#f3f4f6", borderRadius: 3 }} />
-                  <div style={{ width: 70, height: 9, background: "#dcfce7", borderRadius: 3, border: "1px solid #bbf7d0" }} />
-                </div>
-                <div style={{ width: "60%", height: 9, background: "#f3f4f6", borderRadius: 3 }} />
-                <div style={{ height: 10 }} />
-                {[88, 72].map((w, i) => (
-                  <div key={i} style={{ width: `${w}%`, height: 9, background: "#f3f4f6", borderRadius: 3 }} />
-                ))}
-                <div style={{ marginTop: 16, height: 1, background: "#e5e7eb" }} />
-                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6 }}>
-                  <div style={{ width: 90, height: 12, background: "#bfdbfe", borderRadius: 3 }} />
-                </div>
+            ) : (
+              /* Image preview */
+              <div style={{ borderRadius: "var(--rs)", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,.12)", background: "#fff" }}>
+                <img
+                  src={previewUrl}
+                  alt="Fatura"
+                  style={{ width: "100%", display: "block", maxHeight: 420, objectFit: "contain" }}
+                />
               </div>
-            </div>
+            )}
+          </div>
+
+          {/* Scan button */}
+          <div style={{ padding: "14px 16px", borderTop: "1px solid var(--border)", display: "flex", gap: 10 }}>
+            <button
+              className="btn bp"
+              style={{ flex: 1, justifyContent: "center", fontSize: 14, padding: "10px" }}
+              onClick={handleScan}
+              disabled={!uploadedFile || scanning}>
+              {scanning
+                ? <><div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />Skanlanmoqda...</>
+                : <><I n="mg" s={15} c="#fff" />AI bilan Skan Qilish</>
+              }
+            </button>
+            <button
+              className="btn bo"
+              onClick={() => document.getElementById("invoice-file-input").click()}
+              title="Boshqa rasm tanlash">
+              <I n="refresh" s={14} />
+              <input
+                id="invoice-file-input"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                style={{ display: "none" }}
+                onChange={e => handleFileSelect(e.target.files[0])}
+              />
+            </button>
           </div>
         </div>
 
@@ -1974,144 +2079,160 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
               </div>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)" }}>AI Extraction Results</div>
-                <div style={{ fontSize: 13, color: "var(--text3)", marginTop: 2 }}>Extracted {lines.length} line items with 98% confidence.</div>
-              </div>
-            </div>
-            <div style={{ background: "var(--green-bg)", border: "1px solid var(--green-t)", color: "var(--green-t)", padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
-              <I n="ck" s={12} c="var(--green-t)" />Ready for Review
-            </div>
-          </div>
-
-          {/* Vendor / Date / Total */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", borderBottom: "1px solid var(--border)" }}>
-            <div style={{ padding: "14px 18px", borderRight: "1px solid var(--border)" }}>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--text4)", marginBottom: 6 }}>Vendor</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", display: "flex", alignItems: "center", gap: 6 }}>
-                Lumber &amp; Supply Co.
-                <div style={{ width: 18, height: 18, background: "var(--blue)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <I n="ck" s={10} c="#fff" />
+                <div style={{ fontSize: 13, color: "var(--text3)", marginTop: 2 }}>
+                  {scanning
+                    ? "Fatura skanlanmoqda..."
+                    : lines.length > 0
+                      ? `${lines.length} ta mahsulot topildi.`
+                      : "Fatura yuklang va AI bilan skanlang."}
                 </div>
               </div>
             </div>
-            <div style={{ padding: "14px 18px", borderRight: "1px solid var(--border)" }}>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--text4)", marginBottom: 6 }}>Invoice Date</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", fontStyle: "italic" }}>Oct 24, 2023</div>
-            </div>
-            <div style={{ padding: "14px 18px", background: "var(--blue-l)" }}>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--blue)", marginBottom: 6 }}>Total Amount</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "var(--blue)", letterSpacing: "-.02em" }}>${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-            </div>
-          </div>
-
-          {/* Line Items Table */}
-          <div style={{ padding: "0 0 0 0" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", borderBottom: "1px solid var(--border)" }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>Detected Line Items</div>
-              <button className="btn bg2 bs" style={{ color: "var(--blue)", fontWeight: 700 }} onClick={() => setShowAddLine(v => !v)}>
-                <I n="pl" s={13} c="var(--blue)" />+ Add Line
-              </button>
-            </div>
-
-            {/* Add line row */}
-            {showAddLine && (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 90px 80px 36px", gap: 8, padding: "10px 18px", background: "var(--blue-l)", borderBottom: "1px solid var(--border)", alignItems: "center" }}>
-                <input className="form-input" style={{ fontSize: 13, padding: "6px 10px" }} placeholder="Item description" value={newLine.desc} onChange={e => setNewLine(p => ({ ...p, desc: e.target.value }))} onKeyDown={e => e.key === "Enter" && addLine()} />
-                <input className="form-input" style={{ fontSize: 13, padding: "6px 10px" }} type="number" placeholder="Qty" value={newLine.qty} onChange={e => setNewLine(p => ({ ...p, qty: e.target.value }))} />
-                <input className="form-input" style={{ fontSize: 13, padding: "6px 10px" }} type="number" placeholder="Price" value={newLine.price} onChange={e => setNewLine(p => ({ ...p, price: e.target.value }))} />
-                <select className="form-select" style={{ fontSize: 13, padding: "6px 8px" }} value={newLine.cur} onChange={e => setNewLine(p => ({ ...p, cur: e.target.value }))}>
-                  <option>USD</option><option>UZS</option><option>EUR</option>
-                </select>
-                <button className="btn bp" style={{ padding: "6px 8px", justifyContent: "center" }} onClick={addLine}><I n="ck" s={13} c="#fff" /></button>
+            {lines.length > 0 && (
+              <div style={{ background: "var(--green-bg)", border: "1px solid var(--green-t)", color: "var(--green-t)", padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
+                <I n="ck" s={12} c="var(--green-t)" />Ko'rib chiqishga tayyor
               </div>
             )}
+            {scanning && (
+              <div style={{ background: "var(--blue-l)", border: "1px solid var(--blue-m)", color: "var(--blue)", padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
+                <div className="spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />Skanlanmoqda...
+              </div>
+            )}
+          </div>
 
-            {/* Table header */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 110px 110px 36px", gap: 8, padding: "8px 18px", borderBottom: "1px solid var(--border)", background: "var(--surface2)" }}>
-              {["ITEM DESCRIPTION", "QTY", "UNIT PRICE", "CURRENCY", ""].map((h, i) => (
-                <div key={i} style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: "var(--text4)" }}>{h}</div>
-              ))}
+          {/* Scanning overlay */}
+          {scanning && (
+            <div style={{ padding: "60px 24px", textAlign: "center", color: "var(--text3)" }}>
+              <div className="spinner" style={{ margin: "0 auto 16px" }} />
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text2)", marginBottom: 6 }}>OCR va AI ishlayapti...</div>
+              <div style={{ fontSize: 12 }}>Fatura matni o'qilmoqda va tahlil qilinmoqda</div>
             </div>
+          )}
 
-            {/* Rows */}
-            {lines.map(line => (
-              <div key={line.id} style={{ display: "grid", gridTemplateColumns: "1fr 70px 110px 110px 36px", gap: 8, padding: "10px 18px", borderBottom: "1px solid var(--border)", alignItems: "center", transition: "background .1s" }}
-                onMouseEnter={e => e.currentTarget.style.background = "var(--bg)"}
-                onMouseLeave={e => e.currentTarget.style.background = ""}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  {line.warn && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--orange)", flexShrink: 0 }} />}
-                  {editingCell?.id === line.id && editingCell?.field === "desc"
-                    ? <input autoFocus style={{ width: "100%", padding: "4px 8px", border: "1.5px solid var(--blue)", borderRadius: 4, fontFamily: "inherit", fontSize: 14, color: "var(--text)", background: "var(--surface)", outline: "none" }} value={line.desc} onChange={e => updateLine(line.id, "desc", e.target.value)} onBlur={() => setEditingCell(null)} onKeyDown={e => e.key === "Enter" && setEditingCell(null)} />
-                    : <span style={{ fontSize: 14, color: "var(--text2)", cursor: "text" }} onClick={() => setEditingCell({ id: line.id, field: "desc" })}>{line.desc}</span>
-                  }
+          {/* Empty state */}
+          {!scanning && lines.length === 0 && (
+            <div style={{ padding: "60px 24px", textAlign: "center", color: "var(--text4)" }}>
+              <I n="sc" s={42} c="var(--border2)" />
+              <div style={{ marginTop: 14, fontSize: 14, fontWeight: 600, color: "var(--text3)" }}>Hali skan qilinmagan</div>
+              <div style={{ fontSize: 12, marginTop: 5 }}>Chap tomonga fatura rasmini yuklang va "AI bilan Skan" tugmasini bosing</div>
+            </div>
+          )}
+
+          {/* Results */}
+          {!scanning && lines.length > 0 && (
+            <>
+              {/* Summary row */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", borderBottom: "1px solid var(--border)" }}>
+                <div style={{ padding: "14px 18px", borderRight: "1px solid var(--border)" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--text4)", marginBottom: 6 }}>Mahsulotlar</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{lines.length} ta</div>
                 </div>
-                <div>
-                  {editingCell?.id === line.id && editingCell?.field === "qty"
-                    ? <input autoFocus type="number" style={{ width: "100%", padding: "4px 8px", border: "1.5px solid var(--blue)", borderRadius: 4, fontFamily: "inherit", fontSize: 14, color: "var(--text)", background: "var(--surface)", outline: "none" }} value={line.qty} onChange={e => updateLine(line.id, "qty", e.target.value)} onBlur={() => setEditingCell(null)} onKeyDown={e => e.key === "Enter" && setEditingCell(null)} />
-                    : <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", cursor: "text" }} onClick={() => setEditingCell({ id: line.id, field: "qty" })}>{line.qty}</span>
-                  }
+                <div style={{ padding: "14px 18px", borderRight: "1px solid var(--border)" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--text4)", marginBottom: 6 }}>Ref ID</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", fontStyle: "italic" }}>{refId || "—"}</div>
                 </div>
-                <div>
-                  {editingCell?.id === line.id && editingCell?.field === "price"
-                    ? <input autoFocus type="number" style={{ width: "100%", padding: "4px 8px", border: "1.5px solid var(--blue)", borderRadius: 4, fontFamily: "inherit", fontSize: 14, color: "var(--text)", background: "var(--surface)", outline: "none" }} value={line.price} onChange={e => updateLine(line.id, "price", e.target.value)} onBlur={() => setEditingCell(null)} onKeyDown={e => e.key === "Enter" && setEditingCell(null)} />
-                    : <span style={{ fontSize: 14, color: "var(--text2)", cursor: "text" }} onClick={() => setEditingCell({ id: line.id, field: "price" })}>$ {line.price}</span>
-                  }
+                <div style={{ padding: "14px 18px", background: "var(--blue-l)" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--blue)", marginBottom: 6 }}>Jami Summa</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: "var(--blue)", letterSpacing: "-.02em" }}>
+                    {total.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  </div>
                 </div>
+              </div>
+
+              {/* Line items table */}
+              <div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", borderBottom: "1px solid var(--border)" }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>Aniqlangan Mahsulotlar</div>
+                  <button className="btn bg2 bs" style={{ color: "var(--blue)", fontWeight: 700 }} onClick={() => setShowAddLine(v => !v)}>
+                    <I n="pl" s={13} c="var(--blue)" />+ Qo'shish
+                  </button>
+                </div>
+
+                {showAddLine && (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 90px 80px 36px", gap: 8, padding: "10px 18px", background: "var(--blue-l)", borderBottom: "1px solid var(--border)", alignItems: "center" }}>
+                    <input className="form-input" style={{ fontSize: 13, padding: "6px 10px" }} placeholder="Mahsulot nomi" value={newLine.desc} onChange={e => setNewLine(p => ({ ...p, desc: e.target.value }))} onKeyDown={e => e.key === "Enter" && addLine()} />
+                    <input className="form-input" style={{ fontSize: 13, padding: "6px 10px" }} type="number" placeholder="Soni" value={newLine.qty} onChange={e => setNewLine(p => ({ ...p, qty: e.target.value }))} />
+                    <input className="form-input" style={{ fontSize: 13, padding: "6px 10px" }} type="number" placeholder="Narx" value={newLine.price} onChange={e => setNewLine(p => ({ ...p, price: e.target.value }))} />
+                    <select className="form-select" style={{ fontSize: 13, padding: "6px 8px" }} value={newLine.cur} onChange={e => setNewLine(p => ({ ...p, cur: e.target.value }))}>
+                      <option>UZS</option><option>USD</option><option>EUR</option>
+                    </select>
+                    <button className="btn bp" style={{ padding: "6px 8px", justifyContent: "center" }} onClick={addLine}><I n="ck" s={13} c="#fff" /></button>
+                  </div>
+                )}
+
+                {/* Table header */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 110px 80px 36px", gap: 8, padding: "8px 18px", borderBottom: "1px solid var(--border)", background: "var(--surface2)" }}>
+                  {["MAHSULOT", "SONI", "NARX", "BIRLIK", ""].map((h, i) => (
+                    <div key={i} style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: "var(--text4)" }}>{h}</div>
+                  ))}
+                </div>
+
+                {/* Rows */}
+                {lines.map(line => (
+                  <div key={line.id} style={{ display: "grid", gridTemplateColumns: "1fr 70px 110px 80px 36px", gap: 8, padding: "10px 18px", borderBottom: "1px solid var(--border)", alignItems: "center" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "var(--bg)"}
+                    onMouseLeave={e => e.currentTarget.style.background = ""}>
+                    <div>
+                      {editingCell?.id === line.id && editingCell?.field === "desc"
+                        ? <input autoFocus style={{ width: "100%", padding: "4px 8px", border: "1.5px solid var(--blue)", borderRadius: 4, fontFamily: "inherit", fontSize: 14, color: "var(--text)", background: "var(--surface)", outline: "none" }} value={line.desc} onChange={e => updateLine(line.id, "desc", e.target.value)} onBlur={() => setEditingCell(null)} onKeyDown={e => e.key === "Enter" && setEditingCell(null)} />
+                        : <span style={{ fontSize: 13, color: "var(--text2)", cursor: "text" }} onClick={() => setEditingCell({ id: line.id, field: "desc" })}>{line.desc}</span>
+                      }
+                    </div>
+                    <div>
+                      {editingCell?.id === line.id && editingCell?.field === "qty"
+                        ? <input autoFocus type="number" style={{ width: "100%", padding: "4px 8px", border: "1.5px solid var(--blue)", borderRadius: 4, fontFamily: "inherit", fontSize: 14, color: "var(--text)", background: "var(--surface)", outline: "none" }} value={line.qty} onChange={e => updateLine(line.id, "qty", e.target.value)} onBlur={() => setEditingCell(null)} onKeyDown={e => e.key === "Enter" && setEditingCell(null)} />
+                        : <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", cursor: "text" }} onClick={() => setEditingCell({ id: line.id, field: "qty" })}>{line.qty}</span>
+                      }
+                    </div>
+                    <div>
+                      {editingCell?.id === line.id && editingCell?.field === "price"
+                        ? <input autoFocus type="number" style={{ width: "100%", padding: "4px 8px", border: "1.5px solid var(--blue)", borderRadius: 4, fontFamily: "inherit", fontSize: 14, color: "var(--text)", background: "var(--surface)", outline: "none" }} value={line.price} onChange={e => updateLine(line.id, "price", e.target.value)} onBlur={() => setEditingCell(null)} onKeyDown={e => e.key === "Enter" && setEditingCell(null)} />
+                        : <span style={{ fontSize: 14, color: "var(--text2)", cursor: "text" }} onClick={() => setEditingCell({ id: line.id, field: "price" })}>{line.price}</span>
+                      }
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--text3)", fontWeight: 600 }}>{line.birlik || line.cur}</div>
+                    <button style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text4)", display: "flex", alignItems: "center", justifyContent: "center", padding: 4, borderRadius: 4 }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "var(--red-bg)"; e.currentTarget.style.color = "var(--red)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = ""; e.currentTarget.style.color = "var(--text4)"; }}
+                      onClick={() => deleteLine(line.id)}><I n="td" s={14} /></button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Warehouse & approve */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, padding: "16px 18px", borderTop: "1px solid var(--border)", background: "var(--surface2)" }}>
                 <div>
-                  <select style={{ width: "100%", padding: "4px 8px", fontSize: 13, border: "1px solid var(--border2)", borderRadius: 4, background: "var(--surface)", color: "var(--text)" }}
-                    value={line.cur} onChange={e => updateLine(line.id, "cur", e.target.value)}>
-                    <option>USD</option><option>UZS</option><option>EUR</option>
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--text4)", marginBottom: 7 }}>Omborga joylash</div>
+                  <select className="form-select" style={{ width: "100%", padding: "10px 32px 10px 12px" }} value={selWh} onChange={e => setSelWh(e.target.value)}>
+                    <option value="">— Ombor tanlang —</option>
+                    {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                   </select>
                 </div>
-                <button style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text4)", display: "flex", alignItems: "center", justifyContent: "center", padding: 4, borderRadius: 4 }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "var(--red-bg)"; e.currentTarget.style.color = "var(--red)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = ""; e.currentTarget.style.color = "var(--text4)"; }}
-                  onClick={() => deleteLine(line.id)}><I n="td" s={14} /></button>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--text4)", marginBottom: 7 }}>Ref ID</div>
+                  <input className="form-input" value={refId} onChange={e => setRefId(e.target.value)} placeholder="INV-000001" />
+                </div>
               </div>
-            ))}
 
-            {lines.length === 0 && (
-              <div style={{ padding: "30px 18px", textAlign: "center", color: "var(--text4)", fontSize: 13 }}>No line items. Click "+ Add Line" to add items.</div>
-            )}
-          </div>
-
-          {/* Warehouse & Reference */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, padding: "16px 18px", borderTop: "1px solid var(--border)", background: "var(--surface2)" }}>
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--text4)", marginBottom: 7 }}>Assign to Warehouse Location</div>
-              <select className="form-select" style={{ width: "100%", padding: "10px 32px 10px 12px" }} value={selWh} onChange={e => setSelWh(e.target.value)}>
-                <option value="">— Select Location —</option>
-                {warehouses.map(w => <option key={w.id} value={w.id}>{w.name} {w.addr !== "—" ? `· ${w.addr}` : ""}</option>)}
-              </select>
-            </div>
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--text4)", marginBottom: 7 }}>Reference ID</div>
-              <input className="form-input" value={refId} onChange={e => setRefId(e.target.value)} placeholder="INV-2023-8821" />
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderTop: "1px solid var(--border)" }}>
-            <button className="btn bo" style={{ color: "var(--text3)" }} onClick={() => { setLines(DEFAULT_LINES); setRefId("INV-2023-8821"); setShowAddLine(false); }}>
-              Cancel &amp; Discard
-            </button>
-            <div style={{ display: "flex", gap: 10 }}>
-              <button className="btn bo" style={{ fontWeight: 600 }} onClick={() => setEditingCell(null)}>
-                <I n="ed" s={14} />Edit All
-              </button>
-              <button className="btn bp" style={{ padding: "9px 20px", fontWeight: 700, fontSize: 14 }} onClick={approve} disabled={saving}>
-                {saving ? "Adding..." : <><I n="ck" s={15} c="#fff" />Approve &amp; Add to Inventory →</>}
-              </button>
-            </div>
-          </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderTop: "1px solid var(--border)" }}>
+                <button className="btn bo" style={{ color: "var(--text3)" }} onClick={() => { setLines([]); }}>
+                  Bekor qilish
+                </button>
+                <button className="btn bp" style={{ padding: "9px 20px", fontWeight: 700, fontSize: 14 }} onClick={approve} disabled={saving}>
+                  {saving ? "Qo'shilmoqda..." : <><I n="ck" s={15} c="#fff" />Tasdiqlash va Inventarga Qo'shish →</>}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
       {/* Bottom Stats Row */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1.4fr", gap: 14, marginTop: 20 }}>
         {[
-          { icon: "sc", bg: "var(--blue-l)", ic: "var(--blue)", label: "Weekly Scans", val: "124" },
-          { icon: "zp", bg: "var(--green-bg)", ic: "var(--green)", label: "Time Saved", val: "~42h" },
-          { icon: "dr", bg: "var(--purple-bg)", ic: "var(--purple)", label: "Value Added", val: "$18.4k" },
+          { icon: "sc", bg: "var(--blue-l)", ic: "var(--blue)", label: "Haftalik Skanlar", val: "124" },
+          { icon: "zp", bg: "var(--green-bg)", ic: "var(--green)", label: "Tejangan Vaqt", val: "~42h" },
+          { icon: "dr", bg: "var(--purple-bg)", ic: "var(--purple)", label: "Qo'shilgan Qiymat", val: "$18.4k" },
         ].map((s, i) => (
           <div key={i} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r)", padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--sh)" }}>
             <div style={{ width: 38, height: 38, borderRadius: "var(--rs)", background: s.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -2129,7 +2250,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
           </div>
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "rgba(255,255,255,.7)", marginBottom: 3 }}>Pro Tip</div>
-            <div style={{ fontSize: 13, color: "#fff", lineHeight: 1.4 }}>Batch scan multiple invoices to save 20% more time.</div>
+            <div style={{ fontSize: 13, color: "#fff", lineHeight: 1.4 }}>Bir nechta fakturani ketma-ket skanlash vaqtni 20% tejaydi.</div>
           </div>
         </div>
       </div>
