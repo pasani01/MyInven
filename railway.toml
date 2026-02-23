@@ -1,0 +1,8 @@
+[build]
+builder = "nixpacks"
+buildCommand = "cd MyInventory/backend && pip install -r requirements.txt && python manage.py collectstatic --noinput"
+
+[deploy]
+startCommand = "cd MyInventory/backend && gunicorn config.wsgi:application"
+healthcheckPath = "/admin/"
+restartPolicyType = "on_failure"
