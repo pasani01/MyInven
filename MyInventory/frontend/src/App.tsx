@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 /* ═══════════════════ BASE URL ═══════════════════ */
 const BASE = (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_URL) || "http://127.0.0.1:8000";
 
+
 /* ═══════════════════ AUTH TOKEN ═══════════════════ */
 function setToken(token: string | null) {
   if (token) {
