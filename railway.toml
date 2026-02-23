@@ -1,7 +1,4 @@
 
-Railway · TOML
-Copy
-
 [build]
 builder = "nixpacks"
 buildCommand = "pip install --break-system-packages -r MyInventory/backend/requirements.txt && python MyInventory/backend/manage.py collectstatic --noinput --settings=config.settings"
