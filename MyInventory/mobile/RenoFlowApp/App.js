@@ -17,7 +17,7 @@ import { Ionicons, MaterialIcons, MaterialCommunityIcons, FontAwesome5 } from '@
 
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
-const BASE_URL = 'http://10.10.10.53:8000'; // ← kendi IP'ngiz
+const BASE_URL = 'https://myinven-production.up.railway.app'; // ← kendi IP'ngiz
 
 // ─── i18n ─────────────────────────────────────────────────────────────────────
 const TRANSLATIONS = {
