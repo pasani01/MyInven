@@ -1,11 +1,7 @@
 [build]
-builder = "nixpacks"
-buildCommand = "pip install --break-system-packages -r MyInventory/backend/requirements.txt && python MyInventory/backend/manage.py collectstatic --noinput --settings=config.settings"
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "cd MyInventory/backend && gunicorn config.wsgi:application"
 healthcheckPath = "/admin/"
 restartPolicyType = "on_failure"
-
-[build.nixpacksPlan.phases.setup]
-nixPkgs = ["python312", "python312Packages.pip"]
