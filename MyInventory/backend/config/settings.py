@@ -72,7 +72,8 @@ REST_FRAMEWORK = {
     ],
 }
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # frontend URL
+    "http://localhost:3000",
+    "https://myinven-frontend.up.railway.app",  # frontend URL
 ]
 
 MIDDLEWARE = [
