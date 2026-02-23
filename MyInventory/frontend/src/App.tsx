@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 /* ═══════════════════ BASE URL ═══════════════════ */
-const BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const BASE = (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_URL) || "http://127.0.0.1:8000";
 
 /* ═══════════════════ AUTH TOKEN ═══════════════════ */
 function setToken(token: string | null) {
@@ -809,7 +809,7 @@ function Dashboard({  currentUser, onLogout  }: any) {
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", darkMode ? "dark" : "light");
-    try { localStorage.setItem(`rf_dark_${currentUser.username}`, darkMode); } catch { }
+    try { localStorage.setItem(`rf_dark_${currentUser.username}`, String(darkMode)); } catch { }
   }, [darkMode]);
 
   useEffect(() => {
