@@ -1,6 +1,10 @@
+
+Railway · TOML
+Copy
+
 [build]
 builder = "nixpacks"
-buildCommand = "pip install -r MyInventory/backend/requirements.txt && python MyInventory/backend/manage.py collectstatic --noinput --settings=config.settings"
+buildCommand = "pip install --break-system-packages -r MyInventory/backend/requirements.txt && python MyInventory/backend/manage.py collectstatic --noinput --settings=config.settings"
 
 [deploy]
 startCommand = "cd MyInventory/backend && gunicorn config.wsgi:application"
