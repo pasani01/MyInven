@@ -1,8 +1,11 @@
 [build]
 builder = "nixpacks"
-buildCommand = "cd MyInventory/backend && pip3 install -r requirements.txt && python3 manage.py collectstatic --noinput"
+buildCommand = "pip install -r MyInventory/backend/requirements.txt && python MyInventory/backend/manage.py collectstatic --noinput --settings=config.settings"
 
 [deploy]
 startCommand = "cd MyInventory/backend && gunicorn config.wsgi:application"
 healthcheckPath = "/admin/"
 restartPolicyType = "on_failure"
+
+[build.nixpacksPlan.phases.setup]
+nixPkgs = ["python311", "python311Packages.pip"]
