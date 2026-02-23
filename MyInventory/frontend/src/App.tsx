@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 
 /* ═══════════════════ BASE URL ═══════════════════ */
-const BASE = "http://127.0.0.1:8000";
+const BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 /* ═══════════════════ AUTH TOKEN ═══════════════════ */
-function setToken(token) {
+function setToken(token: string | null) {
   if (token) {
     localStorage.setItem("token", token); // ✅ DÜZELTİLDİ: 't' → 'token'
   } else {
@@ -15,7 +15,7 @@ function setToken(token) {
 function getToken() {
   return localStorage.getItem("token");
 }
-function getCookie(name) {
+function getCookie(name: string): string | null {
   let cookieValue = null;
   if (document.cookie && document.cookie !== "") {
     const cookies = document.cookie.split(";");
@@ -30,9 +30,9 @@ function getCookie(name) {
   return cookieValue;
 }
 
-async function api(path, method = "GET", body = null) {
+async function api(path: string, method: string = "GET", body: any = null) {
   // 1. Header'ları hazırla
-  const headers = { 
+  const headers: Record<string, string> = { 
     "Content-Type": "application/json",
     "Accept": "application/json"
   };
@@ -50,11 +50,10 @@ async function api(path, method = "GET", body = null) {
     headers["X-CSRFToken"] = csrfToken;
   }
 
-  const opts = {
+  const opts: { method: string; headers: Record<string,string>; credentials: RequestCredentials; body?: string } = {
     method,
     headers,
-    // ÖNEMLİ: Cookie'lerin (csrftoken) backend'e ulaşması için "include" şarttır
-    credentials: "include", 
+    credentials: "include" as RequestCredentials,
   };
 
   // 4. Body varsa ekle
@@ -88,57 +87,57 @@ async function api(path, method = "GET", body = null) {
 // AuthPage içindeki handleLogin kullanılıyor (aşağıda)
 
 const authAPI = {
-  login: (username, password) => api("/user_app/login/", "POST", { username, password }),
+  login: (username: string, password: string) => api("/user_app/login/", "POST", { username, password }),
   logout: () => api("/user_app/logout/", "POST"),
   users: () => api("/user_app/users/"),
-  getUser: (id) => api(`/user_app/users/${id}/`),
-  updateUser: (id, data) => api(`/user_app/users/${id}/`, "PUT", data),
-  createUser: (data) => api("/user_app/users/", "POST", data),
-  deleteUser: (id) => api(`/user_app/users/${id}/`, "DELETE"),
+  getUser: (id: number | string) => api(`/user_app/users/${id}/`),
+  updateUser: (id: number | string, data: any) => api(`/user_app/users/${id}/`, "PUT", data),
+  createUser: (data: any) => api("/user_app/users/", "POST", data),
+  deleteUser: (id: number | string) => api(`/user_app/users/${id}/`, "DELETE"),
   companies: () => api("/user_app/companies/"),
-  createCompany: (data) => api("/user_app/companies/", "POST", data),
-  updateCompany: (id, data) => api(`/user_app/companies/${id}/`, "PUT", data),
-  deleteCompany: (id) => api(`/user_app/companies/${id}/`, "DELETE"),
+  createCompany: (data: any) => api("/user_app/companies/", "POST", data),
+  updateCompany: (id: number | string, data: any) => api(`/user_app/companies/${id}/`, "PUT", data),
+  deleteCompany: (id: number | string) => api(`/user_app/companies/${id}/`, "DELETE"),
 };
 
 const depolarAPI = {
   list: () => api("/depolar/"),
-  create: (data) => api("/depolar/", "POST", data),
-  update: (id, data) => api(`/depolar/${id}/`, "PUT", data),
-  patch: (id, data) => api(`/depolar/${id}/`, "PATCH", data),
-  delete: (id) => api(`/depolar/${id}/`, "DELETE"),
+  create: (data: any) => api("/depolar/", "POST", data),
+  update: (id: number | string, data: any) => api(`/depolar/${id}/`, "PUT", data),
+  patch: (id: number | string, data: any) => api(`/depolar/${id}/`, "PATCH", data),
+  delete: (id: number | string) => api(`/depolar/${id}/`, "DELETE"),
 };
 
 const buylistAPI = {
   list: () => api("/buylist/"),
-  create: (data) => api("/buylist/", "POST", data),
-  update: (id, data) => api(`/buylist/${id}/`, "PUT", data),
-  patch: (id, data) => api(`/buylist/${id}/`, "PATCH", data),
-  delete: (id) => api(`/buylist/${id}/`, "DELETE"),
+  create: (data: any) => api("/buylist/", "POST", data),
+  update: (id: number | string, data: any) => api(`/buylist/${id}/`, "PUT", data),
+  patch: (id: number | string, data: any) => api(`/buylist/${id}/`, "PATCH", data),
+  delete: (id: number | string) => api(`/buylist/${id}/`, "DELETE"),
   totalPrice: () => api("/buylist/total_price/"),
 };
 
 const itemlerAPI = {
   list: () => api("/itemler/"),
-  create: (data) => api("/itemler/", "POST", data),
-  update: (id, data) => api(`/itemler/${id}/`, "PUT", data),
-  delete: (id) => api(`/itemler/${id}/`, "DELETE"),
+  create: (data: any) => api("/itemler/", "POST", data),
+  update: (id: number | string, data: any) => api(`/itemler/${id}/`, "PUT", data),
+  delete: (id: number | string) => api(`/itemler/${id}/`, "DELETE"),
 };
 
 const moneytypesAPI = {
   list: () => api("/moneytypes/"),
-  create: (data) => api("/moneytypes/", "POST", data),
-  delete: (id) => api(`/moneytypes/${id}/`, "DELETE"),
+  create: (data: any) => api("/moneytypes/", "POST", data),
+  delete: (id: number | string) => api(`/moneytypes/${id}/`, "DELETE"),
 };
 
 const unitlerAPI = {
   list: () => api("/unitler/"),
-  create: (data) => api("/unitler/", "POST", data),
-  delete: (id) => api(`/unitler/${id}/`, "DELETE"),
+  create: (data: any) => api("/unitler/", "POST", data),
+  delete: (id: number | string) => api(`/unitler/${id}/`, "DELETE"),
 };
 
 /* ═══════════════════ NORMALIZERS ═══════════════════ */
-function normalizeDepolar(d, idx = 0) {
+function normalizeDepolar(d: any, idx: number = 0) {
   const WC = ["bl", "or", "pu"];
   const IC = ["wh", "bx", "tr"];
   return {
@@ -158,7 +157,7 @@ function normalizeDepolar(d, idx = 0) {
   };
 }
 
-function normalizeItem(item) {
+function normalizeItem(item: any) {
   return {
     id: item.id,
     name: item.name ?? item.nomi ?? item.mahsulot ?? `Item #${item.id}`,
@@ -166,7 +165,7 @@ function normalizeItem(item) {
   };
 }
 
-function normalizeMoneytype(m) {
+function normalizeMoneytype(m: any) {
   // Backend serializer'da source='type' → 'name' olarak geliyor
   const name = m.name ?? m.type ?? m.nomi ?? m.valyuta ?? `MT #${m.id}`;
   return {
@@ -177,7 +176,7 @@ function normalizeMoneytype(m) {
   };
 }
 
-function normalizeUnit(u) {
+function normalizeUnit(u: any) {
   // Backend serializer'da source='unit' → 'name' olarak geliyor
   return {
     id: u.id,
@@ -186,23 +185,23 @@ function normalizeUnit(u) {
   };
 }
 
-function normalizeBuylist(b, itemler = [], moneytypes = [], unitler = []) {
+function normalizeBuylist(b: any, itemler: any[] = [], moneytypes: any[] = [], unitler: any[] = []) {
   // Backend serializer artık frontend ile aynı alan adlarını döndürüyor:
   // qty, narx, unit, moneytype, depolar
   const itemId = typeof b.item === "object" ? b.item?.id : (b.item ?? null);
   const itemName = typeof b.item === "object"
     ? (b.item?.name ?? b.item?.nomi)
-    : (itemler.find(i => i.id === itemId)?.name ?? `Item #${itemId}`);
+    : (itemler.find((i: any) => i.id === itemId)?.name ?? `Item #${itemId}`);
 
   const moneytypeId = typeof b.moneytype === "object" ? b.moneytype?.id : (b.moneytype ?? null);
   const moneytypeName = typeof b.moneytype === "object"
     ? (b.moneytype?.name ?? b.moneytype?.type)
-    : (moneytypes.find(m => m.id === moneytypeId)?.name ?? "USD");
+    : (moneytypes.find((m: any) => m.id === moneytypeId)?.name ?? "USD");
 
   const unitId = typeof b.unit === "object" ? b.unit?.id : (b.unit ?? null);
   const unitName = typeof b.unit === "object"
     ? (b.unit?.name ?? b.unit?.unit)
-    : (unitler.find(u => u.id === unitId)?.name ?? "pcs");
+    : (unitler.find((u: any) => u.id === unitId)?.name ?? "pcs");
 
   const depolarId = typeof b.depolar === "object" ? b.depolar?.id : (b.depolar ?? null);
 
@@ -594,17 +593,17 @@ const P = {
   pkg: "M16.5 9.4l-9-5.19 M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z M3.27 6.96 12 12.01l8.73-5.05 M12 22.08V12",
 };
 
-function I({ n, s = 16, c = "currentColor" }) {
+function I({  n, s = 16, c = "currentColor"  }: any) {
   return (
     <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c}
       strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"
       style={{ display: "block", flexShrink: 0 }}>
-      {P[n]?.split(" M").map((d, i) => <path key={i} d={i === 0 ? d : "M" + d} />)}
+      {P[n]?.split(" M").map((d: any, i: any) => <path key={i} d={i === 0 ? d : "M" + d} />)}
     </svg>
   );
 }
 
-function Toggle({ checked, onChange }) {
+function Toggle({  checked, onChange  }: any) {
   return (
     <label className="toggle" onClick={e => e.stopPropagation()}>
       <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} />
@@ -613,10 +612,10 @@ function Toggle({ checked, onChange }) {
   );
 }
 
-function ToastList({ toasts }) {
+function ToastList({  toasts  }: any) {
   return (
     <div className="toast-stack">
-      {toasts.map(t => (
+      {toasts.map((t: any) => (
         <div key={t.id} className={`toast ${t.type || ""}`}>
           {t.type === "success" && <I n="ck" s={15} c="#4ade80" />}
           {t.type === "error" && <I n="x" s={15} c="#f87171" />}
@@ -632,7 +631,7 @@ function Spinner() {
   return <div className="loading-overlay"><div className="spinner" /><span>Loading...</span></div>;
 }
 
-function Modal({ title, onClose, children, footer, wide }) {
+function Modal({  title, onClose, children, footer, wide  }: any) {
   useEffect(() => {
     const h = e => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", h);
@@ -652,7 +651,7 @@ function Modal({ title, onClose, children, footer, wide }) {
   );
 }
 
-function ConfirmModal({ title, desc, onConfirm, onClose }) {
+function ConfirmModal({  title, desc, onConfirm, onClose  }: any) {
   return (
     <Modal title={title} onClose={onClose}
       footer={<><button className="btn bo" onClick={onClose}>Cancel</button><button className="btn bd" onClick={() => { onConfirm(); onClose(); }}>Delete</button></>}>
@@ -694,7 +693,7 @@ const SHIP_ST = {
 };
 
 /* ═══════════════════ AUTH PAGE ═══════════════════ */
-function AuthPage({ onLogin }) {
+function AuthPage({  onLogin  }: any) {
   const [username, setUsername] = useState("");
   const [pass, setPass] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -710,8 +709,8 @@ function AuthPage({ onLogin }) {
       else if (data.key) setToken(data.key);
       const userData = data.user ?? { username, role: data.role ?? "staff", email: data.email ?? "", company: data.company ?? null, id: data.id ?? null };
       onLogin(userData);
-    } catch (e) {
-      setErr(e.message || "Login failed. Please check your username and password.");
+    } catch (e: any) {
+      setErr((e as Error).message || "Login failed. Please check your username and password.");
     } finally { setLoading(false); }
   }
 
@@ -760,7 +759,7 @@ function AuthPage({ onLogin }) {
           <h2>RenoFlow Warehouse MGT</h2>
           <p>Manage warehouses, inventory and users with ease.</p>
           <div style={{ marginTop: 32, display: "flex", gap: 10, flexWrap: "wrap", position: "relative", zIndex: 1 }}>
-            {["Warehouses", "Inventory", "Shipments", "Reports", "Users"].map(f => (
+            {["Warehouses", "Inventory", "Shipments", "Reports", "Users"].map((f: any) => (
               <span key={f} style={{ background: "rgba(255,255,255,.18)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 20, backdropFilter: "blur(4px)", border: "1px solid rgba(255,255,255,.25)" }}>{f}</span>
             ))}
           </div>
@@ -771,9 +770,9 @@ function AuthPage({ onLogin }) {
 }
 
 /* ═══════════════════ DASHBOARD ═══════════════════ */
-function Dashboard({ currentUser, onLogout }) {
+function Dashboard({  currentUser, onLogout  }: any) {
   const [page, setPage] = useState("warehouses");
-  const [selectedWh, setSelectedWh] = useState(null);
+  const [selectedWh, setSelectedWh] = useState<any>(null);
   const [darkMode, setDarkMode] = useState(() => {
     try { return localStorage.getItem(`rf_dark_${currentUser.username}`) === "true"; } catch { return false; }
   });
@@ -785,17 +784,17 @@ function Dashboard({ currentUser, onLogout }) {
   });
 
   // API Data
-  const [warehouses, setWarehouses] = useState([]);
-  const [buylist, setBuylist] = useState([]);
-  const [itemler, setItemler] = useState([]);
-  const [moneytypes, setMoneytypes] = useState([]);
-  const [unitler, setUnitler] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [companies, setCompanies] = useState([]);
+  const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [buylist, setBuylist] = useState<any[]>([]);
+  const [itemler, setItemler] = useState<any[]>([]);
+  const [moneytypes, setMoneytypes] = useState<any[]>([]);
+  const [unitler, setUnitler] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [companies, setCompanies] = useState<any[]>([]);
 
-  const [toasts, setToasts] = useState([]);
+  const [toasts, setToasts] = useState<any[]>([]);
   const [loadingWh, setLoadingWh] = useState(false);
-  const [apiError, setApiError] = useState(null);
+  const [apiError, setApiError] = useState<any>(null);
   const [settings, setSettings] = useState({
     notifLowStock: true, notifShipments: true, notifReports: false, notifEmail: true,
     compactView: false, animationsEnabled: true, autoSave: true,
@@ -823,8 +822,8 @@ function Dashboard({ currentUser, onLogout }) {
 
   const addToast = useCallback((msg, type = "success") => {
     const id = Date.now();
-    setToasts(t => [...t, { id, msg, type }]);
-    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3500);
+    setToasts((t: any[]) => [...t, { id, msg, type }]);
+    setTimeout(() => setToasts((t: any[]) => t.filter((x: any) => x.id !== id)), 3500);
   }, []);
 
   const fetchWarehouses = useCallback(async () => {
@@ -832,8 +831,8 @@ function Dashboard({ currentUser, onLogout }) {
     try {
       const data = await depolarAPI.list();
       const arr = Array.isArray(data) ? data : (data?.results ?? []);
-      setWarehouses(arr.map((d, i) => normalizeDepolar(d, i)));
-    } catch (e) { setApiError(`Failed to load warehouses: ${e.message}`); }
+      setWarehouses(arr.map((d: any, i: any) => normalizeDepolar(d, i)));
+    } catch (e: any) { setApiError(`Failed to load warehouses: ${(e as Error).message}`); }
     finally { setLoadingWh(false); }
   }, []);
 
@@ -865,7 +864,7 @@ function Dashboard({ currentUser, onLogout }) {
     try {
       const data = await buylistAPI.list();
       const arr = Array.isArray(data) ? data : (data?.results ?? []);
-      setBuylist(arr.map(b => normalizeBuylist(b, im, mm, um)));
+      setBuylist(arr.map((b: any) => normalizeBuylist(b, im, mm, um)));
     } catch { /* ignore */ }
   }, []);
 
@@ -899,15 +898,15 @@ function Dashboard({ currentUser, onLogout }) {
         const iArr = (Array.isArray(iData) ? iData : (iData?.results ?? [])).map(normalizeItem);
         const mArr = (Array.isArray(mData) ? mData : (mData?.results ?? [])).map(normalizeMoneytype);
         const uArr = (Array.isArray(uData) ? uData : (uData?.results ?? [])).map(normalizeUnit);
-        setWarehouses(wArr.map((d, i) => normalizeDepolar(d, i)));
+        setWarehouses(wArr.map((d: any, i: any) => normalizeDepolar(d, i)));
         setItemler(iArr);
         setMoneytypes(mArr);
         setUnitler(uArr);
 
         const blData = await buylistAPI.list().catch(() => []);
         const blArr = Array.isArray(blData) ? blData : (blData?.results ?? []);
-        setBuylist(blArr.map(b => normalizeBuylist(b, iArr, mArr, uArr)));
-      } catch (e) { setApiError(`Failed to load data: ${e.message}`); }
+        setBuylist(blArr.map((b: any) => normalizeBuylist(b, iArr, mArr, uArr)));
+      } catch (e: any) { setApiError(`Failed to load data: ${(e as Error).message}`); }
       finally { setLoadingWh(false); }
     };
     init();
@@ -919,7 +918,7 @@ function Dashboard({ currentUser, onLogout }) {
     try {
       const data = await buylistAPI.list();
       const arr = Array.isArray(data) ? data : (data?.results ?? []);
-      setBuylist(arr.map(b => normalizeBuylist(b, itemler, moneytypes, unitler)));
+      setBuylist(arr.map((b: any) => normalizeBuylist(b, itemler, moneytypes, unitler)));
     } catch { /* ignore */ }
   }
 
@@ -932,7 +931,7 @@ function Dashboard({ currentUser, onLogout }) {
   function backToWarehouses() { setSelectedWh(null); setPage("warehouses"); fetchWarehouses(); refreshBuylist(); }
 
   const whActive = page === "warehouses" || page === "whdetail";
-  const lowItems = buylist.filter(i => i.low).length;
+  const lowItems = buylist.filter((i: any) => i.low).length;
 
   return (
     <div className="app">
@@ -1086,14 +1085,14 @@ function Dashboard({ currentUser, onLogout }) {
 }
 
 /* ═══════════════════ REFERENCE PAGE (Itemler / Moneytypes / Unitler) ═══════════════════ */
-function RefPage({ title, icon, data, setData, api, normalize, fields, addToast, T }) {
+function RefPage({  title, icon, data, setData, api, normalize, fields, addToast, T  }: any) {
   const [showAdd, setShowAdd] = useState(false);
-  const [delItem, setDelItem] = useState(null);
+  const [delItem, setDelItem] = useState<any>(null);
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
 
   async function addItem() {
-    const firstReq = fields.find(f => f.required);
+    const firstReq = fields.find((f: any) => f.required);
     if (firstReq && !form[firstReq.k]?.trim()) return;
     setSaving(true);
     try {
@@ -1101,16 +1100,16 @@ function RefPage({ title, icon, data, setData, api, normalize, fields, addToast,
       setData(prev => [...prev, normalize(created)]);
       addToast(`"${form[fields[0].k]}" added!`);
       setShowAdd(false); setForm({});
-    } catch (e) { addToast(`Xato: ${e.message}`, "error"); }
+    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
     finally { setSaving(false); }
   }
 
   async function delIt(item) {
     try {
       await api.delete(item.id);
-      setData(prev => prev.filter(x => x.id !== item.id));
+      setData(prev => prev.filter((x: any) => x.id !== item.id));
       addToast(`"${item.name}" deleted`, "error");
-    } catch (e) { addToast(`Xato: ${e.message}`, "error"); }
+    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
   }
 
   return (
@@ -1118,7 +1117,7 @@ function RefPage({ title, icon, data, setData, api, normalize, fields, addToast,
       {showAdd && (
         <Modal title={`Add ${title}`} onClose={() => setShowAdd(false)}
           footer={<><button className="btn bo" onClick={() => setShowAdd(false)}>{T.cancel}</button><button className="btn bp" onClick={addItem} disabled={saving}>{saving ? "..." : T.save}</button></>}>
-          {fields.map(f => (
+          {fields.map((f: any) => (
             <div className="form-group" key={f.k}>
               <label className="form-label">{f.l}</label>
               <input className="form-input" value={form[f.k] || ""} onChange={e => setForm(p => ({ ...p, [f.k]: e.target.value }))} />
@@ -1142,12 +1141,12 @@ function RefPage({ title, icon, data, setData, api, normalize, fields, addToast,
           <div className="empty-state"><I n={icon} s={38} c="var(--border2)" /><h3>{title} is empty</h3><p>Add your first record.</p></div>
         ) : (
           <table>
-            <thead><tr><th>ID</th>{fields.map(f => <th key={f.k}>{f.l.replace(" *", "")}</th>)}<th></th></tr></thead>
+            <thead><tr><th>ID</th>{fields.map((f: any) => <th key={f.k}>{f.l.replace(" *", "")}</th>)}<th></th></tr></thead>
             <tbody>
               {data.map(item => (
                 <tr key={item.id}>
                   <td className="dv">#{item.id}</td>
-                  {fields.map(f => <td key={f.k} className="itn">{item[f.k] ?? item.name ?? "—"}</td>)}
+                  {fields.map((f: any) => <td key={f.k} className="itn">{item[f.k] ?? item.name ?? "—"}</td>)}
                   <td><button className="ib red" onClick={() => setDelItem(item)}><I n="td" s={13} /></button></td>
                 </tr>
               ))}
@@ -1160,11 +1159,11 @@ function RefPage({ title, icon, data, setData, api, normalize, fields, addToast,
 }
 
 /* ═══════════════════ WAREHOUSE PAGE ═══════════════════ */
-function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh, addToast, T, onOpenWh }) {
+function WarehousePage({  warehouses, setWarehouses, buylist, loading, onRefresh, addToast, T, onOpenWh  }: any) {
   const [showAdd, setShowAdd] = useState(false);
-  const [showEdit, setShowEdit] = useState(null);
-  const [showDel, setShowDel] = useState(null);
-  const [openMenu, setOpenMenu] = useState(null);
+  const [showEdit, setShowEdit] = useState<any>(null);
+  const [showDel, setShowDel] = useState<any>(null);
+  const [openMenu, setOpenMenu] = useState<any>(null);
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const EMPTY = { name: "", addr: "", usd: "", som: "", manager: "", phone: "", type: "General" };
@@ -1176,7 +1175,7 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
     return () => window.removeEventListener("click", h);
   }, []);
 
-  const filtered = warehouses.filter(w =>
+  const filtered = warehouses.filter((w: any) =>
     w.name.toLowerCase().includes(search.toLowerCase()) ||
     w.addr.toLowerCase().includes(search.toLowerCase())
   );
@@ -1196,7 +1195,7 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
       await depolarAPI.create(buildPayload(form));
       addToast(`"${form.name}" yaratildi!`);
       setShowAdd(false); setForm(EMPTY); onRefresh();
-    } catch (e) { addToast(`Xato: ${e.message}`, "error"); }
+    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
     finally { setSaving(false); }
   }
 
@@ -1206,7 +1205,7 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
     try {
       await depolarAPI.update(showEdit.id, buildPayload(form));
       addToast("Ombor yangilandi!"); setShowEdit(null); onRefresh();
-    } catch (e) { addToast(`Xato: ${e.message}`, "error"); }
+    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
     finally { setSaving(false); }
   }
 
@@ -1214,7 +1213,7 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
     try {
       await depolarAPI.delete(wh.id);
       addToast(`"${wh.name}" deleted`, "error"); onRefresh();
-    } catch (e) { addToast(`Xato: ${e.message}`, "error"); }
+    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
   }
 
   function openEdit(wh) {
@@ -1266,14 +1265,14 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
       <div className="sg sg3">
         <div className="sc"><div className="slb">Total Warehouses</div><div className="sv">{warehouses.length}</div><div style={{ marginTop: 7 }}><span className="badge bdg">All Active</span></div></div>
         <div className="sc"><div className="slb">Total Inventory</div><div className="sv bl">{buylist.length}</div><div className="sss">Across all locations</div></div>
-        <div className="sc"><div className="slb">Low Stock</div><div className="sv rd">{buylist.filter(i => i.low).length}</div><div className="sss">Needs attention</div></div>
+        <div className="sc"><div className="slb">Low Stock</div><div className="sv rd">{buylist.filter((i: any) => i.low).length}</div><div className="sss">Needs attention</div></div>
       </div>
 
       {loading ? <Spinner /> : (
         <div className="wg">
           {filtered.map((w) => {
             const icColor = WC_ICON_COLOR[w.wc];
-            const whBl = buylist.filter(b => String(b.depolarId) === String(w.id));
+            const whBl = buylist.filter((b: any) => String(b.depolarId) === String(w.id));
             const isOpen = openMenu === w.id;
             return (
               <div key={w.id} className="wc" onClick={() => onOpenWh(w)}>
@@ -1296,7 +1295,7 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
                   <div className="wa"><I n="lc" s={11} c="var(--text4)" />{w.addr}</div>
                   <div className="wdd" />
                   <div className="wss">Buylist: <strong>{whBl.length} ta</strong>
-                    {whBl.filter(b => b.low).length > 0 && <span style={{ color: "var(--red)", fontWeight: 700, fontSize: 11, marginLeft: 7 }}>⚠ {whBl.filter(b => b.low).length} kam</span>}
+                    {whBl.filter((b: any) => b.low).length > 0 && <span style={{ color: "var(--red)", fontWeight: 700, fontSize: 11, marginLeft: 7 }}>⚠ {whBl.filter((b: any) => b.low).length} kam</span>}
                   </div>
                   <div className="vsl">Qiymat</div>
                   <div className="vgg">
@@ -1327,10 +1326,10 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
 }
 
 /* ═══════════════════ WAREHOUSE DETAIL ═══════════════════ */
-function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuylist, itemler, moneytypes, unitler, addToast, T, onBack }) {
+function WarehouseDetail({  wh, setWh, warehouses, setWarehouses, buylist, setBuylist, itemler, moneytypes, unitler, addToast, T, onBack  }: any) {
   const [showAdd, setShowAdd] = useState(false);
-  const [editItem, setEditItem] = useState(null);
-  const [delItem, setDelItem] = useState(null);
+  const [editItem, setEditItem] = useState<any>(null);
+  const [delItem, setDelItem] = useState<any>(null);
   const [showEditWh, setShowEditWh] = useState(false);
 
   // buylist form — uses FK IDs
@@ -1350,11 +1349,11 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
     }));
   }, [itemler, moneytypes, unitler]);
 
-  const whBl = buylist.filter(b => String(b.depolarId) === String(wh.id));
-  const filtered = whBl.filter(i => i.name.toLowerCase().includes(search.toLowerCase()));
+  const whBl = buylist.filter((b: any) => String(b.depolarId) === String(wh.id));
+  const filtered = whBl.filter((i: any) => i.name.toLowerCase().includes(search.toLowerCase()));
   const totalPgs = Math.max(1, Math.ceil(filtered.length / PER));
   const shown = filtered.slice((pg - 1) * PER, pg * PER);
-  const lowCount = whBl.filter(i => i.low).length;
+  const lowCount = whBl.filter((i: any) => i.low).length;
   const grad = WC_GRADIENT[wh.wc] || WC_GRADIENT.bl;
 
   // Build API payload for buylist — serializer alan adlarıyla eşleşiyor
@@ -1376,7 +1375,7 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
       const created = await buylistAPI.create(buildBlPayload(form));
       setBuylist(prev => [...prev, normalizeBuylist(created, itemler, moneytypes, unitler)]);
       addToast("Item added to inventory!"); setShowAdd(false); setForm(EMPTY_BL);
-    } catch (e) { addToast(`Xato: ${e.message}`, "error"); }
+    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
     finally { setSaving(false); }
   }
 
@@ -1385,18 +1384,18 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
     setSaving(true);
     try {
       const updated = await buylistAPI.update(editItem.id, buildBlPayload(form));
-      setBuylist(prev => prev.map(i => i.id === editItem.id ? normalizeBuylist(updated, itemler, moneytypes, unitler) : i));
+      setBuylist(prev => prev.map((i: any) => i.id === editItem.id ? normalizeBuylist(updated, itemler, moneytypes, unitler) : i));
       addToast("Yangilandi!"); setEditItem(null);
-    } catch (e) { addToast(`Xato: ${e.message}`, "error"); }
+    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
     finally { setSaving(false); }
   }
 
   async function delBl(item) {
     try {
       await buylistAPI.delete(item.id);
-      setBuylist(prev => prev.filter(i => i.id !== item.id));
+      setBuylist(prev => prev.filter((i: any) => i.id !== item.id));
       addToast(`"${item.name}" deleted`, "error");
-    } catch (e) { addToast(`Xato: ${e.message}`, "error"); }
+    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
   }
 
   async function saveWh() {
@@ -1410,7 +1409,7 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
       setWh(prev => ({ ...prev, ...norm }));
       setWarehouses(ws => ws.map(w2 => w2.id === wh.id ? { ...w2, ...norm } : w2));
       addToast("Ombor yangilandi!"); setShowEditWh(false);
-    } catch (e) { addToast(`Xato: ${e.message}`, "error"); }
+    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
     finally { setSaving(false); }
   }
 
@@ -1433,7 +1432,7 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
         <label className="form-label">Mahsulot (Item) *</label>
         <select className="form-select" value={form.item} onChange={sf("item")}>
           <option value="">— Mahsulot tanlang —</option>
-          {itemler.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+          {itemler.map((i: any) => <option key={i.id} value={i.id}>{i.name}</option>)}
         </select>
         {itemler.length === 0 && <div style={{ fontSize: 12, color: "var(--orange)", marginTop: 4 }}>⚠ First add items in the Items section</div>}
       </div>
@@ -1452,7 +1451,7 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
           <label className="form-label">Valyuta (Moneytype)</label>
           <select className="form-select" value={form.moneytype} onChange={sf("moneytype")}>
             <option value="">— Valyuta —</option>
-            {moneytypes.map(m => <option key={m.id} value={m.id}>{m.name} {m.code !== m.name ? `(${m.code})` : ""}</option>)}
+            {moneytypes.map((m: any) => <option key={m.id} value={m.id}>{m.name} {m.code !== m.name ? `(${m.code})` : ""}</option>)}
           </select>
           {moneytypes.length === 0 && <div style={{ fontSize: 12, color: "var(--orange)", marginTop: 4 }}>⚠ First add currencies in the Currencies section</div>}
         </div>
@@ -1460,7 +1459,7 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
           <label className="form-label">Birlik (Unit)</label>
           <select className="form-select" value={form.unit} onChange={sf("unit")}>
             <option value="">— Birlik —</option>
-            {unitler.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+            {unitler.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
           </select>
           {unitler.length === 0 && <div style={{ fontSize: 12, color: "var(--orange)", marginTop: 4 }}>⚠ First add units in the Units section</div>}
         </div>
@@ -1572,14 +1571,14 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
                 <label className="form-label">Mahsulot *</label>
                 <select className="form-select" style={{ width: "100%" }} value={form.item} onChange={sf("item")}>
                   <option value="">— Tanlang —</option>
-                  {itemler.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                  {itemler.map((i: any) => <option key={i.id} value={i.id}>{i.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="form-label">Valyuta</label>
                 <select className="form-select" style={{ width: "100%" }} value={form.moneytype} onChange={sf("moneytype")}>
                   <option value="">— Valyuta —</option>
-                  {moneytypes.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  {moneytypes.map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
               </div>
               <div>
@@ -1598,7 +1597,7 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
               <label className="form-label" style={{ margin: 0 }}>Birlik:</label>
               <select className="form-select" style={{ width: 140 }} value={form.unit} onChange={sf("unit")}>
                 <option value="">— Birlik —</option>
-                {unitler.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                {unitler.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
             </div>
           </div>
@@ -1638,7 +1637,7 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
           <span className="ti">{Math.min((pg - 1) * PER + 1, filtered.length)}–{Math.min(pg * PER, filtered.length)} / {filtered.length}</span>
           <div className="pg">
             <div className="pb" onClick={() => setPg(p => Math.max(1, p - 1))}><I n="cl" s={12} /></div>
-            {Array.from({ length: totalPgs }, (_, i) => i + 1).map(n => (
+            {Array.from({ length: totalPgs }, (_, i) => i + 1).map((n: any) => (
               <div key={n} className={`pb${pg === n ? " act" : ""}`} onClick={() => setPg(n)}>{n}</div>
             ))}
             <div className="pb" onClick={() => setPg(p => Math.min(totalPgs, p + 1))}><I n="cr" s={12} /></div>
@@ -1656,9 +1655,9 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
 
 /* ═══════════════════ SHIPMENTS ═══════════════════ */
 let SHIP_ID = 50;
-function ShipmentsPage({ shipments, setShipments, addToast, T }) {
+function ShipmentsPage({  shipments, setShipments, addToast, T  }: any) {
   const [showAdd, setShowAdd] = useState(false);
-  const [delShip, setDelShip] = useState(null);
+  const [delShip, setDelShip] = useState<any>(null);
   const [form, setForm] = useState({ item: "", from: "", to: "", val: "", status: "Pending" });
 
   function addShip() {
@@ -1690,7 +1689,7 @@ function ShipmentsPage({ shipments, setShipments, addToast, T }) {
         </Modal>
       )}
       {delShip && <ConfirmModal title="Delete Shipment" desc={<>«<strong>{delShip.item}</strong>»?
-      </>} onConfirm={() => { setShipments(s => s.filter(x => x.id !== delShip.id)); addToast("Deleted", "error"); }} onClose={() => setDelShip(null)} />}
+      </>} onConfirm={() => { setShipments(s => s.filter((x: any) => x.id !== delShip.id)); addToast("Deleted", "error"); }} onClose={() => setDelShip(null)} />}
 
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
@@ -1701,8 +1700,8 @@ function ShipmentsPage({ shipments, setShipments, addToast, T }) {
       </div>
 
       <div className="sg sg3">
-        {[{ l: "Delivered", cl: "gr", f: "Delivered" }, { l: "In Transit", cl: "bl", f: "In Transit" }, { l: "Pending", cl: "rd", f: "Pending" }].map(s => (
-          <div key={s.l} className="sc"><div className="slb">{s.l}</div><div className={`sv ${s.cl}`}>{shipments.filter(x => x.status === s.f).length}</div></div>
+        {[{ l: "Delivered", cl: "gr", f: "Delivered" }, { l: "In Transit", cl: "bl", f: "In Transit" }, { l: "Pending", cl: "rd", f: "Pending" }].map((s: any) => (
+          <div key={s.l} className="sc"><div className="slb">{s.l}</div><div className={`sv ${s.cl}`}>{shipments.filter((x: any) => x.status === s.f).length}</div></div>
         ))}
       </div>
 
@@ -1710,7 +1709,7 @@ function ShipmentsPage({ shipments, setShipments, addToast, T }) {
         <div className="sh2"><div className="st2">All Shipments</div></div>
         {shipments.length === 0
           ? <div className="empty-state"><I n="ship" s={38} c="var(--border2)" /><h3>No shipments</h3></div>
-          : shipments.map(s => {
+          : shipments.map((s: any) => {
             const st = SHIP_ST[s.status] || SHIP_ST.Pending;
             return (
               <div className="ship-card" key={s.id}>
@@ -1733,12 +1732,12 @@ function ShipmentsPage({ shipments, setShipments, addToast, T }) {
 }
 
 /* ═══════════════════ REPORTS ═══════════════════ */
-function ReportsPage({ warehouses, buylist, shipments, addToast, T }) {
-  const byWH = warehouses.map(w => ({
+function ReportsPage({  warehouses, buylist, shipments, addToast, T  }: any) {
+  const byWH = warehouses.map((w: any) => ({
     name: w.name.split(" ").slice(0, 2).join(" "),
-    count: buylist.filter(b => String(b.depolarId) === String(w.id)).length,
+    count: buylist.filter((b: any) => String(b.depolarId) === String(w.id)).length,
   }));
-  const maxWH = Math.max(...byWH.map(w => w.count), 1);
+  const maxWH = Math.max(...byWH.map((w: any) => w.count), 1);
   const colors = ["var(--blue)", "var(--orange)", "var(--purple)", "var(--green)"];
 
   return (
@@ -1754,13 +1753,13 @@ function ReportsPage({ warehouses, buylist, shipments, addToast, T }) {
         <div className="sc"><div className="slb">Total Inventory</div><div className="sv">{buylist.length}</div><div style={{ marginTop: 6 }}><span className="badge bdg">All warehouses</span></div></div>
         <div className="sc"><div className="slb">Warehouses</div><div className="sv bl">{warehouses.length}</div></div>
         <div className="sc"><div className="slb">Shipments</div><div className="sv" style={{ color: "var(--purple)" }}>{shipments.length}</div></div>
-        <div className="sc"><div className="slb">Low Stock</div><div className="sv rd">{buylist.filter(i => i.low).length}</div></div>
+        <div className="sc"><div className="slb">Low Stock</div><div className="sv rd">{buylist.filter((i: any) => i.low).length}</div></div>
       </div>
       <div className="rep-grid">
         <div className="rep-chart">
           <div className="rep-chart-title">Items by Warehouse</div>
           {byWH.length === 0 ? <div style={{ color: "var(--text4)", fontSize: 13 }}>No data</div> :
-            byWH.map((w, i) => (
+            byWH.map((w: any, i: any) => (
               <div key={i} className="bar-row">
                 <div className="bar-label">{w.name}</div>
                 <div className="bar-track"><div className="bar-fill" style={{ width: `${(w.count / maxWH) * 100}%`, background: colors[i % colors.length] }} /></div>
@@ -1771,10 +1770,10 @@ function ReportsPage({ warehouses, buylist, shipments, addToast, T }) {
         <div className="rep-chart">
           <div className="rep-chart-title">Status breakdown</div>
           {[
-            { label: "Delivered", count: shipments.filter(s => s.status === "Delivered").length, color: "var(--green)" },
-            { label: "In Transit", count: shipments.filter(s => s.status === "In Transit").length, color: "var(--orange)" },
-            { label: "Pending", count: shipments.filter(s => s.status === "Pending").length, color: "var(--blue)" },
-            { label: "Low Stock", count: buylist.filter(i => i.low).length, color: "var(--red)" },
+            { label: "Delivered", count: shipments.filter((s: any) => s.status === "Delivered").length, color: "var(--green)" },
+            { label: "In Transit", count: shipments.filter((s: any) => s.status === "In Transit").length, color: "var(--orange)" },
+            { label: "Pending", count: shipments.filter((s: any) => s.status === "Pending").length, color: "var(--blue)" },
+            { label: "Low Stock", count: buylist.filter((i: any) => i.low).length, color: "var(--red)" },
           ].map((r, i) => (
             <div key={i} className="bar-row">
               <div className="bar-label">{r.label}</div>
@@ -1788,7 +1787,7 @@ function ReportsPage({ warehouses, buylist, shipments, addToast, T }) {
         <div className="sh2"><div className="st2">Shipment Log</div></div>
         <table>
           <thead><tr><th>Mahsulot</th><th>Marshrut</th><th>Sana</th><th>Status</th><th>Qiymat</th></tr></thead>
-          <tbody>{shipments.map((s, i) => (
+          <tbody>{shipments.map((s: any, i: any) => (
             <tr key={i}>
               <td><div className="itn">{s.item}</div><div className="iti">Batch {s.batch}</div></td>
               <td className="dv">{s.from} → {s.to}</td>
@@ -1807,20 +1806,20 @@ function ReportsPage({ warehouses, buylist, shipments, addToast, T }) {
 let INTAKE_ID = 100;
 const DEFAULT_LINES = [];
 
-function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unitler, addToast, T }) {
-  const [lines, setLines] = useState([]);
+function IntakePage({  buylist, setBuylist, warehouses, itemler, moneytypes, unitler, addToast, T  }: any) {
+  const [lines, setLines] = useState<any[]>([]);
   const [approved, setApproved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [selWh, setSelWh] = useState(warehouses[0]?.id || "");
   const [refId, setRefId] = useState("");
-  const [editingCell, setEditingCell] = useState(null);
+  const [editingCell, setEditingCell] = useState<any>(null);
   const [showAddLine, setShowAddLine] = useState(false);
   const [newLine, setNewLine] = useState({ desc: "", qty: "", price: "", cur: "UZS" });
 
   // Upload state
-  const [uploadedFile, setUploadedFile] = useState(null);       // File objesi
-  const [previewUrl, setPreviewUrl] = useState(null);           // Önizleme URL'i
+  const [uploadedFile, setUploadedFile] = useState<any>(null);       // File objesi
+  const [previewUrl, setPreviewUrl] = useState<any>(null);           // Önizleme URL'i
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = { current: null };
 
@@ -1864,7 +1863,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
         headers: {
           ...(token ? { "Authorization": `Token ${token}` } : {}),
         },
-        credentials: "include",
+        credentials: "include" as RequestCredentials,
         body: formData,  // Content-Type otomatik multipart/form-data olur
       });
 
@@ -1886,19 +1885,19 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
         setRefId(`INV-${Date.now().toString().slice(-6)}`);
         addToast(`${scannedLines.length} ürün başarıyla tarandı!`, "success");
       }
-    } catch (e) {
-      addToast(`Tarama hatası: ${e.message}`, "error");
+    } catch (e: any) {
+      addToast(`Tarama hatası: ${(e as Error).message}`, "error");
     } finally {
       setScanning(false);
     }
   }
 
   function updateLine(id, field, value) {
-    setLines(prev => prev.map(l => l.id === id ? { ...l, [field]: value } : l));
+    setLines(prev => prev.map((l: any) => l.id === id ? { ...l, [field]: value } : l));
   }
 
   function deleteLine(id) {
-    setLines(prev => prev.filter(l => l.id !== id));
+    setLines(prev => prev.filter((l: any) => l.id !== id));
   }
 
   function addLine() {
@@ -1915,8 +1914,8 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
     for (const line of lines) {
       try {
         const itemId = itemler[0]?.id || null;
-        const mtId = moneytypes.find(m => m.code === line.cur || m.name === line.cur)?.id || moneytypes[0]?.id || null;
-        const unitId = unitler.find(u => u.name === line.birlik)?.id || unitler[0]?.id || null;
+        const mtId = moneytypes.find((m: any) => m.code === line.cur || m.name === line.cur)?.id || moneytypes[0]?.id || null;
+        const unitId = unitler.find((u: any) => u.name === line.birlik)?.id || unitler[0]?.id || null;
         const created = await buylistAPI.create({
           item:      itemId,
           moneytype: mtId,
@@ -2026,7 +2025,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   style={{ display: "none" }}
-                  onChange={e => handleFileSelect(e.target.files[0])}
+                  onChange={e => handleFileSelect(e.target.files!![0])}
                 />
               </div>
             ) : (
@@ -2063,7 +2062,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 style={{ display: "none" }}
-                onChange={e => handleFileSelect(e.target.files[0])}
+                onChange={e => handleFileSelect(e.target.files!![0])}
               />
             </button>
           </div>
@@ -2205,7 +2204,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
                   <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--text4)", marginBottom: 7 }}>Omborga joylash</div>
                   <select className="form-select" style={{ width: "100%", padding: "10px 32px 10px 12px" }} value={selWh} onChange={e => setSelWh(e.target.value)}>
                     <option value="">— Ombor tanlang —</option>
-                    {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                    {warehouses.map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)}
                   </select>
                 </div>
                 <div>
@@ -2233,7 +2232,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
           { icon: "sc", bg: "var(--blue-l)", ic: "var(--blue)", label: "Haftalik Skanlar", val: "124" },
           { icon: "zp", bg: "var(--green-bg)", ic: "var(--green)", label: "Tejangan Vaqt", val: "~42h" },
           { icon: "dr", bg: "var(--purple-bg)", ic: "var(--purple)", label: "Qo'shilgan Qiymat", val: "$18.4k" },
-        ].map((s, i) => (
+        ].map((s: any, i: any) => (
           <div key={i} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r)", padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--sh)" }}>
             <div style={{ width: 38, height: 38, borderRadius: "var(--rs)", background: s.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <I n={s.icon} s={17} c={s.ic} />
@@ -2259,15 +2258,15 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
 }
 
 /* ═══════════════════ USERS PAGE ═══════════════════ */
-function UsersPage({ users, companies, onRefresh, addToast, T }) {
+function UsersPage({  users, companies, onRefresh, addToast, T  }: any) {
   const [showAdd, setShowAdd] = useState(false);
-  const [delUser, setDelUser] = useState(null);
+  const [delUser, setDelUser] = useState<any>(null);
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const EMPTY = { username: "", email: "", password: "", role: "staff", company: "" };
   const [form, setForm] = useState(EMPTY);
 
-  const filtered = users.filter(u =>
+  const filtered = users.filter((u: any) =>
     u.username?.toLowerCase().includes(search.toLowerCase()) ||
     u.email?.toLowerCase().includes(search.toLowerCase())
   );
@@ -2278,7 +2277,7 @@ function UsersPage({ users, companies, onRefresh, addToast, T }) {
     try {
       await authAPI.createUser({ username: form.username, email: form.email, password: form.password, role: form.role, company: form.company ? Number(form.company) : null });
       addToast(`"${form.username}" yaratildi!`); setShowAdd(false); setForm(EMPTY); onRefresh();
-    } catch (e) { addToast(`Xato: ${e.message}`, "error"); }
+    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
     finally { setSaving(false); }
   }
 
@@ -2286,14 +2285,14 @@ function UsersPage({ users, companies, onRefresh, addToast, T }) {
     try {
       await authAPI.deleteUser(user.id);
       addToast(`"${user.username}" deleted`, "error"); onRefresh();
-    } catch (e) { addToast(`Xato: ${e.message}`, "error"); }
+    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
   }
 
   const rolePill = (role) => {
     const cls = role === "admin" ? "role-admin" : role === "manager" ? "role-manager" : "role-staff";
     return <span className={`role-pill ${cls}`}>{role || "staff"}</span>;
   };
-  const companyName = (id) => companies.find(c => c.id === id)?.name ?? (id ? `#${id}` : "—");
+  const companyName = (id) => companies.find((c: any) => c.id === id)?.name ?? (id ? `#${id}` : "—");
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
   return (
@@ -2315,7 +2314,7 @@ function UsersPage({ users, companies, onRefresh, addToast, T }) {
             <div className="form-group"><label className="form-label">Company</label>
               <select className="form-select" value={form.company} onChange={sf("company")}>
                 <option value="">— Tanlang —</option>
-                {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {companies.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
           </div>
@@ -2337,8 +2336,8 @@ function UsersPage({ users, companies, onRefresh, addToast, T }) {
 
       <div className="sg sg3" style={{ marginBottom: 16 }}>
         <div className="sc"><div className="slb">Total</div><div className="sv">{users.length}</div></div>
-        <div className="sc"><div className="slb">Admin</div><div className="sv rd">{users.filter(u => u.role === "admin").length}</div></div>
-        <div className="sc"><div className="slb">Manager</div><div className="sv bl">{users.filter(u => u.role === "manager").length}</div></div>
+        <div className="sc"><div className="slb">Admin</div><div className="sv rd">{users.filter((u: any) => u.role === "admin").length}</div></div>
+        <div className="sc"><div className="slb">Manager</div><div className="sv bl">{users.filter((u: any) => u.role === "manager").length}</div></div>
       </div>
 
       <div className="tc">
@@ -2376,9 +2375,9 @@ function UsersPage({ users, companies, onRefresh, addToast, T }) {
 }
 
 /* ═══════════════════ COMPANIES PAGE ═══════════════════ */
-function CompaniesPage({ companies, onRefresh, addToast, T }) {
+function CompaniesPage({  companies, onRefresh, addToast, T  }: any) {
   const [showAdd, setShowAdd] = useState(false);
-  const [delCo, setDelCo] = useState(null);
+  const [delCo, setDelCo] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const EMPTY = { name: "", address: "", phone: "", email: "" };
   const [form, setForm] = useState(EMPTY);
@@ -2390,7 +2389,7 @@ function CompaniesPage({ companies, onRefresh, addToast, T }) {
     try {
       await authAPI.createCompany(form);
       addToast(`"${form.name}" yaratildi!`); setShowAdd(false); setForm(EMPTY); onRefresh();
-    } catch (e) { addToast(`Xato: ${e.message}`, "error"); }
+    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
     finally { setSaving(false); }
   }
 
@@ -2398,7 +2397,7 @@ function CompaniesPage({ companies, onRefresh, addToast, T }) {
     try {
       await authAPI.deleteCompany(co.id);
       addToast(`"${co.name}" deleted`, "error"); onRefresh();
-    } catch (e) { addToast(`Xato: ${e.message}`, "error"); }
+    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
   }
 
   return (
@@ -2466,7 +2465,7 @@ const SETTINGS_NAV = [
   { k: "danger", l: "Danger Zone", i: "warn" },
 ];
 
-function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onAccent, lang, onLang, currentUser, addToast, onLogout, T }) {
+function SettingsPage({  settings, setSettings, darkMode, onDarkMode, accent, onAccent, lang, onLang, currentUser, addToast, onLogout, T  }: any) {
   const [active, setActive] = useState("profile");
   const [pf, setPf] = useState({ name: currentUser.username, email: currentUser.email || "", phone: "", role: currentUser.role || "staff" });
   const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
@@ -2577,7 +2576,7 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
       <div className="settings-section">
         {card(<I n="globe" s={17} c="#0d9488" />, "#ccfbf1", "Language", "Choose interface language",
           <div className="lang-grid" style={{ marginTop: 4 }}>
-            {LANGUAGES.map(l => (
+            {LANGUAGES.map((l: any) => (
               <div key={l.code} className={`lang-option${lang === l.code ? " active" : ""}`} onClick={() => { onLang(l.code); addToast(`Til: ${l.name}`, "info"); }}>
                 <span className="lang-flag">{l.flag}</span>
                 <div><div className="lang-name">{l.name}</div><div className="lang-local">{l.local}</div></div>
@@ -2625,7 +2624,7 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
             </div>
           ))}
         </div>
-        <div className="fu">{sections[active] || null}</div>
+        <div className="fu">{(sections as any)[active] || null}</div>
       </div>
     </div>
   );
@@ -2633,7 +2632,7 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
 
 /* ═══════════════════ ROOT ═══════════════════ */
 export default function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
 
   if (!user) {
     return (
