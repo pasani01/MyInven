@@ -25,7 +25,11 @@ SECRET_KEY = 'django-insecure-xzu263x@(fli#sl^_b7(lqz^k!=s8g4fx@#(!53z29=b^u9hh&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    '10.10.10.53',  # ← bunu ekle
+]
 
 
 # Application definition
@@ -49,14 +53,15 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'corsheaders',
 ]
-CORS_ALLOW_CREDENTIALS = True
-
+# BUNU EKLE:
 CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
     "http://localhost:3000",
-    "http://localhost:5173",   # ← Vite portu
     "http://127.0.0.1:5173",
-    "http://127.0.0.1:3000",
+    # Mobil için telefon IP'n:
+    "http://10.10.10.53:8081",  # ← kendi IP'n
 ]
+CORS_ALLOW_CREDENTIALS = True
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication', # Token kullanıyorsan
@@ -160,3 +165,27 @@ USE_TZ = True
 
 
 STATIC_URL = 'static/'
+
+
+# ─── PRODUCTION SETTINGS ───────────────────────────────────────────────────
+import os
+import dj_database_url
+from dotenv import load_dotenv
+load_dotenv()
+
+SECRET_KEY = os.environ.get('SECRET_KEY', SECRET_KEY)
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+ALLOWED_HOSTS = ['*']
+
+# Railway PostgreSQL
+if os.environ.get('DATABASE_URL'):
+    DATABASES['default'] = dj_database_url.parse(os.environ.get('DATABASE_URL'))
+
+# Static files
+MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# CORS
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
