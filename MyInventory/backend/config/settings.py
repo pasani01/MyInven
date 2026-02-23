@@ -57,6 +57,7 @@ CSRF_TRUSTED_ORIGINS = [
     'https://*.up.railway.app',
     'http://localhost:5173',
     'http://localhost:3000',
+    'https://webfrontend-frontend-b299.up.railway.app',
 ]
 
 # ─── REST FRAMEWORK ───────────────────────────────────────────────────────────
