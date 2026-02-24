@@ -22,16 +22,18 @@ from django.contrib.auth import authenticate
 from rest_framework import serializers
 
 class UserLoginSerializer(serializers.Serializer):
-    username = serializers.CharField()
+    email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
 
     def validate(self, data):
-        user = authenticate(
-            username=data['username'],
-            password=data['password']
-        )
+        try:
+            user = CustomUser.objects.get(email=data['email'])
+        except CustomUser.DoesNotExist:
+            raise serializers.ValidationError("Geçersiz email veya şifre")
+        
+        user = authenticate(username=user.username, password=data['password'])
         if not user:
-            raise serializers.ValidationError("Geçersiz kullanıcı adı veya şifre")
+            raise serializers.ValidationError("Geçersiz email veya şifre")
         if not user.is_active:
             raise serializers.ValidationError("Kullanıcı pasif")
 

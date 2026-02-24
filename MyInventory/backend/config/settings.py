@@ -143,3 +143,12 @@ SWAGGER_SETTINGS = {
         }
     },
 }
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'nasirdin520@gmail.com'
+EMAIL_HOST_PASSWORD = 'jqyybsuujwbufnue'  # Gmail App Password
+DEFAULT_FROM_EMAIL = 'nasirdin520@gmail.com'
+FRONTEND_URL = 'http://localhost:3000'  

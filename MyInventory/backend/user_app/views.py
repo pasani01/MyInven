@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
-
+from .utils import send_verification_email
 
 class CompanyViewSet(viewsets.ModelViewSet):
     queryset = Company.objects.all()
@@ -55,6 +55,14 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         # Yangi user avtomatik admin kompaniyasiga biriktiriladi
         serializer.save(company=self.request.user.company)
 
+    def perform_create(self, serializer):
+        user = serializer.save(company=self.request.user.company)
+        user.set_password(self.request.data.get("password"))
+        user.is_email_verified = False
+        user.save()
+        send_verification_email(user)
+
+
     @action(detail=False, methods=['post'], url_path='change-password')
     def change_password(self, request):
         user = request.user
@@ -73,13 +81,26 @@ class UserLoginView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        username = request.data.get("username")
+        email = request.data.get("email")
         password = request.data.get("password")
-        user = authenticate(request, username=username, password=password)
 
+        try:
+            user_obj = CustomUser.objects.get(email=email)
+        except CustomUser.DoesNotExist:
+            return Response(
+                {"detail": "Email veya şifre yanlış"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = authenticate(request, username=user_obj.username, password=password)
+        if not user.is_email_verified:
+            return Response(
+            {"detail": "Lütfen önce email adresinizi doğrulayın."},
+            status=status.HTTP_403_FORBIDDEN
+        )
         if user is None:
             return Response(
-                {"detail": "Kullanıcı veya şifre yanlış"},
+                {"detail": "Email veya şifre yanlış"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -106,3 +127,18 @@ class UserLogoutView(APIView):
         except Exception:
             pass
         return Response({"detail": "Başarıyla çıkış yapıldı."}, status=status.HTTP_200_OK)
+    
+class VerifyEmailView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        token = request.query_params.get("token")
+        try:
+            user = CustomUser.objects.get(email_verification_token=token)
+        except CustomUser.DoesNotExist:
+            return Response({"detail": "Geçersiz token."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.is_email_verified = True
+        user.email_verification_token = None
+        user.save()
+        return Response({"detail": "Email başarıyla doğrulandı."})

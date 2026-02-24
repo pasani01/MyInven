@@ -31,12 +31,18 @@ class CustomUser(AbstractUser):
     )
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='user')
     company = models.ForeignKey('Company', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Email ile login için
+    email = models.EmailField(unique=True)
+    
+    # Email doğrulama için
+    is_email_verified = models.BooleanField(default=False)
+    email_verification_token = models.CharField(max_length=64, blank=True, null=True)
 
     def save(self, *args, **kwargs):
         if self.role == 'superadmin':
             self.is_staff = True
             self.is_superuser = True
-        # else bloğunu kaldır — dışarıdan set edilene dokunma
         super().save(*args, **kwargs)
      
 
