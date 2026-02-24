@@ -8,9 +8,14 @@ class CompanySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class CustomUserSerializer(serializers.ModelSerializer):
+    password_hash = serializers.SerializerMethodField(read_only=True)
+
+    def get_password_hash(self, obj):
+        return obj.password  # Django saqlangan hash (pbkdf2_sha256$...)
+
     class Meta:
         model = CustomUser
-        fields = ['id', 'username', 'email', 'role', 'company']
+        fields = ['id', 'username', 'email', 'role', 'company', 'password_hash']
 
 
 from django.contrib.auth import authenticate

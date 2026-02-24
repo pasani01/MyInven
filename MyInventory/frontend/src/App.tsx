@@ -33,11 +33,11 @@ function getCookie(name: string): string | null {
 
 async function api(path: string, method: string = "GET", body: any = null) {
   // 1. Header'ları hazırla
-  const headers: Record<string, string> = { 
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
     "Accept": "application/json"
   };
-  
+
   // 2. Token'ı ekle (LocalStorage'dan taze oku)
   const token = getToken();
   if (token) {
@@ -51,7 +51,7 @@ async function api(path: string, method: string = "GET", body: any = null) {
     headers["X-CSRFToken"] = csrfToken;
   }
 
-  const opts: { method: string; headers: Record<string,string>; credentials: RequestCredentials; body?: string } = {
+  const opts: { method: string; headers: Record<string, string>; credentials: RequestCredentials; body?: string } = {
     method,
     headers,
     credentials: "include" as RequestCredentials,
@@ -74,7 +74,7 @@ async function api(path: string, method: string = "GET", body: any = null) {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      const msg = data?.detail || data?.non_field_errors?.[0] 
+      const msg = data?.detail || data?.non_field_errors?.[0]
         || Object.values(data).flat().join(", ") || `Hata: ${res.status}`;
       throw Object.assign(new Error(msg), { data, status: res.status });
     }
@@ -99,6 +99,7 @@ const authAPI = {
   createCompany: (data: any) => api("/user_app/companies/", "POST", data),
   updateCompany: (id: number | string, data: any) => api(`/user_app/companies/${id}/`, "PUT", data),
   deleteCompany: (id: number | string) => api(`/user_app/companies/${id}/`, "DELETE"),
+  changePassword: (data: any) => api("/user_app/users/change-password/", "POST", data),
 };
 
 const depolarAPI = {
@@ -594,7 +595,7 @@ const P = {
   pkg: "M16.5 9.4l-9-5.19 M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z M3.27 6.96 12 12.01l8.73-5.05 M12 22.08V12",
 };
 
-function I({  n, s = 16, c = "currentColor"  }: any) {
+function I({ n, s = 16, c = "currentColor" }: any) {
   return (
     <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c}
       strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"
@@ -604,7 +605,7 @@ function I({  n, s = 16, c = "currentColor"  }: any) {
   );
 }
 
-function Toggle({  checked, onChange  }: any) {
+function Toggle({ checked, onChange }: any) {
   return (
     <label className="toggle" onClick={e => e.stopPropagation()}>
       <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} />
@@ -613,7 +614,7 @@ function Toggle({  checked, onChange  }: any) {
   );
 }
 
-function ToastList({  toasts  }: any) {
+function ToastList({ toasts }: any) {
   return (
     <div className="toast-stack">
       {toasts.map((t: any) => (
@@ -632,7 +633,7 @@ function Spinner() {
   return <div className="loading-overlay"><div className="spinner" /><span>Loading...</span></div>;
 }
 
-function Modal({  title, onClose, children, footer, wide  }: any) {
+function Modal({ title, onClose, children, footer, wide }: any) {
   useEffect(() => {
     const h = e => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", h);
@@ -652,7 +653,7 @@ function Modal({  title, onClose, children, footer, wide  }: any) {
   );
 }
 
-function ConfirmModal({  title, desc, onConfirm, onClose  }: any) {
+function ConfirmModal({ title, desc, onConfirm, onClose }: any) {
   return (
     <Modal title={title} onClose={onClose}
       footer={<><button className="btn bo" onClick={onClose}>Cancel</button><button className="btn bd" onClick={() => { onConfirm(); onClose(); }}>Delete</button></>}>
@@ -681,10 +682,10 @@ const LANGUAGES = [
   { code: "tr", flag: "🇹🇷", name: "Turkish", local: "Türkçe" },
 ];
 const STRINGS = {
-  en: { warehouses: "Warehouses", shipments: "Shipments", reports: "Reports", intake: "Smart Invoice Intake", settings: "Settings", users: "Users", companies: "Companies", darkMode: "Dark Mode", lightMode: "Light Mode", logout: "Logout", createWh: "Create Warehouse", save: "Save", cancel: "Cancel", search: "Search...", items: "Items", moneytypes: "Currencies", units: "Units" },
-  uz: { warehouses: "Omborlar", shipments: "Shipments", reports: "Reports", intake: "Hisob-faktura", settings: "Sozlamalar", users: "Foydalanuvchilar", companies: "Kompaniyalar", darkMode: "Dark Mode", lightMode: "Kunduzgi Rejim", logout: "Chiqish", createWh: "Ombor Yaratish", save: "Saqlash", cancel: "Cancel", search: "Qidirish...", items: "Mahsulotlar", moneytypes: "Valyutalar", units: "Birliklar" },
-  ru: { warehouses: "Склады", shipments: "Отправки", reports: "Отчёты", intake: "Сканирование", settings: "Настройки", users: "Пользователи", companies: "Компании", darkMode: "Тёмный", lightMode: "Светлый", logout: "Выйти", createWh: "Создать Склад", save: "Сохранить", cancel: "Отмена", search: "Поиск...", items: "Товары", moneytypes: "Валюты", units: "Единицы" },
-  tr: { warehouses: "Depolar", shipments: "Sevkiyatlar", reports: "Raporlar", intake: "Fatura Tarama", settings: "Ayarlar", users: "Kullanıcılar", companies: "Şirketler", darkMode: "Karanlık Mod", lightMode: "Aydınlık Mod", logout: "Çıkış", createWh: "Depo Oluştur", save: "Kaydet", cancel: "İptal", search: "Ara...", items: "Ürünler", moneytypes: "Para Birimleri", units: "Birimler" },
+  en: { warehouses: "Warehouses", shipments: "Shipments", reports: "Reports", intake: "Smart Invoice Intake", settings: "Settings", users: "Users", darkMode: "Dark Mode", lightMode: "Light Mode", logout: "Logout", createWh: "Create Warehouse", save: "Save", cancel: "Cancel", search: "Search...", items: "Items", moneytypes: "Currencies", units: "Units", deleteUser: "Delete User", deleteConfirmText: (name: string) => `Are you sure you want to delete "${name}"?`, deleteConfirmLabel: "Type the username to confirm:", deleteBtn: "Delete", addUser: "Add New User" },
+  uz: { warehouses: "Omborlar", shipments: "Shipments", reports: "Reports", intake: "Hisob-faktura", settings: "Sozlamalar", users: "Foydalanuvchilar", darkMode: "Dark Mode", lightMode: "Kunduzgi Rejim", logout: "Chiqish", createWh: "Ombor Yaratish", save: "Saqlash", cancel: "Bekor qilish", search: "Qidirish...", items: "Mahsulotlar", moneytypes: "Valyutalar", units: "Birliklar", deleteUser: "Foydalanuvchini o'chirish", deleteConfirmText: (name: string) => `Haqiqatdan ham "${name}" ni o'chirmoqchimisiz?`, deleteConfirmLabel: "Tasdiqlash uchun foydalanuvchi nomini yozing:", deleteBtn: "O'chirish", addUser: "Yangi foydalanuvchi qo'shish" },
+  ru: { warehouses: "Склады", shipments: "Отправки", reports: "Отчёты", intake: "Сканирование", settings: "Настройки", users: "Пользователи", darkMode: "Тёмный", lightMode: "Светлый", logout: "Выйти", createWh: "Создать Склад", save: "Сохранить", cancel: "Отмена", search: "Поиск...", items: "Товары", moneytypes: "Валюты", units: "Единицы", deleteUser: "Удалить пользователя", deleteConfirmText: (name: string) => `Вы уверены, что хотите удалить "${name}"?`, deleteConfirmLabel: "Введите имя пользователя для подтверждения:", deleteBtn: "Удалить", addUser: "Добавить пользователя" },
+  tr: { warehouses: "Depolar", shipments: "Sevkiyatlar", reports: "Raporlar", settings: "Ayarlar", users: "Kullanıcılar", darkMode: "Karanlık Mod", lightMode: "Aydınlık Mod", logout: "Çıkış", createWh: "Depo Oluştur", save: "Kaydet", cancel: "İptal", search: "Ara...", items: "Ürünler", moneytypes: "Para Birimleri", units: "Birimler", deleteUser: "Kullanıcıyı sil", deleteConfirmText: (name: string) => `"${name}" adlı kullanıcıyı silmek istediğinizden emin misiniz?`, deleteConfirmLabel: "Onaylamak için kullanıcı adını yazın:", deleteBtn: "Sil", addUser: "Yeni kullanıcı ekle" },
 };
 
 const SHIP_ST = {
@@ -694,7 +695,7 @@ const SHIP_ST = {
 };
 
 /* ═══════════════════ AUTH PAGE ═══════════════════ */
-function AuthPage({  onLogin  }: any) {
+function AuthPage({ onLogin }: any) {
   const [username, setUsername] = useState("");
   const [pass, setPass] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -771,7 +772,7 @@ function AuthPage({  onLogin  }: any) {
 }
 
 /* ═══════════════════ DASHBOARD ═══════════════════ */
-function Dashboard({  currentUser, onLogout  }: any) {
+function Dashboard({ currentUser, onUserUpdate, onLogout }: any) {
   const [page, setPage] = useState("warehouses");
   const [selectedWh, setSelectedWh] = useState<any>(null);
   const [darkMode, setDarkMode] = useState(() => {
@@ -976,9 +977,6 @@ function Dashboard({  currentUser, onLogout  }: any) {
           <div className={`n-item${page === "users" ? " active" : ""}`} onClick={() => { setPage("users"); setSelectedWh(null); fetchUsers(); }}>
             <I n="usrs" s={15} />{T.users}
           </div>
-          <div className={`n-item${page === "companies" ? " active" : ""}`} onClick={() => { setPage("companies"); setSelectedWh(null); fetchCompanies(); }}>
-            <I n="co" s={15} />{T.companies}
-          </div>
           <div className="n-div" />
           <div className="dm-row" onClick={() => setDarkMode(v => !v)}>
             <I n={darkMode ? "sun" : "moon"} s={15} />
@@ -1059,14 +1057,13 @@ function Dashboard({  currentUser, onLogout  }: any) {
           {page === "itemler" && <RefPage title={T.items} icon="pkg" data={itemler} setData={setItemler} api={itemlerAPI} normalize={normalizeItem} fields={[{ k: "name", l: "Name *", required: true }]} addToast={addToast} T={T} />}
           {page === "moneytypes" && <RefPage title={T.moneytypes} icon="dr" data={moneytypes} setData={setMoneytypes} api={moneytypesAPI} normalize={normalizeMoneytype} fields={[{ k: "name", l: "Name * (USD, UZS, EUR)", required: true }]} addToast={addToast} T={T} />}
           {page === "unitler" && <RefPage title={T.units} icon="tag" data={unitler} setData={setUnitler} api={unitlerAPI} normalize={normalizeUnit} fields={[{ k: "name", l: "Name *", required: true }]} addToast={addToast} T={T} />}
-          {page === "users" && <UsersPage users={users} companies={companies} onRefresh={fetchUsers} addToast={addToast} T={T} />}
-          {page === "companies" && <CompaniesPage companies={companies} onRefresh={fetchCompanies} addToast={addToast} T={T} />}
+          {page === "users" && <UsersPage users={users} companies={companies} onRefresh={fetchUsers} addToast={addToast} T={T} currentUser={currentUser} />}
           {page === "settings" && (
             <SettingsPage settings={settings} setSettings={setSettings}
               darkMode={darkMode} onDarkMode={setDarkMode}
               accent={accent} onAccent={setAccent}
               lang={lang} onLang={setLang}
-              currentUser={currentUser} addToast={addToast} onLogout={handleLogout} T={T} />
+              currentUser={currentUser} onUserUpdate={onUserUpdate} addToast={addToast} onLogout={handleLogout} T={T} />
           )}
         </main>
 
@@ -1086,7 +1083,7 @@ function Dashboard({  currentUser, onLogout  }: any) {
 }
 
 /* ═══════════════════ REFERENCE PAGE (Itemler / Moneytypes / Unitler) ═══════════════════ */
-function RefPage({  title, icon, data, setData, api, normalize, fields, addToast, T  }: any) {
+function RefPage({ title, icon, data, setData, api, normalize, fields, addToast, T }: any) {
   const [showAdd, setShowAdd] = useState(false);
   const [delItem, setDelItem] = useState<any>(null);
   const [form, setForm] = useState({});
@@ -1160,14 +1157,14 @@ function RefPage({  title, icon, data, setData, api, normalize, fields, addToast
 }
 
 /* ═══════════════════ WAREHOUSE PAGE ═══════════════════ */
-function WarehousePage({  warehouses, setWarehouses, buylist, loading, onRefresh, addToast, T, onOpenWh  }: any) {
+function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh, addToast, T, onOpenWh }: any) {
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState<any>(null);
   const [showDel, setShowDel] = useState<any>(null);
   const [openMenu, setOpenMenu] = useState<any>(null);
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
-  const EMPTY = { name: "", addr: "", usd: "", som: "", manager: "", phone: "", type: "General" };
+  const EMPTY = { name: "" };
   const [form, setForm] = useState(EMPTY);
 
   useEffect(() => {
@@ -1183,9 +1180,9 @@ function WarehousePage({  warehouses, setWarehouses, buylist, loading, onRefresh
 
   function buildPayload(f) {
     return {
-      name: f.name, address: f.addr, manager: f.manager,
-      phone: f.phone, type: f.type,
-      usd_value: f.usd || "0", som_value: f.som || "0",
+      name: f.name,
+      address: "", manager: "", phone: "", type: "General",
+      usd_value: "0", som_value: "0",
     };
   }
 
@@ -1218,28 +1215,14 @@ function WarehousePage({  warehouses, setWarehouses, buylist, loading, onRefresh
   }
 
   function openEdit(wh) {
-    setForm({ name: wh.name, addr: wh.addr, usd: wh.usd.replace("$", ""), som: String(wh.som), manager: wh.manager, phone: wh.phone, type: wh.type });
+    setForm({ name: wh.name });
     setShowEdit(wh); setOpenMenu(null);
   }
 
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const formBody = (
-    <>
-      <div className="form-row">
-        <div className="form-group"><label className="form-label">Nomi *</label><input className="form-input" value={form.name} onChange={sf("name")} /></div>
-        <div className="form-group"><label className="form-label">Turi</label><input className="form-input" value={form.type} onChange={sf("type")} /></div>
-      </div>
-      <div className="form-group"><label className="form-label">Manzil</label><input className="form-input" value={form.addr} onChange={sf("addr")} /></div>
-      <div className="form-row">
-        <div className="form-group"><label className="form-label">Menejer</label><input className="form-input" value={form.manager} onChange={sf("manager")} /></div>
-        <div className="form-group"><label className="form-label">Telefon</label><input className="form-input" value={form.phone} onChange={sf("phone")} /></div>
-      </div>
-      <div className="form-row">
-        <div className="form-group"><label className="form-label">USD qiymati</label><input className="form-input" value={form.usd} onChange={sf("usd")} /></div>
-        <div className="form-group"><label className="form-label">SOM qiymati</label><input className="form-input" value={form.som} onChange={sf("som")} /></div>
-      </div>
-    </>
+    <div className="form-group"><label className="form-label">Nomi *</label><input className="form-input" value={form.name} onChange={sf("name")} /></div>
   );
 
   return (
@@ -1327,7 +1310,7 @@ function WarehousePage({  warehouses, setWarehouses, buylist, loading, onRefresh
 }
 
 /* ═══════════════════ WAREHOUSE DETAIL ═══════════════════ */
-function WarehouseDetail({  wh, setWh, warehouses, setWarehouses, buylist, setBuylist, itemler, moneytypes, unitler, addToast, T, onBack  }: any) {
+function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuylist, itemler, moneytypes, unitler, addToast, T, onBack }: any) {
   const [showAdd, setShowAdd] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
   const [delItem, setDelItem] = useState<any>(null);
@@ -1336,7 +1319,7 @@ function WarehouseDetail({  wh, setWh, warehouses, setWarehouses, buylist, setBu
   // buylist form — uses FK IDs
   const EMPTY_BL = { item: itemler[0]?.id ?? "", moneytype: moneytypes[0]?.id ?? "", unit: unitler[0]?.id ?? "", qty: "", narx: "" };
   const [form, setForm] = useState(EMPTY_BL);
-  const [whForm, setWhForm] = useState({ name: wh.name, addr: wh.addr, usd: wh.usd.replace("$", ""), som: String(wh.som), manager: wh.manager, phone: wh.phone, type: wh.type });
+  const [whForm, setWhForm] = useState({ name: wh.name });
   const [search, setSearch] = useState(""); const [pg, setPg] = useState(1); const PER = 7;
   const [saving, setSaving] = useState(false);
 
@@ -1360,12 +1343,12 @@ function WarehouseDetail({  wh, setWh, warehouses, setWarehouses, buylist, setBu
   // Build API payload for buylist — serializer alan adlarıyla eşleşiyor
   function buildBlPayload(f) {
     return {
-      item:      Number(f.item)      || undefined,
+      item: Number(f.item) || undefined,
       moneytype: Number(f.moneytype) || undefined,
-      unit:      Number(f.unit)      || undefined,
-      depolar:   wh.id,
-      qty:       Number(f.qty)       || 0,
-      narx:      f.narx              || "0",
+      unit: Number(f.unit) || undefined,
+      depolar: wh.id,
+      qty: Number(f.qty) || 0,
+      narx: f.narx || "0",
     };
   }
 
@@ -1403,8 +1386,9 @@ function WarehouseDetail({  wh, setWh, warehouses, setWarehouses, buylist, setBu
     setSaving(true);
     try {
       const updated = await depolarAPI.update(wh.id, {
-        name: whForm.name, address: whForm.addr, manager: whForm.manager,
-        phone: whForm.phone, type: whForm.type, usd_value: whForm.usd, som_value: whForm.som,
+        name: whForm.name,
+        address: "", manager: "", phone: "", type: "General",
+        usd_value: "0", som_value: "0",
       });
       const norm = normalizeDepolar(updated, 0);
       setWh(prev => ({ ...prev, ...norm }));
@@ -1481,19 +1465,7 @@ function WarehouseDetail({  wh, setWh, warehouses, setWarehouses, buylist, setBu
       {showEditWh && (
         <Modal title="Edit Warehouse" onClose={() => setShowEditWh(false)}
           footer={<><button className="btn bo" onClick={() => setShowEditWh(false)}>{T.cancel}</button><button className="btn bp" onClick={saveWh} disabled={saving}>{saving ? "..." : T.save}</button></>}>
-          <div className="form-row">
-            <div className="form-group"><label className="form-label">Nomi</label><input className="form-input" value={whForm.name} onChange={e => setWhForm(f => ({ ...f, name: e.target.value }))} /></div>
-            <div className="form-group"><label className="form-label">Turi</label><input className="form-input" value={whForm.type} onChange={e => setWhForm(f => ({ ...f, type: e.target.value }))} /></div>
-          </div>
-          <div className="form-group"><label className="form-label">Manzil</label><input className="form-input" value={whForm.addr} onChange={e => setWhForm(f => ({ ...f, addr: e.target.value }))} /></div>
-          <div className="form-row">
-            <div className="form-group"><label className="form-label">Menejer</label><input className="form-input" value={whForm.manager} onChange={e => setWhForm(f => ({ ...f, manager: e.target.value }))} /></div>
-            <div className="form-group"><label className="form-label">Telefon</label><input className="form-input" value={whForm.phone} onChange={e => setWhForm(f => ({ ...f, phone: e.target.value }))} /></div>
-          </div>
-          <div className="form-row">
-            <div className="form-group"><label className="form-label">USD</label><input className="form-input" value={whForm.usd} onChange={e => setWhForm(f => ({ ...f, usd: e.target.value }))} /></div>
-            <div className="form-group"><label className="form-label">SOM</label><input className="form-input" value={whForm.som} onChange={e => setWhForm(f => ({ ...f, som: e.target.value }))} /></div>
-          </div>
+          <div className="form-group"><label className="form-label">Nomi</label><input className="form-input" value={whForm.name} onChange={e => setWhForm(f => ({ ...f, name: e.target.value }))} /></div>
         </Modal>
       )}
 
@@ -1656,7 +1628,7 @@ function WarehouseDetail({  wh, setWh, warehouses, setWarehouses, buylist, setBu
 
 /* ═══════════════════ SHIPMENTS ═══════════════════ */
 let SHIP_ID = 50;
-function ShipmentsPage({  shipments, setShipments, addToast, T  }: any) {
+function ShipmentsPage({ shipments, setShipments, addToast, T }: any) {
   const [showAdd, setShowAdd] = useState(false);
   const [delShip, setDelShip] = useState<any>(null);
   const [form, setForm] = useState({ item: "", from: "", to: "", val: "", status: "Pending" });
@@ -1733,7 +1705,7 @@ function ShipmentsPage({  shipments, setShipments, addToast, T  }: any) {
 }
 
 /* ═══════════════════ REPORTS ═══════════════════ */
-function ReportsPage({  warehouses, buylist, shipments, addToast, T  }: any) {
+function ReportsPage({ warehouses, buylist, shipments, addToast, T }: any) {
   const byWH = warehouses.map((w: any) => ({
     name: w.name.split(" ").slice(0, 2).join(" "),
     count: buylist.filter((b: any) => String(b.depolarId) === String(w.id)).length,
@@ -1803,11 +1775,12 @@ function ReportsPage({  warehouses, buylist, shipments, addToast, T  }: any) {
   );
 }
 
+
 /* ═══════════════════ SMART INVOICE INTAKE ═══════════════════ */
 let INTAKE_ID = 100;
 const DEFAULT_LINES = [];
 
-function IntakePage({  buylist, setBuylist, warehouses, itemler, moneytypes, unitler, addToast, T  }: any) {
+function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unitler, addToast, T }: any) {
   const [lines, setLines] = useState<any[]>([]);
   const [approved, setApproved] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -1918,12 +1891,12 @@ function IntakePage({  buylist, setBuylist, warehouses, itemler, moneytypes, uni
         const mtId = moneytypes.find((m: any) => m.code === line.cur || m.name === line.cur)?.id || moneytypes[0]?.id || null;
         const unitId = unitler.find((u: any) => u.name === line.birlik)?.id || unitler[0]?.id || null;
         const created = await buylistAPI.create({
-          item:      itemId,
+          item: itemId,
           moneytype: mtId,
-          unit:      unitId,
-          depolar:   selWh || null,
-          qty:       Number(line.qty) || 0,
-          narx:      line.price || "0",
+          unit: unitId,
+          depolar: selWh || null,
+          qty: Number(line.qty) || 0,
+          narx: line.price || "0",
         });
         setBuylist(prev => [...prev, normalizeBuylist(created, itemler, moneytypes, unitler)]);
         success++;
@@ -2227,56 +2200,41 @@ function IntakePage({  buylist, setBuylist, warehouses, itemler, moneytypes, uni
         </div>
       </div>
 
-      {/* Bottom Stats Row */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1.4fr", gap: 14, marginTop: 20 }}>
-        {[
-          { icon: "sc", bg: "var(--blue-l)", ic: "var(--blue)", label: "Haftalik Skanlar", val: "124" },
-          { icon: "zp", bg: "var(--green-bg)", ic: "var(--green)", label: "Tejangan Vaqt", val: "~42h" },
-          { icon: "dr", bg: "var(--purple-bg)", ic: "var(--purple)", label: "Qo'shilgan Qiymat", val: "$18.4k" },
-        ].map((s: any, i: any) => (
-          <div key={i} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r)", padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--sh)" }}>
-            <div style={{ width: 38, height: 38, borderRadius: "var(--rs)", background: s.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <I n={s.icon} s={17} c={s.ic} />
-            </div>
-            <div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", letterSpacing: "-.02em" }}>{s.val}</div>
-              <div style={{ fontSize: 12, color: "var(--text3)", marginTop: 1 }}>{s.label}</div>
-            </div>
-          </div>
-        ))}
-        <div style={{ background: "var(--blue)", borderRadius: "var(--r)", padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 36, height: 36, background: "rgba(255,255,255,.2)", borderRadius: "var(--rs)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <I n="mg" s={17} c="#fff" />
-          </div>
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "rgba(255,255,255,.7)", marginBottom: 3 }}>Pro Tip</div>
-            <div style={{ fontSize: 13, color: "#fff", lineHeight: 1.4 }}>Bir nechta fakturani ketma-ket skanlash vaqtni 20% tejaydi.</div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
 
 /* ═══════════════════ USERS PAGE ═══════════════════ */
-function UsersPage({  users, companies, onRefresh, addToast, T  }: any) {
+function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: any) {
   const [showAdd, setShowAdd] = useState(false);
   const [delUser, setDelUser] = useState<any>(null);
+  const [delConfirmId, setDelConfirmId] = useState("");
+  const [copiedId, setCopiedId] = useState<any>(null);
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
-  const EMPTY = { username: "", email: "", password: "", role: "staff", company: "" };
+  const EMPTY = { username: "", email: "", password: "", role: "user", company: currentUser.company || "" };
   const [form, setForm] = useState(EMPTY);
 
-  const filtered = users.filter((u: any) =>
-    u.username?.toLowerCase().includes(search.toLowerCase()) ||
-    u.email?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = users.filter((u: any) => {
+    const isSuper = u.role === "superadmin" || u.role === "super_admin" || u.username === "superadmin";
+    if (isSuper) return false;
+    return (
+      u.username?.toLowerCase().includes(search.toLowerCase()) ||
+      u.email?.toLowerCase().includes(search.toLowerCase())
+    );
+  });
 
   async function addUser() {
     if (!form.username) return;
     setSaving(true);
     try {
-      await authAPI.createUser({ username: form.username, email: form.email, password: form.password, role: form.role, company: form.company ? Number(form.company) : null });
+      await authAPI.createUser({
+        username: form.username,
+        email: form.email,
+        password: form.password,
+        role: form.role,
+        company: currentUser.company ? Number(currentUser.company) : null
+      });
       addToast(`"${form.username}" yaratildi!`); setShowAdd(false); setForm(EMPTY); onRefresh();
     } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
     finally { setSaving(false); }
@@ -2285,13 +2243,23 @@ function UsersPage({  users, companies, onRefresh, addToast, T  }: any) {
   async function delU(user) {
     try {
       await authAPI.deleteUser(user.id);
-      addToast(`"${user.username}" deleted`, "error"); onRefresh();
+      addToast(`ID #${user.id} "${user.username}" o'chirildi`, "error");
+      onRefresh();
     } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
+    finally { setDelUser(null); setDelConfirmId(""); }
+  }
+
+  function copyId(id: any) {
+    navigator.clipboard.writeText(String(id)).then(() => {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 1500);
+    });
   }
 
   const rolePill = (role) => {
-    const cls = role === "admin" ? "role-admin" : role === "manager" ? "role-manager" : "role-staff";
-    return <span className={`role-pill ${cls}`}>{role || "staff"}</span>;
+    if (role === "admin") return <span className="role-pill role-admin">Admin</span>;
+    if (role === "superadmin") return <span className="role-pill role-admin">Superadmin</span>;
+    return <span className="role-pill role-staff">User</span>;
   };
   const companyName = (id) => companies.find((c: any) => c.id === id)?.name ?? (id ? `#${id}` : "—");
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
@@ -2299,7 +2267,7 @@ function UsersPage({  users, companies, onRefresh, addToast, T  }: any) {
   return (
     <div className="fu">
       {showAdd && (
-        <Modal title="Add New User" onClose={() => setShowAdd(false)}
+        <Modal title={T.addUser || "Add New User"} onClose={() => setShowAdd(false)}
           footer={<><button className="btn bo" onClick={() => setShowAdd(false)}>{T.cancel}</button><button className="btn bp" onClick={addUser} disabled={saving}>{saving ? "..." : T.save}</button></>}>
           <div className="form-row">
             <div className="form-group"><label className="form-label">Username *</label><input className="form-input" value={form.username} onChange={sf("username")} /></div>
@@ -2309,20 +2277,39 @@ function UsersPage({  users, companies, onRefresh, addToast, T  }: any) {
           <div className="form-row">
             <div className="form-group"><label className="form-label">Role</label>
               <select className="form-select" value={form.role} onChange={sf("role")}>
-                <option value="admin">Admin</option><option value="manager">Manager</option><option value="staff">Staff</option>
-              </select>
-            </div>
-            <div className="form-group"><label className="form-label">Company</label>
-              <select className="form-select" value={form.company} onChange={sf("company")}>
-                <option value="">— Tanlang —</option>
-                {companies.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                <option value="admin">Admin</option><option value="user">User</option>
               </select>
             </div>
           </div>
         </Modal>
       )}
-      {delUser && <ConfirmModal title="Delete User" desc={<>«<strong>{delUser.username}</strong>»?
-      </>} onConfirm={() => delU(delUser)} onClose={() => setDelUser(null)} />}
+      {delUser && (
+        <Modal title={T.deleteUser || "Delete User"} onClose={() => { setDelUser(null); setDelConfirmId(""); }}
+          footer={<><button className="btn bo" onClick={() => { setDelUser(null); setDelConfirmId(""); }}>{T.cancel}</button>
+            <button className="btn bd" onClick={() => delU(delUser)} disabled={String(delConfirmId).trim() !== String(delUser.id)}>{T.deleteBtn || "Delete"}</button></>
+          }>
+          <div className="confirm-icon"><I n="warn" s={24} c="var(--red)" /></div>
+          <div style={{ textAlign: "center", marginBottom: 4 }}>
+            <strong>{delUser.username}</strong> ({delUser.email || "—"}) · <span style={{ color: "var(--text3)" }}>{delUser.role}</span>
+          </div>
+          <div style={{ textAlign: "center", marginBottom: 16, color: "var(--text3)", fontSize: 13 }}>
+            O'chirish uchun quyidagi ID ni kiriting:
+          </div>
+          <div style={{ background: "var(--bg)", border: "1px solid var(--border2)", borderRadius: "var(--rs)", padding: "8px 14px", textAlign: "center", fontWeight: 800, fontSize: 20, letterSpacing: "0.04em", color: "var(--text)", marginBottom: 14, fontFamily: "monospace" }}>
+            #{delUser.id}
+          </div>
+          <div className="form-group">
+            <label className="form-label">Foydalanuvchi ID sini kiriting:</label>
+            <input
+              className="form-input"
+              value={delConfirmId}
+              onChange={e => setDelConfirmId(e.target.value)}
+              placeholder={`${delUser.id}`}
+              autoFocus
+            />
+          </div>
+        </Modal>
+      )}
 
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
@@ -2331,14 +2318,15 @@ function UsersPage({  users, companies, onRefresh, addToast, T  }: any) {
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <button className="btn bo" onClick={onRefresh}><I n="refresh" s={14} />Refresh</button>
-          <button className="btn bp" onClick={() => setShowAdd(true)}><I n="pl" s={14} c="#fff" />Add User</button>
+          {currentUser.role === "admin" && (
+            <button className="btn bp" onClick={() => setShowAdd(true)}><I n="pl" s={14} c="#fff" />Add User</button>
+          )}
         </div>
       </div>
 
-      <div className="sg sg3" style={{ marginBottom: 16 }}>
+      <div className="sg sg2" style={{ marginBottom: 16 }}>
         <div className="sc"><div className="slb">Total</div><div className="sv">{users.length}</div></div>
         <div className="sc"><div className="slb">Admin</div><div className="sv rd">{users.filter((u: any) => u.role === "admin").length}</div></div>
-        <div className="sc"><div className="slb">Manager</div><div className="sv bl">{users.filter((u: any) => u.role === "manager").length}</div></div>
       </div>
 
       <div className="tc">
@@ -2352,7 +2340,7 @@ function UsersPage({  users, companies, onRefresh, addToast, T  }: any) {
           <div className="empty-state"><I n="usrs" s={38} c="var(--border2)" /><h3>No users found</h3><p>Add a new user or check CORS settings.</p></div>
         ) : (
           <table>
-            <thead><tr><th>Username</th><th>Email</th><th>Role</th><th>Company</th><th>ID</th><th></th></tr></thead>
+            <thead><tr><th>Username</th><th>Email</th><th>Role</th><th>ID</th><th></th></tr></thead>
             <tbody>
               {filtered.map(user => (
                 <tr key={user.id}>
@@ -2362,9 +2350,37 @@ function UsersPage({  users, companies, onRefresh, addToast, T  }: any) {
                   </div></td>
                   <td className="dv">{user.email || "—"}</td>
                   <td>{rolePill(user.role)}</td>
-                  <td className="dv">{companyName(user.company)}</td>
-                  <td className="dv">#{user.id}</td>
-                  <td><button className="ib red" onClick={() => setDelUser(user)}><I n="td" s={13} /></button></td>
+                  <td>
+                    <span
+                      title="Nusxa olish (copy)"
+                      onClick={() => copyId(user.id)}
+                      style={{
+                        cursor: "pointer",
+                        background: copiedId === user.id ? "var(--green-bg)" : "var(--bg)",
+                        color: copiedId === user.id ? "var(--green-t)" : "var(--text3)",
+                        border: `1px solid ${copiedId === user.id ? "var(--green-t)" : "var(--border)"}`,
+                        borderRadius: "var(--rx)",
+                        padding: "2px 9px",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        fontFamily: "monospace",
+                        letterSpacing: "0.03em",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        transition: "all .18s",
+                        userSelect: "all",
+                      }}
+                    >
+                      {copiedId === user.id ? <I n="ck" s={11} c="var(--green-t)" /> : <I n="sc" s={11} />}
+                      #{user.id}
+                    </span>
+                  </td>
+                  <td>
+                    {(currentUser.role === "admin" || currentUser.role === "superadmin") && (
+                      <button className="ib red" onClick={() => { setDelUser(user); setDelConfirmId(""); }}><I n="td" s={13} /></button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -2375,86 +2391,7 @@ function UsersPage({  users, companies, onRefresh, addToast, T  }: any) {
   );
 }
 
-/* ═══════════════════ COMPANIES PAGE ═══════════════════ */
-function CompaniesPage({  companies, onRefresh, addToast, T  }: any) {
-  const [showAdd, setShowAdd] = useState(false);
-  const [delCo, setDelCo] = useState<any>(null);
-  const [saving, setSaving] = useState(false);
-  const EMPTY = { name: "", address: "", phone: "", email: "" };
-  const [form, setForm] = useState(EMPTY);
-  const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
-  async function addCo() {
-    if (!form.name) return;
-    setSaving(true);
-    try {
-      await authAPI.createCompany(form);
-      addToast(`"${form.name}" yaratildi!`); setShowAdd(false); setForm(EMPTY); onRefresh();
-    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
-    finally { setSaving(false); }
-  }
-
-  async function delC(co) {
-    try {
-      await authAPI.deleteCompany(co.id);
-      addToast(`"${co.name}" deleted`, "error"); onRefresh();
-    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
-  }
-
-  return (
-    <div className="fu">
-      {showAdd && (
-        <Modal title="Add New Company" onClose={() => setShowAdd(false)}
-          footer={<><button className="btn bo" onClick={() => setShowAdd(false)}>{T.cancel}</button><button className="btn bp" onClick={addCo} disabled={saving}>{saving ? "..." : T.save}</button></>}>
-          <div className="form-group"><label className="form-label">Nomi *</label><input className="form-input" value={form.name} onChange={sf("name")} /></div>
-          <div className="form-group"><label className="form-label">Manzil</label><input className="form-input" value={form.address} onChange={sf("address")} /></div>
-          <div className="form-row">
-            <div className="form-group"><label className="form-label">Telefon</label><input className="form-input" value={form.phone} onChange={sf("phone")} /></div>
-            <div className="form-group"><label className="form-label">Email</label><input className="form-input" type="email" value={form.email} onChange={sf("email")} /></div>
-          </div>
-        </Modal>
-      )}
-      {delCo && <ConfirmModal title="Delete Company" desc={<>«<strong>{delCo.name}</strong>»?
-      </>} onConfirm={() => delC(delCo)} onClose={() => setDelCo(null)} />}
-
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
-        <div>
-          <h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-.025em" }}>{T.companies}</h1>
-          <p style={{ fontSize: 13, color: "var(--text3)", marginTop: 3 }}>{companies.length} ta kompaniya</p>
-        </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button className="btn bo" onClick={onRefresh}><I n="refresh" s={14} />Refresh</button>
-          <button className="btn bp" onClick={() => setShowAdd(true)}><I n="pl" s={14} c="#fff" />Add Company</button>
-        </div>
-      </div>
-
-      <div className="tc">
-        {companies.length === 0 ? (
-          <div className="empty-state"><I n="co" s={38} c="var(--border2)" /><h3>No companies found</h3></div>
-        ) : (
-          <table>
-            <thead><tr><th>Company</th><th>Address</th><th>Phone</th><th>Email</th><th>ID</th><th></th></tr></thead>
-            <tbody>
-              {companies.map(co => (
-                <tr key={co.id}>
-                  <td><div className="ir">
-                    <div className="ith" style={{ background: "var(--purple-bg)", border: "1px solid var(--purple)" }}><I n="co" s={16} c="var(--purple)" /></div>
-                    <div className="itn">{co.name}</div>
-                  </div></td>
-                  <td className="dv">{co.address || "—"}</td>
-                  <td className="dv">{co.phone || "—"}</td>
-                  <td className="dv">{co.email || "—"}</td>
-                  <td className="dv">#{co.id}</td>
-                  <td><button className="ib red" onClick={() => setDelCo(co)}><I n="td" s={13} /></button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
-  );
-}
 
 /* ═══════════════════ SETTINGS ═══════════════════ */
 const SETTINGS_NAV = [
@@ -2466,7 +2403,7 @@ const SETTINGS_NAV = [
   { k: "danger", l: "Danger Zone", i: "warn" },
 ];
 
-function SettingsPage({  settings, setSettings, darkMode, onDarkMode, accent, onAccent, lang, onLang, currentUser, addToast, onLogout, T  }: any) {
+function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onAccent, lang, onLang, currentUser, onUserUpdate, addToast, onLogout, T }: any) {
   const [active, setActive] = useState("profile");
   const [pf, setPf] = useState({ name: currentUser.username, email: currentUser.email || "", phone: "", role: currentUser.role || "staff" });
   const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
@@ -2510,7 +2447,15 @@ function SettingsPage({  settings, setSettings, darkMode, onDarkMode, accent, on
               <div className="form-group"><label className="form-label">Username</label><input className="form-input" value={pf.name} onChange={e => setPf(f => ({ ...f, name: e.target.value }))} /></div>
               <div className="form-group"><label className="form-label">Email</label><input className="form-input" type="email" value={pf.email} onChange={e => setPf(f => ({ ...f, email: e.target.value }))} /></div>
             </div>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}><button className="btn bp" onClick={() => addToast("Profil saqlandi!")}><I n="ck" s={14} c="#fff" />{T.save}</button></div>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}><button className="btn bp" onClick={async () => {
+              try {
+                const updated = await authAPI.updateUser(currentUser.id, { username: pf.name, email: pf.email });
+                onUserUpdate(updated);
+                addToast("Profil muvaffaqiyatli saqlandi!");
+              } catch (e: any) {
+                addToast(`Xato: ${e.message}`, "error");
+              }
+            }}><I n="ck" s={14} c="#fff" />{T.save}</button></div>
           </>
         )}
       </div>
@@ -2563,10 +2508,16 @@ function SettingsPage({  settings, setSettings, darkMode, onDarkMode, accent, on
               <div className="form-group"><label className="form-label">Tasdiqlash</label><input className="form-input" type="password" value={pw.confirm} onChange={e => setPw(p => ({ ...p, confirm: e.target.value }))} /></div>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <button className="btn bp" onClick={() => {
+              <button className="btn bp" onClick={async () => {
                 if (!pw.current) { addToast("Please enter your current password", "error"); return; }
                 if (pw.next !== pw.confirm) { addToast("Passwords do not match", "error"); return; }
-                addToast("Password changed!"); setPw({ current: "", next: "", confirm: "" });
+                try {
+                  await authAPI.changePassword({ current_password: pw.current, new_password: pw.next });
+                  addToast("Parol muvaffaqiyatli o'zgartirildi!");
+                  setPw({ current: "", next: "", confirm: "" });
+                } catch (e: any) {
+                  addToast(`Xato: ${e.message}`, "error");
+                }
               }}><I n="lock" s={14} c="#fff" />O'zgartirish</button>
             </div>
           </>
@@ -2647,6 +2598,7 @@ export default function App() {
   return (
     <Dashboard
       currentUser={user}
+      onUserUpdate={u => setUser(prev => ({ ...prev, ...u }))}
       onLogout={() => { setToken(""); setUser(null); }}
     />
   );
