@@ -117,8 +117,8 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # ─── STATIC FILES ─────────────────────────────────────────────────────────────
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # ─── I18N ─────────────────────────────────────────────────────────────────────
 LANGUAGE_CODE = 'en-us'

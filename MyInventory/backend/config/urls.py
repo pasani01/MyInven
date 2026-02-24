@@ -29,7 +29,7 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("healthz/", lambda request: HttpResponse("OK")),
+    # path("healthz/", lambda request: HttpResponse("OK")),
     path('admin/logout/', admin.site.logout, name='admin-logout'),
     path('accounts/', include('django.contrib.auth.urls')),
     path('', include('app.urls')),
