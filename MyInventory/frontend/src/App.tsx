@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 /* ═══════════════════ BASE URL ═══════════════════ */
-const BASE = (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_URL) || "https://motivated-cooperation-production-e86e.up.railway.app";
+const BASE = (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_URL) || "https://myinven-production.up.railway.app";
 
 
 /* ═══════════════════ AUTH TOKEN ═══════════════════ */
