@@ -36,10 +36,9 @@ class CustomUser(AbstractUser):
         if self.role == 'superadmin':
             self.is_staff = True
             self.is_superuser = True
-        else:
-            self.is_staff = False
-            self.is_superuser = False
+        # else bloğunu kaldır — dışarıdan set edilene dokunma
         super().save(*args, **kwargs)
+     
 
 
 
