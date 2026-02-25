@@ -1943,16 +1943,21 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
 
         if (!itemId) { errors.push(`${line.desc}: item yaratilmadi`); continue; }
 
-        // 2. Para birimini bul
-        const mtId = moneytypes.find((m: any) =>
+        // 2. Para birimini bul — bulamazsa ilkini kullan
+        const mtId = (moneytypes.find((m: any) =>
           m.code?.toLowerCase() === line.cur?.toLowerCase() ||
           m.name?.toLowerCase() === line.cur?.toLowerCase()
-        )?.id || moneytypes[0]?.id || null;
+        )?.id) ?? moneytypes[0]?.id;
 
-        // 3. Birimi bul
-        const unitId = unitler.find((u: any) =>
+        // 3. Birimi bul — bulamazsa ilkini kullan
+        const unitId = (unitler.find((u: any) =>
           u.name?.toLowerCase() === line.birlik?.toLowerCase()
-        )?.id || unitler[0]?.id || null;
+        )?.id) ?? unitler[0]?.id;
+
+        if (!mtId || !unitId) {
+          errors.push(`${line.desc}: Valyuta veya birlik bulunamadı, önce ekleyin`);
+          continue;
+        }
 
         const created = await buylistAPI.create({
           item: itemId,
@@ -1962,7 +1967,9 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
           qty: Number(line.qty) || 0,
           narx: String(line.price || "0"),
         });
-        setBuylist(prev => [...prev, normalizeBuylist(created, itemler, moneytypes, unitler)]);
+        // Yeni yaratılan item ismini biliyoruz — normalize ederken kaybolmasin
+        const enrichedItemler = [...itemler, { id: itemId, name: line.desc }];
+        setBuylist(prev => [...prev, normalizeBuylist(created, enrichedItemler, moneytypes, unitler)]);
         success++;
       } catch (e: any) {
         errors.push(`${line.desc}: ${e.message}`);
