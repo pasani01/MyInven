@@ -1,4 +1,3 @@
-
 import os
 import django
 
@@ -12,16 +11,18 @@ username = os.environ.get('SUPER_USERNAME', 'admin')
 email    = os.environ.get('SUPER_EMAIL', 'admin@admin.com')
 password = os.environ.get('SUPER_PASSWORD', 'Admin1234!')
 
-if User.objects.filter(email=email).exists():
-    u = User.objects.get(email=email)
-    u.role = 'superadmin'
-    u.is_email_verified = True  # ekle
-    u.set_password(password)
-    u.save()
-    print(f"User with email '{email}' updated to superadmin.")
+# username VEYA email ile ara
+user = User.objects.filter(username=username).first() or User.objects.filter(email=email).first()
+
+if user:
+    user.username = username
+    user.email = email
+    user.role = 'superadmin'
+    user.set_password(password)
+    user.save()
+    print(f"Superadmin '{username}' güncellendi.")
 else:
-    u = User(username=username, email=email, role='superadmin')
-    u.is_email_verified = True  # ekle
-    u.set_password(password)
-    u.save()
-    print(f"Superuser with email '{email}' created successfully!")
+    user = User(username=username, email=email, role='superadmin')
+    user.set_password(password)
+    user.save()
+    print(f"Superadmin '{username}' oluşturuldu.")
