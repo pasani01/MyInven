@@ -1322,21 +1322,11 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
   const [showEditWh, setShowEditWh] = useState(false);
 
   // buylist form — uses FK IDs
-  const EMPTY_BL = { item: itemler[0]?.id ?? "", moneytype: moneytypes[0]?.id ?? "", unit: unitler[0]?.id ?? "", qty: "", narx: "" };
+  const EMPTY_BL = { item: "", _itemName: "", moneytype: "", unit: "", qty: "", narx: "" };
   const [form, setForm] = useState(EMPTY_BL);
   const [whForm, setWhForm] = useState({ name: wh.name });
   const [search, setSearch] = useState(""); const [pg, setPg] = useState(1); const PER = 7;
   const [saving, setSaving] = useState(false);
-
-  // Update empty form when reference data loads
-  useEffect(() => {
-    setForm(f => ({
-      ...f,
-      item: f.item || itemler[0]?.id || "",
-      moneytype: f.moneytype || moneytypes[0]?.id || "",
-      unit: f.unit || unitler[0]?.id || "",
-    }));
-  }, [itemler, moneytypes, unitler]);
 
   const whBl = buylist.filter((b: any) => String(b.depolarId) === String(wh.id));
   const filtered = whBl.filter((i: any) => i.name.toLowerCase().includes(search.toLowerCase()));
@@ -1349,7 +1339,11 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
   const currencyTotals = moneytypes.map((m: any) => {
     const total = whBl
       .filter((b: any) => String(b.moneytypeId) === String(m.id))
-      .reduce((acc: number, b: any) => acc + (Number(b.qty) * parseFloat(b.price || "0")), 0);
+      .reduce((acc: number, b: any) => {
+        const qty = Number(b.qty) || 0;
+        const price = parseFloat(String(b._raw?.narx ?? b.price ?? "0").replace(/,/g, "")) || 0;
+        return acc + qty * price;
+      }, 0);
     return { id: m.id, name: m.name, total };
   }).filter((c: any) => c.total > 0);
 
@@ -1832,7 +1826,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
   const [refId, setRefId] = useState("");
   const [editingCell, setEditingCell] = useState<any>(null);
   const [showAddLine, setShowAddLine] = useState(false);
-  const [newLine, setNewLine] = useState({ desc: "", qty: "", price: "", cur: "UZS" });
+  const [newLine, setNewLine] = useState({ desc: "", qty: "", price: "", cur: moneytypes[0]?.name || "UZS" });
 
   // Upload state
   const [uploadedFile, setUploadedFile] = useState<any>(null);       // File objesi
@@ -1920,7 +1914,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
   function addLine() {
     if (!newLine.desc.trim()) return;
     setLines(prev => [...prev, { id: ++INTAKE_ID, desc: newLine.desc, qty: Number(newLine.qty) || 1, price: newLine.price || "0", cur: newLine.cur, warn: false }]);
-    setNewLine({ desc: "", qty: "", price: "", cur: "UZS" });
+    setNewLine({ desc: "", qty: "", price: "", cur: moneytypes[0]?.name || "UZS" });
     setShowAddLine(false);
   }
 
@@ -1929,6 +1923,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
     if (!selWh) { addToast("Ombor tanlang", "error"); return; }
     setSaving(true);
     let success = 0;
+    const errors: string[] = [];
     for (const line of lines) {
       try {
         // 1. line.desc ile item bul, yoksa yeni yarat
@@ -1940,17 +1935,17 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
           if (found) {
             itemId = found.id;
           } else {
-            // Yeni item yarat
             const newItem = await itemlerAPI.create({ name: line.desc });
             itemId = newItem.id;
           }
         }
 
-        // 2. Para birimini bul (cur veya birlik alanından)
+        if (!itemId) { errors.push(`${line.desc}: item yaratilmadi`); continue; }
+
+        // 2. Para birimini bul
         const mtId = moneytypes.find((m: any) =>
           m.code?.toLowerCase() === line.cur?.toLowerCase() ||
-          m.name?.toLowerCase() === line.cur?.toLowerCase() ||
-          m.name?.toLowerCase() === line.birlik?.toLowerCase()
+          m.name?.toLowerCase() === line.cur?.toLowerCase()
         )?.id || moneytypes[0]?.id || null;
 
         // 3. Birimi bul
@@ -1962,17 +1957,20 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
           item: itemId,
           moneytype: mtId,
           unit: unitId,
-          depolar: selWh || null,
+          depolar: Number(selWh),
           qty: Number(line.qty) || 0,
-          narx: line.price || "0",
+          narx: String(line.price || "0"),
         });
         setBuylist(prev => [...prev, normalizeBuylist(created, itemler, moneytypes, unitler)]);
         success++;
-      } catch { /* skip failed */ }
+      } catch (e: any) {
+        errors.push(`${line.desc}: ${e.message}`);
+      }
     }
     setSaving(false);
-    addToast(`${success}/${lines.length} items added to inventory!`);
-    setApproved(true);
+    if (errors.length > 0) console.error("Approve errors:", errors);
+    addToast(`${success}/${lines.length} items added to inventory!`, success > 0 ? "success" : "error");
+    if (success > 0) setApproved(true);
   }
 
   if (approved) return (
