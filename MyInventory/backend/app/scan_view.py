@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 
-GROQ_API_KEY = "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"
+GROQ_API_KEY = "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"
 
 
 class InvoiceScanView(APIView):
