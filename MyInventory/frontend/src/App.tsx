@@ -697,9 +697,9 @@ const SHIP_ST = {
 /* ═══════════════════ AUTH PAGE ═══════════════════ */
 function AuthPage({ onLogin }: any) {
   const [username, setUsername] = useState("");
-  const [companyToken, setCompanyToken] = useState(() => {
-    // URL'den otomatik al: domain.com/ABC123 → ABC123
-    return window.location.pathname.replace(/\//g, "") || "";
+  const [companyToken] = useState(() => {
+    // URL: domain.com/ABC123XYZ → "ABC123XYZ"
+    return window.location.pathname.replace(/\//g, "").trim();
   });
   const [pass, setPass] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -707,7 +707,7 @@ function AuthPage({ onLogin }: any) {
   const [err, setErr] = useState("");
 
   async function handleLogin() {
-    if (!companyToken.trim()) { setErr("Please enter company token"); return; }
+    if (!companyToken) { setErr("Invalid company link. Please use the correct URL."); return; }
     if (!username.trim()) { setErr("Please enter your username"); return; }
     setLoading(true); setErr("");
     try {
@@ -729,15 +729,6 @@ function AuthPage({ onLogin }: any) {
         <div className="auth-panel">
           <div className="auth-logo-row">
             <div className="auth-logo-mark"><I n="wh" s={16} c="#fff" /></div>
-            <div className="fld">
-              <label className="fld-label">Company Token</label>
-              <div className="fld-wrap">
-                <input type="text" placeholder="Enter company token" value={companyToken}
-                  onChange={e => setCompanyToken(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && handleLogin()} />
-                <span className="fic"><I n="key" s={15} /></span>
-              </div>
-            </div>
             <div className="auth-logo-name">Reno<span>Flow</span></div>
           </div>
           <h2>Welcome back</h2>
