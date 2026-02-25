@@ -1925,12 +1925,18 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
     setSaving(true);
     let success = 0;
     const errors: string[] = [];
+
+    // Lokal cache — aynı ismi birden fazla kez yaratmamak için
+    const localMoneytypes = [...moneytypes];
+    const localUnitler = [...unitler];
+    const localItemler = [...itemler];
+
     for (const line of lines) {
       try {
-        // 1. line.desc ile item bul, yoksa yeni yarat
+        // 1. Item bul veya yarat
         let itemId: number | null = null;
         if (line.desc) {
-          const found = itemler.find((i: any) =>
+          const found = localItemler.find((i: any) =>
             i.name.toLowerCase().trim() === line.desc.toLowerCase().trim()
           );
           if (found) {
@@ -1938,26 +1944,35 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
           } else {
             const newItem = await itemlerAPI.create({ name: line.desc });
             itemId = newItem.id;
+            localItemler.push({ id: itemId, name: line.desc });
           }
         }
-
         if (!itemId) { errors.push(`${line.desc}: item yaratilmadi`); continue; }
 
-        // 2. Para birimini bul — bulamazsa ilkini kullan
-        const mtId = (moneytypes.find((m: any) =>
-          m.code?.toLowerCase() === line.cur?.toLowerCase() ||
-          m.name?.toLowerCase() === line.cur?.toLowerCase()
-        )?.id) ?? moneytypes[0]?.id;
-
-        // 3. Birimi bul — bulamazsa ilkini kullan
-        const unitId = (unitler.find((u: any) =>
-          u.name?.toLowerCase() === line.birlik?.toLowerCase()
-        )?.id) ?? unitler[0]?.id;
-
-        if (!mtId || !unitId) {
-          errors.push(`${line.desc}: Valyuta veya birlik bulunamadı, önce ekleyin`);
-          continue;
+        // 2. Moneytype bul veya yarat
+        const curName = line.cur?.trim() || "UZS";
+        let mtFound = localMoneytypes.find((m: any) =>
+          m.code?.toLowerCase() === curName.toLowerCase() ||
+          m.name?.toLowerCase() === curName.toLowerCase()
+        );
+        if (!mtFound) {
+          const newMt = await moneytypesAPI.create({ type: curName });
+          mtFound = { id: newMt.id, name: curName, code: curName, _raw: newMt };
+          localMoneytypes.push(mtFound);
         }
+        const mtId = mtFound.id;
+
+        // 3. Unit bul veya yarat
+        const unitName = line.birlik?.trim() || "dona";
+        let unitFound = localUnitler.find((u: any) =>
+          u.name?.toLowerCase() === unitName.toLowerCase()
+        );
+        if (!unitFound) {
+          const newUnit = await unitlerAPI.create({ unit: unitName });
+          unitFound = { id: newUnit.id, name: unitName, _raw: newUnit };
+          localUnitler.push(unitFound);
+        }
+        const unitId = unitFound.id;
 
         const created = await buylistAPI.create({
           item: itemId,
@@ -1967,9 +1982,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
           qty: Number(line.qty) || 0,
           narx: String(line.price || "0"),
         });
-        // Yeni yaratılan item ismini biliyoruz — normalize ederken kaybolmasin
-        const enrichedItemler = [...itemler, { id: itemId, name: line.desc }];
-        setBuylist(prev => [...prev, normalizeBuylist(created, enrichedItemler, moneytypes, unitler)]);
+        setBuylist(prev => [...prev, normalizeBuylist(created, localItemler, localMoneytypes, localUnitler)]);
         success++;
       } catch (e: any) {
         errors.push(`${line.desc}: ${e.message}`);
