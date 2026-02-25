@@ -1345,6 +1345,14 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
   const lowCount = whBl.filter((i: any) => i.low).length;
   const grad = WC_GRADIENT[wh.wc] || WC_GRADIENT.bl;
 
+  // DB'deki para birimlerine göre toplam hesapla
+  const currencyTotals = moneytypes.map((m: any) => {
+    const total = whBl
+      .filter((b: any) => String(b.moneytypeId) === String(m.id))
+      .reduce((acc: number, b: any) => acc + (Number(b.qty) * parseFloat(b.price || "0")), 0);
+    return { id: m.id, name: m.name, total };
+  }).filter((c: any) => c.total > 0);
+
   // Build API payload for buylist — serializer alan adlarıyla eşleşiyor
   function buildBlPayload(f) {
     return {
@@ -1358,10 +1366,19 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
   }
 
   async function addBl() {
-    if (!form.item || !form.qty) { addToast("Please select an item and enter quantity", "error"); return; }
+    const itemName = form._itemName?.trim() || itemler.find((i: any) => String(i.id) === String(form.item))?.name;
+    if (!itemName || !form.qty) { addToast("Mahsulot va miqdorni kiriting", "error"); return; }
     setSaving(true);
     try {
-      const created = await buylistAPI.create(buildBlPayload(form));
+      let itemId = form.item ? Number(form.item) : null;
+      // Agar item DB da yo'q bo'lsa — yangi item yaratamiz
+      if (!itemId && itemName) {
+        const newItem = await itemlerAPI.create({ name: itemName });
+        itemId = newItem.id;
+        // itemler listini yangilash uchun — parent'dan refresh kerak, lekin local ham qo'shamiz
+      }
+      const payload = { ...buildBlPayload({ ...form, item: itemId }), item: itemId };
+      const created = await buylistAPI.create(payload);
       setBuylist(prev => [...prev, normalizeBuylist(created, itemler, moneytypes, unitler)]);
       addToast("Item added to inventory!"); setShowAdd(false); setForm(EMPTY_BL);
     } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
@@ -1499,8 +1516,10 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
           {[
             { l: "Buylist", v: String(whBl.length), c: "var(--blue)", s: "items" },
             { l: "Low Stock", v: String(lowCount), c: lowCount > 0 ? "var(--red)" : "var(--green)", s: lowCount > 0 ? "warning" : "OK ✓" },
-            { l: "USD", v: wh.usd, c: "var(--green)", s: "" },
-            { l: "SOM", v: Number(String(wh.som).replace(/,/g, "")).toLocaleString(), c: "var(--orange)", s: "so'm" },
+            ...currencyTotals.map((ct: any) => ({
+              l: ct.name, v: ct.total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }), c: "var(--green)", s: ct.name
+            })),
+            ...(currencyTotals.length === 0 ? [{ l: "Jami", v: "0", c: "var(--text3)", s: "—" }] : []),
           ].map((stat, i) => (
             <div key={i} className="wdh-stat">
               <div className="wdh-stat-l">{stat.l}</div>
@@ -1544,14 +1563,48 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
 
         {showAdd && (
           <div style={{ padding: "16px 18px", borderBottom: "1px solid var(--border)", background: "var(--blue-l)" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 100px 90px auto", gap: 10, alignItems: "flex-end" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1.5fr 90px 100px 90px 120px auto", gap: 10, alignItems: "flex-end" }}>
+              {/* 1. Item — select or type new */}
               <div>
                 <label className="form-label">Mahsulot *</label>
-                <select className="form-select" style={{ width: "100%" }} value={form.item} onChange={sf("item")}>
-                  <option value="">— Tanlang —</option>
-                  {itemler.map((i: any) => <option key={i.id} value={i.id}>{i.name}</option>)}
+                <input
+                  className="form-input"
+                  list="item-datalist"
+                  placeholder="Tanlang yoki yangi kiriting"
+                  value={
+                    form._itemName !== undefined
+                      ? form._itemName
+                      : (itemler.find((i: any) => String(i.id) === String(form.item))?.name || "")
+                  }
+                  onChange={e => {
+                    const val = e.target.value;
+                    const found = itemler.find((i: any) => i.name === val);
+                    setForm(f => ({ ...f, item: found ? String(found.id) : "", _itemName: val }));
+                  }}
+                />
+                <datalist id="item-datalist">
+                  {itemler.map((i: any) => <option key={i.id} value={i.name} />)}
+                </datalist>
+              </div>
+              {/* 2. Qty */}
+              <div>
+                <label className="form-label">Miqdor *</label>
+                <input className="form-input" type="number" min="0" value={form.qty} onChange={sf("qty")} onKeyDown={e => e.key === "Enter" && addBl()} />
+              </div>
+              {/* 3. Unit */}
+              <div>
+                <label className="form-label">Birlik</label>
+                <select className="form-select" style={{ width: "100%" }} value={form.unit} onChange={sf("unit")}>
+                  <option value="">— Birlik —</option>
+                  {unitler.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               </div>
+              {/* 4. Price */}
+              <div>
+                <label className="form-label">Narx</label>
+                <input className="form-input" type="number" min="0" step="0.01" value={form.narx} onChange={sf("narx")} onKeyDown={e => e.key === "Enter" && addBl()} />
+              </div>
+              {/* 5. Currency */}
               <div>
                 <label className="form-label">Valyuta</label>
                 <select className="form-select" style={{ width: "100%" }} value={form.moneytype} onChange={sf("moneytype")}>
@@ -1559,24 +1612,9 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
                   {moneytypes.map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
               </div>
-              <div>
-                <label className="form-label">Miqdor *</label>
-                <input className="form-input" type="number" min="0" value={form.qty} onChange={sf("qty")} onKeyDown={e => e.key === "Enter" && addBl()} />
-              </div>
-              <div>
-                <label className="form-label">Narx</label>
-                <input className="form-input" type="number" min="0" step="0.01" value={form.narx} onChange={sf("narx")} onKeyDown={e => e.key === "Enter" && addBl()} />
-              </div>
               <button className="btn bp" style={{ padding: "9px 14px", alignSelf: "flex-end" }} onClick={addBl} disabled={saving}>
                 <I n="ck" s={14} c="#fff" />
               </button>
-            </div>
-            <div style={{ display: "flex", gap: 10, marginTop: 10, alignItems: "center" }}>
-              <label className="form-label" style={{ margin: 0 }}>Birlik:</label>
-              <select className="form-select" style={{ width: 140 }} value={form.unit} onChange={sf("unit")}>
-                <option value="">— Birlik —</option>
-                {unitler.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
-              </select>
             </div>
           </div>
         )}
@@ -1888,13 +1926,38 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
 
   async function approve() {
     if (lines.length === 0) { addToast("No items to approve", "error"); return; }
+    if (!selWh) { addToast("Ombor tanlang", "error"); return; }
     setSaving(true);
     let success = 0;
     for (const line of lines) {
       try {
-        const itemId = itemler[0]?.id || null;
-        const mtId = moneytypes.find((m: any) => m.code === line.cur || m.name === line.cur)?.id || moneytypes[0]?.id || null;
-        const unitId = unitler.find((u: any) => u.name === line.birlik)?.id || unitler[0]?.id || null;
+        // 1. line.desc ile item bul, yoksa yeni yarat
+        let itemId: number | null = null;
+        if (line.desc) {
+          const found = itemler.find((i: any) =>
+            i.name.toLowerCase().trim() === line.desc.toLowerCase().trim()
+          );
+          if (found) {
+            itemId = found.id;
+          } else {
+            // Yeni item yarat
+            const newItem = await itemlerAPI.create({ name: line.desc });
+            itemId = newItem.id;
+          }
+        }
+
+        // 2. Para birimini bul (cur veya birlik alanından)
+        const mtId = moneytypes.find((m: any) =>
+          m.code?.toLowerCase() === line.cur?.toLowerCase() ||
+          m.name?.toLowerCase() === line.cur?.toLowerCase() ||
+          m.name?.toLowerCase() === line.birlik?.toLowerCase()
+        )?.id || moneytypes[0]?.id || null;
+
+        // 3. Birimi bul
+        const unitId = unitler.find((u: any) =>
+          u.name?.toLowerCase() === line.birlik?.toLowerCase()
+        )?.id || unitler[0]?.id || null;
+
         const created = await buylistAPI.create({
           item: itemId,
           moneytype: mtId,
@@ -2132,7 +2195,10 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
                     <input className="form-input" style={{ fontSize: 13, padding: "6px 10px" }} type="number" placeholder="Soni" value={newLine.qty} onChange={e => setNewLine(p => ({ ...p, qty: e.target.value }))} />
                     <input className="form-input" style={{ fontSize: 13, padding: "6px 10px" }} type="number" placeholder="Narx" value={newLine.price} onChange={e => setNewLine(p => ({ ...p, price: e.target.value }))} />
                     <select className="form-select" style={{ fontSize: 13, padding: "6px 8px" }} value={newLine.cur} onChange={e => setNewLine(p => ({ ...p, cur: e.target.value }))}>
-                      <option>UZS</option><option>USD</option><option>EUR</option>
+                      {moneytypes.length > 0
+                        ? moneytypes.map((m: any) => <option key={m.id} value={m.name}>{m.name}</option>)
+                        : <><option>UZS</option><option>USD</option><option>EUR</option></>
+                      }
                     </select>
                     <button className="btn bp" style={{ padding: "6px 8px", justifyContent: "center" }} onClick={addLine}><I n="ck" s={13} c="#fff" /></button>
                   </div>
