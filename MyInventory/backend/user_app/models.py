@@ -11,15 +11,11 @@ def generate_company_id(length=16):
             return new_id
 
 class Company(models.Model):
-    company_id = models.CharField(
-        max_length=20, 
-        unique=True, 
-        default=generate_company_id,  # otomatik benzersiz ID
-        editable=False
-    )
+    company_id = models.CharField(max_length=20, unique=True, default=generate_company_id, editable=False)
     name = models.CharField(max_length=255)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
     def __str__(self):
         return f"{self.name} ({self.company_id})"
 
@@ -31,27 +27,22 @@ class CustomUser(AbstractUser):
     )
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='user')
     company = models.ForeignKey('Company', on_delete=models.SET_NULL, null=True, blank=True)
-    
-    # Email ile login için
-    email = models.EmailField(unique=True)
-    
-    # Email doğrulama için
-    is_email_verified = models.BooleanField(default=False)
-    email_verification_token = models.CharField(max_length=64, blank=True, null=True)
+
+    class Meta:
+        # Aynı şirkette aynı username olamaz, farklı şirkette olabilir
+        unique_together = ('username', 'company')
 
     def save(self, *args, **kwargs):
         if self.role == 'superadmin':
             self.is_staff = True
             self.is_superuser = True
         super().save(*args, **kwargs)
-     
-
-
 
 class UserSettings(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     dark_mode = models.BooleanField(default=False)
     language = models.CharField(max_length=10, default='en')
     fone_color = models.IntegerField(default=0)
+
     def __str__(self):
         return f"Settings for {self.user.username}"

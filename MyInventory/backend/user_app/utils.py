@@ -1,17 +1,13 @@
-import secrets
-from django.core.mail import send_mail
-from django.conf import settings
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import CompanyViewSet, CustomUserViewSet, UserLoginView, UserLogoutView
 
-def send_verification_email(user):
-    token = secrets.token_urlsafe(32)
-    user.email_verification_token = token
-    user.save()
+router = DefaultRouter()
+router.register(r'companies', CompanyViewSet)
+router.register(r'users', CustomUserViewSet, basename='user')
 
-    verification_url = f"{settings.FRONTEND_URL}/verify-email/?token={token}"
-
-    send_mail(
-        subject="Email Doğrulama",
-        message=f"Hesabınızı doğrulamak için tıklayın: {verification_url}",
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-    )
+urlpatterns = [
+    path('', include(router.urls)),
+    path('<str:company_token>/login/', UserLoginView.as_view(), name='login'),  # domain.uz/ABC123/login/
+    path('logout/', UserLogoutView.as_view(), name='logout'),
+]

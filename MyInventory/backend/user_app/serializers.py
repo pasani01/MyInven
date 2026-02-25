@@ -8,34 +8,34 @@ class CompanySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class CustomUserSerializer(serializers.ModelSerializer):
-    password_hash = serializers.SerializerMethodField(read_only=True)
-
-    def get_password_hash(self, obj):
-        return obj.password  # Django saqlangan hash (pbkdf2_sha256$...)
-
     class Meta:
         model = CustomUser
-        fields = ['id', 'username', 'email', 'role', 'company', 'password_hash']
-
-
-from django.contrib.auth import authenticate
-from rest_framework import serializers
+        fields = ['id', 'username', 'email', 'role', 'company']
 
 class UserLoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
+    username = serializers.CharField()
     password = serializers.CharField(write_only=True)
+    company_token = serializers.CharField()
 
     def validate(self, data):
+        # Önce company_token'ı doğrula
         try:
-            user = CustomUser.objects.get(email=data['email'])
+            company = Company.objects.get(company_id=data['company_token'], is_active=True)
+        except Company.DoesNotExist:
+            raise serializers.ValidationError("Geçersiz şirket linki")
+
+        # O şirketteki kullanıcıyı bul
+        try:
+            user_obj = CustomUser.objects.get(username=data['username'], company=company)
         except CustomUser.DoesNotExist:
-            raise serializers.ValidationError("Geçersiz email veya şifre")
-        
-        user = authenticate(username=user.username, password=data['password'])
-        if not user:
-            raise serializers.ValidationError("Geçersiz email veya şifre")
-        if not user.is_active:
+            raise serializers.ValidationError("Kullanıcı adı veya şifre hatalı")
+
+        # Şifreyi kontrol et
+        if not user_obj.check_password(data['password']):
+            raise serializers.ValidationError("Kullanıcı adı veya şifre hatalı")
+
+        if not user_obj.is_active:
             raise serializers.ValidationError("Kullanıcı pasif")
 
-        data['user'] = user
+        data['user'] = user_obj
         return data
