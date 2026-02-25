@@ -9,6 +9,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from .scan_view import InvoiceScanView
 from .expoer_as_excel import export_buylist_as_excel
+from rest_framework.views import APIView
 
 class ItemViewSet(viewsets.ModelViewSet):
     serializer_class = ItemSerializer
@@ -95,5 +96,5 @@ class BuyListViewSet(viewsets.ModelViewSet):
 class ExportBuyListAsExcelView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        return export_buylist_as_excel(request)
+    def get(self, request, depo_id):
+        return export_buylist_as_excel(request, depo_id)    
