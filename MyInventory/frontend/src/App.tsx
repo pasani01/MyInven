@@ -88,7 +88,7 @@ async function api(path: string, method: string = "GET", body: any = null) {
 // AuthPage içindeki handleLogin kullanılıyor (aşağıda)
 
 const authAPI = {
-  login: (username: string, password: string) => api("/user_app/login/", "POST", { username, password }),
+  login: (companyToken: string, username: string, password: string) => api(`/user_app/${companyToken}/login/`, "POST", { username, password }),
   logout: () => api("/user_app/logout/", "POST"),
   users: () => api("/user_app/users/"),
   getUser: (id: number | string) => api(`/user_app/users/${id}/`),
@@ -697,22 +697,27 @@ const SHIP_ST = {
 /* ═══════════════════ AUTH PAGE ═══════════════════ */
 function AuthPage({ onLogin }: any) {
   const [username, setUsername] = useState("");
+  const [companyToken, setCompanyToken] = useState(() => {
+    // URL'den otomatik al: domain.com/ABC123 → ABC123
+    return window.location.pathname.replace(/\//g, "") || "";
+  });
   const [pass, setPass] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
   async function handleLogin() {
+    if (!companyToken.trim()) { setErr("Please enter company token"); return; }
     if (!username.trim()) { setErr("Please enter your username"); return; }
     setLoading(true); setErr("");
     try {
-      const data = await authAPI.login(username, pass);
+      const data = await authAPI.login(companyToken, username, pass);
       if (data.token) setToken(data.token);
       else if (data.key) setToken(data.key);
       const userData = data.user ?? { username, role: data.role ?? "staff", email: data.email ?? "", company: data.company ?? null, id: data.id ?? null };
       onLogin(userData);
     } catch (e: any) {
-      setErr((e as Error).message || "Login failed. Please check your username and password.");
+      setErr((e as Error).message || "Login failed.");
     } finally { setLoading(false); }
   }
 
@@ -724,6 +729,15 @@ function AuthPage({ onLogin }: any) {
         <div className="auth-panel">
           <div className="auth-logo-row">
             <div className="auth-logo-mark"><I n="wh" s={16} c="#fff" /></div>
+            <div className="fld">
+              <label className="fld-label">Company Token</label>
+              <div className="fld-wrap">
+                <input type="text" placeholder="Enter company token" value={companyToken}
+                  onChange={e => setCompanyToken(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleLogin()} />
+                <span className="fic"><I n="key" s={15} /></span>
+              </div>
+            </div>
             <div className="auth-logo-name">Reno<span>Flow</span></div>
           </div>
           <h2>Welcome back</h2>
