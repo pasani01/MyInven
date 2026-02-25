@@ -3,7 +3,7 @@ from user_app.models import Company, CustomUser
 import datetime
 
 class Depo(models.Model):
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=999)
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='depolar')
@@ -12,7 +12,7 @@ class Depo(models.Model):
         return f"{self.name} ({self.company.name})"
 
 class Item(models.Model):
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=999)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='items')
 
     def __str__(self):
@@ -26,7 +26,7 @@ class MoneyType(models.Model):
         return self.type
 
 class Unit(models.Model):
-    unit = models.CharField(max_length=50)
+    unit = models.CharField(max_length=999)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='units')
 
     def __str__(self):
