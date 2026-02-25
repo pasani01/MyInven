@@ -3,12 +3,15 @@ from django.contrib.auth.admin import UserAdmin
 from .models import CustomUser, Company
 
 class CustomUserAdmin(UserAdmin):
-    fieldsets = UserAdmin.fieldsets + (
-        ('Company Info', {'fields': ('company', 'role')}),
+    fieldsets = (
+        (None, {'fields': ('username', 'password')}),
+        ('Personal info', {'fields': ('first_name', 'last_name', 'email')}),
+        ('Company Info', {'fields': ('company', 'role')}),  # ayrı sekme yok, aynı sayfada
+        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Important dates', {'fields': ('last_login', 'date_joined')}),
     )
-    # Yeni kullanıcı oluştururken de company ve role göster
-    add_fieldsets = UserAdmin.add_fieldsets + (
-        ('Company Info', {'fields': ('company', 'role')}),
+    add_fieldsets = (
+        (None, {'classes': ('wide',), 'fields': ('username', 'password1', 'password2', 'company', 'role')}),
     )
     list_display = ('username', 'email', 'company', 'role', 'is_staff', 'is_active')
     list_filter = ('role', 'company', 'is_active', 'is_staff')
