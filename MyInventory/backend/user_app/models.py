@@ -27,6 +27,7 @@ class CustomUser(AbstractUser):
         ('admin', 'Admin'),
         ('user', 'User'),
     )
+    
     # username'in global unique kısıtlamasını kaldır
     username = models.CharField(
         max_length=150,
