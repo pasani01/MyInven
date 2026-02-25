@@ -682,10 +682,10 @@ const LANGUAGES = [
   { code: "tr", flag: "🇹🇷", name: "Turkish", local: "Türkçe" },
 ];
 const STRINGS = {
-  en: { warehouses: "Warehouses", shipments: "Shipments", reports: "Reports", intake: "Smart Invoice Intake", settings: "Settings", users: "Users", darkMode: "Dark Mode", lightMode: "Light Mode", logout: "Logout", createWh: "Create Warehouse", save: "Save", cancel: "Cancel", search: "Search...", items: "Items", moneytypes: "Currencies", units: "Units", deleteUser: "Delete User", deleteConfirmText: (name: string) => `Are you sure you want to delete "${name}"?`, deleteConfirmLabel: "Type the username to confirm:", deleteBtn: "Delete", addUser: "Add New User" },
-  uz: { warehouses: "Omborlar", shipments: "Shipments", reports: "Reports", intake: "Hisob-faktura", settings: "Sozlamalar", users: "Foydalanuvchilar", darkMode: "Dark Mode", lightMode: "Kunduzgi Rejim", logout: "Chiqish", createWh: "Ombor Yaratish", save: "Saqlash", cancel: "Bekor qilish", search: "Qidirish...", items: "Mahsulotlar", moneytypes: "Valyutalar", units: "Birliklar", deleteUser: "Foydalanuvchini o'chirish", deleteConfirmText: (name: string) => `Haqiqatdan ham "${name}" ni o'chirmoqchimisiz?`, deleteConfirmLabel: "Tasdiqlash uchun foydalanuvchi nomini yozing:", deleteBtn: "O'chirish", addUser: "Yangi foydalanuvchi qo'shish" },
-  ru: { warehouses: "Склады", shipments: "Отправки", reports: "Отчёты", intake: "Сканирование", settings: "Настройки", users: "Пользователи", darkMode: "Тёмный", lightMode: "Светлый", logout: "Выйти", createWh: "Создать Склад", save: "Сохранить", cancel: "Отмена", search: "Поиск...", items: "Товары", moneytypes: "Валюты", units: "Единицы", deleteUser: "Удалить пользователя", deleteConfirmText: (name: string) => `Вы уверены, что хотите удалить "${name}"?`, deleteConfirmLabel: "Введите имя пользователя для подтверждения:", deleteBtn: "Удалить", addUser: "Добавить пользователя" },
-  tr: { warehouses: "Depolar", shipments: "Sevkiyatlar", reports: "Raporlar", settings: "Ayarlar", users: "Kullanıcılar", darkMode: "Karanlık Mod", lightMode: "Aydınlık Mod", logout: "Çıkış", createWh: "Depo Oluştur", save: "Kaydet", cancel: "İptal", search: "Ara...", items: "Ürünler", moneytypes: "Para Birimleri", units: "Birimler", deleteUser: "Kullanıcıyı sil", deleteConfirmText: (name: string) => `"${name}" adlı kullanıcıyı silmek istediğinizden emin misiniz?`, deleteConfirmLabel: "Onaylamak için kullanıcı adını yazın:", deleteBtn: "Sil", addUser: "Yeni kullanıcı ekle" },
+  en: { warehouses: "Warehouses", analytics: "Analytics", intake: "Smart Invoice Intake", settings: "Settings", users: "Users", darkMode: "Dark Mode", lightMode: "Light Mode", logout: "Logout", createWh: "Create Warehouse", save: "Save", cancel: "Cancel", search: "Search...", items: "Items", moneytypes: "Currencies", units: "Units", deleteUser: "Delete User", deleteConfirmText: (name: string) => `Are you sure you want to delete "${name}"?`, deleteConfirmLabel: "Type the username to confirm:", deleteBtn: "Delete", addUser: "Add New User" },
+  uz: { warehouses: "Omborlar", analytics: "Tahlil", intake: "Aqlli Hisob-faktura", settings: "Sozlamalar", users: "Foydalanuvchilar", darkMode: "Tungi rejim", lightMode: "Kunduzgi Rejim", logout: "Chiqish", createWh: "Ombor Yaratish", save: "Saqlash", cancel: "Bekor qilish", search: "Qidirish...", items: "Mahsulotlar", moneytypes: "Valyutalar", units: "Birliklar", deleteUser: "Foydalanuvchini o'chirish", deleteConfirmText: (name: string) => `Haqiqatdan ham "${name}" ni o'chirmoqchimisiz?`, deleteConfirmLabel: "Tasdiqlash uchun foydalanuvchi nomini yozing:", deleteBtn: "O'chirish", addUser: "Yangi foydalanuvchi qo'shish" },
+  ru: { warehouses: "Склады", analytics: "Аналитика", intake: "Сканирование счёта", settings: "Настройки", users: "Пользователи", darkMode: "Тёмный", lightMode: "Светлый", logout: "Выйти", createWh: "Создать Склад", save: "Сохранить", cancel: "Отмена", search: "Поиск...", items: "Товары", moneytypes: "Валюты", units: "Единицы", deleteUser: "Удалить пользователя", deleteConfirmText: (name: string) => `Вы уверены, что хотите удалить "${name}"?`, deleteConfirmLabel: "Введите имя пользователя для подтверждения:", deleteBtn: "Удалить", addUser: "Добавить пользователя" },
+  tr: { warehouses: "Depolar", analytics: "Analiz", intake: "Akıllı Fatura Tarama", settings: "Ayarlar", users: "Kullanıcılar", darkMode: "Karanlık Mod", lightMode: "Aydınlık Mod", logout: "Çıkış", createWh: "Depo Oluştur", save: "Kaydet", cancel: "İptal", search: "Ara...", items: "Ürünler", moneytypes: "Para Birimleri", units: "Birimler", deleteUser: "Kullanıcıyı sil", deleteConfirmText: (name: string) => `"${name}" adlı kullanıcıyı silmek istediğinizden emin misiniz?`, deleteConfirmLabel: "Onaylamak için kullanıcı adını yazın:", deleteBtn: "Sil", addUser: "Yeni kullanıcı ekle" },
 };
 
 const SHIP_ST = {
@@ -955,9 +955,6 @@ function Dashboard({ currentUser, onUserUpdate, onLogout }: any) {
           <div className={`n-item${whActive ? " active" : ""}`} onClick={() => { setPage("warehouses"); setSelectedWh(null); }}>
             <I n="wh" s={15} />{T.warehouses}
           </div>
-          <div className={`n-item${page === "shipments" ? " active" : ""}`} onClick={() => { setPage("shipments"); setSelectedWh(null); }}>
-            <I n="ship" s={15} />{T.shipments}
-          </div>
           <div className={`n-item${page === "intake" ? " active" : ""}`} onClick={() => { setPage("intake"); setSelectedWh(null); }}>
             <I n="sc" s={15} />{T.intake}
           </div>
@@ -975,7 +972,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout }: any) {
           <div className="n-div" />
           <div className="n-sec">Analytics</div>
           <div className={`n-item${page === "reports" ? " active" : ""}`} onClick={() => { setPage("reports"); setSelectedWh(null); }}>
-            <I n="ch" s={15} />{T.reports}
+            <I n="ch" s={15} />{T.analytics}
           </div>
           <div className="n-div" />
           <div className="n-sec">Management</div>
@@ -1058,7 +1055,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout }: any) {
           )}
           {page === "shipments" && <ShipmentsPage shipments={shipments} setShipments={setShipments} addToast={addToast} T={T} />}
           {page === "intake" && <IntakePage buylist={buylist} setBuylist={setBuylist} warehouses={warehouses} itemler={itemler} moneytypes={moneytypes} unitler={unitler} addToast={addToast} T={T} />}
-          {page === "reports" && <ReportsPage warehouses={warehouses} buylist={buylist} shipments={shipments} addToast={addToast} T={T} />}
+          {page === "reports" && <ReportsPage warehouses={warehouses} buylist={buylist} addToast={addToast} T={T} />}
           {page === "itemler" && <RefPage title={T.items} icon="pkg" data={itemler} setData={setItemler} api={itemlerAPI} normalize={normalizeItem} fields={[{ k: "name", l: "Name *", required: true }]} addToast={addToast} T={T} />}
           {page === "moneytypes" && <RefPage title={T.moneytypes} icon="dr" data={moneytypes} setData={setMoneytypes} api={moneytypesAPI} normalize={normalizeMoneytype} fields={[{ k: "name", l: "Name * (USD, UZS, EUR)", required: true }]} addToast={addToast} T={T} />}
           {page === "unitler" && <RefPage title={T.units} icon="tag" data={unitler} setData={setUnitler} api={unitlerAPI} normalize={normalizeUnit} fields={[{ k: "name", l: "Name *", required: true }]} addToast={addToast} T={T} />}
@@ -1251,11 +1248,32 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
         </div>
       </div>
 
-      <div className="sg sg3">
-        <div className="sc"><div className="slb">Total Warehouses</div><div className="sv">{warehouses.length}</div><div style={{ marginTop: 7 }}><span className="badge bdg">All Active</span></div></div>
-        <div className="sc"><div className="slb">Total Inventory</div><div className="sv bl">{buylist.length}</div><div className="sss">Across all locations</div></div>
-        <div className="sc"><div className="slb">Low Stock</div><div className="sv rd">{buylist.filter((i: any) => i.low).length}</div><div className="sss">Needs attention</div></div>
-      </div>
+      {/* Currency totals across all warehouses */}
+      {(() => {
+        const currMap: Record<string, number> = {};
+        buylist.forEach((b: any) => {
+          const cur = b.moneytypeName || "?";
+          const val = (Number(b.qty) || 0) * (parseFloat(String(b._raw?.narx ?? b.price ?? "0").replace(/,/g, "")) || 0);
+          currMap[cur] = (currMap[cur] || 0) + val;
+        });
+        const currEntries = Object.entries(currMap).filter(([, v]) => v > 0);
+        return (
+          <div className="sg" style={{ gridTemplateColumns: `repeat(${Math.max(3, currEntries.length + 2)}, 1fr)`, marginBottom: 0 }}>
+            <div className="sc"><div className="slb">Jami Omborlar</div><div className="sv">{warehouses.length}</div><div style={{ marginTop: 7 }}><span className="badge bdg">Faol</span></div></div>
+            <div className="sc"><div className="slb">Jami Mahsulotlar</div><div className="sv bl">{buylist.length}</div><div className="sss">Barcha omborlarda</div></div>
+            {currEntries.length > 0
+              ? currEntries.map(([cur, total]) => (
+                <div key={cur} className="sc">
+                  <div className="slb">Jami · {cur}</div>
+                  <div className="sv" style={{ color: "var(--green)", fontSize: 18 }}>{total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                  <div className="sss">{cur}</div>
+                </div>
+              ))
+              : <div className="sc"><div className="slb">Kam Zaxira</div><div className="sv rd">{buylist.filter((i: any) => i.low).length}</div><div className="sss">Diqqat talab qiladi</div></div>
+            }
+          </div>
+        );
+      })()}
 
       {loading ? <Spinner /> : (
         <div className="wg">
@@ -1501,6 +1519,23 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
               <button className="btn" style={{ background: "rgba(255,255,255,.2)", color: "#fff", border: "1px solid rgba(255,255,255,.35)", backdropFilter: "blur(8px)" }} onClick={() => setShowEditWh(true)}>
                 <I n="ed" s={14} c="#fff" />Edit
               </button>
+              <button className="btn" style={{ background: "rgba(34,197,94,.25)", color: "#fff", border: "1px solid rgba(255,255,255,.35)", backdropFilter: "blur(8px)" }}
+                onClick={() => {
+                  const token = getToken();
+                  const url = `${BASE}/export-buylist-as-excel/${wh.id}/`;
+                  fetch(url, { headers: { Authorization: `Token ${token}` }, credentials: "include" as RequestCredentials })
+                    .then(r => r.blob())
+                    .then(blob => {
+                      const u = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = u; a.download = `${wh.name}_buylist.xlsx`;
+                      document.body.appendChild(a); a.click();
+                      document.body.removeChild(a); URL.revokeObjectURL(u);
+                    })
+                    .catch(err => console.error("Excel export error:", err));
+                }}>
+                <I n="dl" s={14} c="#fff" />Excel
+              </button>
               <button className="btn" style={{ background: "rgba(255,255,255,.2)", color: "#fff", border: "1px solid rgba(255,255,255,.35)", backdropFilter: "blur(8px)" }} onClick={onBack}>
                 <I n="arr" s={14} c="#fff" />Orqaga
               </button>
@@ -1742,73 +1777,132 @@ function ShipmentsPage({ shipments, setShipments, addToast, T }: any) {
   );
 }
 
-/* ═══════════════════ REPORTS ═══════════════════ */
-function ReportsPage({ warehouses, buylist, shipments, addToast, T }: any) {
+/* ═══════════════════ ANALYTICS ═══════════════════ */
+function ReportsPage({ warehouses, buylist, addToast, T }: any) {
   const byWH = warehouses.map((w: any) => ({
-    name: w.name.split(" ").slice(0, 2).join(" "),
+    name: w.name,
+    id: w.id,
     count: buylist.filter((b: any) => String(b.depolarId) === String(w.id)).length,
+    totalVal: buylist
+      .filter((b: any) => String(b.depolarId) === String(w.id))
+      .reduce((acc: number, b: any) => acc + (Number(b.qty) || 0) * (parseFloat(String(b._raw?.narx ?? b.price ?? "0").replace(/,/g, "")) || 0), 0),
   }));
   const maxWH = Math.max(...byWH.map((w: any) => w.count), 1);
-  const colors = ["var(--blue)", "var(--orange)", "var(--purple)", "var(--green)"];
+  const colors = ["var(--blue)", "var(--orange)", "var(--purple)", "var(--green)", "var(--red)"];
+
+  // Per-currency totals
+  const currMap: Record<string, number> = {};
+  buylist.forEach((b: any) => {
+    const cur = b.moneytypeName || "?";
+    const val = (Number(b.qty) || 0) * (parseFloat(String(b._raw?.narx ?? b.price ?? "0").replace(/,/g, "")) || 0);
+    currMap[cur] = (currMap[cur] || 0) + val;
+  });
+  const currEntries = Object.entries(currMap);
+  const maxCurr = Math.max(...currEntries.map(([, v]) => v), 1);
+
+  // Top items by total value
+  const topItems = [...buylist]
+    .sort((a: any, b: any) => Number(b.total) - Number(a.total))
+    .slice(0, 8);
+
+  const lowItems = buylist.filter((i: any) => i.low);
 
   return (
     <div className="fu">
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-.025em" }}>{T.reports}</h1>
-          <p style={{ fontSize: 13, color: "var(--text3)", marginTop: 3 }}>Analytics across all warehouses</p>
+          <h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-.025em" }}>{T.analytics || "Analytics"}</h1>
+          <p style={{ fontSize: 13, color: "var(--text3)", marginTop: 3 }}>Barcha omborlar bo'yicha batafsil tahlil</p>
         </div>
-        <button className="btn bp" onClick={() => addToast("PDF exported!", "info")}><I n="dl" s={14} c="#fff" />PDF Export</button>
       </div>
-      <div className="sg">
-        <div className="sc"><div className="slb">Total Inventory</div><div className="sv">{buylist.length}</div><div style={{ marginTop: 6 }}><span className="badge bdg">All warehouses</span></div></div>
-        <div className="sc"><div className="slb">Warehouses</div><div className="sv bl">{warehouses.length}</div></div>
-        <div className="sc"><div className="slb">Shipments</div><div className="sv" style={{ color: "var(--purple)" }}>{shipments.length}</div></div>
-        <div className="sc"><div className="slb">Low Stock</div><div className="sv rd">{buylist.filter((i: any) => i.low).length}</div></div>
+
+      {/* KPI Stats */}
+      <div className="sg" style={{ gridTemplateColumns: `repeat(${Math.max(3, currEntries.length + 2)}, 1fr)`, marginBottom: 20 }}>
+        <div className="sc"><div className="slb">Jami Mahsulotlar</div><div className="sv">{buylist.length}</div><div style={{ marginTop: 6 }}><span className="badge bdg">Barcha omborlar</span></div></div>
+        <div className="sc"><div className="slb">Omborlar</div><div className="sv bl">{warehouses.length}</div></div>
+        <div className="sc"><div className="slb">Kam Zaxira</div><div className="sv rd">{lowItems.length}</div></div>
+        {currEntries.map(([cur, total]) => (
+          <div key={cur} className="sc">
+            <div className="slb">Jami · {cur}</div>
+            <div className="sv" style={{ color: "var(--green)", fontSize: 17 }}>{total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            <div className="sss">{cur}</div>
+          </div>
+        ))}
       </div>
+
       <div className="rep-grid">
+        {/* Items by Warehouse */}
         <div className="rep-chart">
-          <div className="rep-chart-title">Items by Warehouse</div>
-          {byWH.length === 0 ? <div style={{ color: "var(--text4)", fontSize: 13 }}>No data</div> :
+          <div className="rep-chart-title">Omborlar bo'yicha mahsulotlar soni</div>
+          {byWH.length === 0 ? <div style={{ color: "var(--text4)", fontSize: 13 }}>Ma'lumot yo'q</div> :
             byWH.map((w: any, i: any) => (
               <div key={i} className="bar-row">
-                <div className="bar-label">{w.name}</div>
+                <div className="bar-label" style={{ maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={w.name}>{w.name}</div>
                 <div className="bar-track"><div className="bar-fill" style={{ width: `${(w.count / maxWH) * 100}%`, background: colors[i % colors.length] }} /></div>
                 <div className="bar-val">{w.count}</div>
               </div>
             ))}
         </div>
+
+        {/* Currency breakdown */}
         <div className="rep-chart">
-          <div className="rep-chart-title">Status breakdown</div>
-          {[
-            { label: "Delivered", count: shipments.filter((s: any) => s.status === "Delivered").length, color: "var(--green)" },
-            { label: "In Transit", count: shipments.filter((s: any) => s.status === "In Transit").length, color: "var(--orange)" },
-            { label: "Pending", count: shipments.filter((s: any) => s.status === "Pending").length, color: "var(--blue)" },
-            { label: "Low Stock", count: buylist.filter((i: any) => i.low).length, color: "var(--red)" },
-          ].map((r, i) => (
-            <div key={i} className="bar-row">
-              <div className="bar-label">{r.label}</div>
-              <div className="bar-track"><div className="bar-fill" style={{ width: `${Math.max(4, (r.count / Math.max(buylist.length + shipments.length, 1)) * 100)}%`, background: r.color }} /></div>
-              <div className="bar-val">{r.count}</div>
-            </div>
-          ))}
+          <div className="rep-chart-title">Valyuta bo'yicha jami qiymat</div>
+          {currEntries.length === 0
+            ? <div style={{ color: "var(--text4)", fontSize: 13 }}>Ma'lumot yo'q</div>
+            : currEntries.map(([cur, total], i) => (
+              <div key={cur} className="bar-row">
+                <div className="bar-label">{cur}</div>
+                <div className="bar-track"><div className="bar-fill" style={{ width: `${Math.max(4, (total / maxCurr) * 100)}%`, background: colors[i % colors.length] }} /></div>
+                <div className="bar-val">{total.toLocaleString("en-US", { maximumFractionDigits: 0 })}</div>
+              </div>
+            ))}
         </div>
       </div>
-      <div className="tc">
-        <div className="sh2"><div className="st2">Shipment Log</div></div>
-        <table>
-          <thead><tr><th>Mahsulot</th><th>Marshrut</th><th>Sana</th><th>Status</th><th>Qiymat</th></tr></thead>
-          <tbody>{shipments.map((s: any, i: any) => (
-            <tr key={i}>
-              <td><div className="itn">{s.item}</div><div className="iti">Batch {s.batch}</div></td>
-              <td className="dv">{s.from} → {s.to}</td>
-              <td className="dv">{s.date}</td>
-              <td><span className={`txs ${s.status === "Delivered" ? "txr" : s.status === "In Transit" ? "txw" : "bdb"}`}>{s.status}</span></td>
-              <td className={`txi ${s.pos ? "txi-p" : "txi-n"}`}>{s.val}</td>
-            </tr>
-          ))}</tbody>
-        </table>
+
+      {/* Top Items by Value */}
+      <div className="tc" style={{ marginTop: 20 }}>
+        <div className="sh2"><div className="st2">Eng qimmat mahsulotlar (Top 8)</div></div>
+        {topItems.length === 0
+          ? <div className="empty-state"><I n="bx" s={38} c="var(--border2)" /><h3>Ma'lumot yo'q</h3></div>
+          : <table>
+            <thead><tr><th>Mahsulot</th><th>Ombor</th><th>Miqdor</th><th>Narx</th><th>Valyuta</th><th>Jami</th></tr></thead>
+            <tbody>{topItems.map((b: any, i) => {
+              const wh = warehouses.find((w: any) => String(w.id) === String(b.depolarId));
+              return (
+                <tr key={b.id || i}>
+                  <td><div className="itn">{b.name}</div></td>
+                  <td className="dv">{wh?.name || "—"}</td>
+                  <td><span className={`qv${b.low ? " ql" : ""}`}>{b.qty}</span></td>
+                  <td style={{ fontWeight: 500 }}>{b.price}</td>
+                  <td><span className="cpill cp-u">{b.moneytypeName}</span></td>
+                  <td className="tvv">{Number(b.total).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+                </tr>
+              );
+            })}</tbody>
+          </table>
+        }
       </div>
+
+      {/* Low stock list */}
+      {lowItems.length > 0 && (
+        <div className="tc" style={{ marginTop: 20 }}>
+          <div className="sh2"><div className="st2" style={{ color: "var(--red)" }}>⚠ Kam Zaxira Mahsulotlar ({lowItems.length})</div></div>
+          <table>
+            <thead><tr><th>Mahsulot</th><th>Ombor</th><th>Miqdor</th><th>Valyuta</th></tr></thead>
+            <tbody>{lowItems.map((b: any, i) => {
+              const wh = warehouses.find((w: any) => String(w.id) === String(b.depolarId));
+              return (
+                <tr key={b.id || i}>
+                  <td><div className="itn" style={{ color: "var(--red)" }}>{b.name}</div></td>
+                  <td className="dv">{wh?.name || "—"}</td>
+                  <td><span className="qv ql">{b.qty}</span></td>
+                  <td><span className="cpill cp-u">{b.moneytypeName}</span></td>
+                </tr>
+              );
+            })}</tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
@@ -2016,11 +2110,8 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
       {/* Page header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 22 }}>
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-            <span style={{ fontSize: 13, color: "var(--text3)" }}>Inventory</span>
-            <span style={{ color: "var(--border2)" }}>›</span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>Smart Invoice Intake</span>
-          </div>
+          <h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-.025em" }}>{T.intake || "Smart Invoice Intake"}</h1>
+          <p style={{ fontSize: 13, color: "var(--text3)", marginTop: 3 }}>Fatura rasmini yuklang va AI bilan skanlang</p>
         </div>
       </div>
 
@@ -2376,25 +2467,25 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: an
       {delUser && (
         <Modal title={T.deleteUser || "Delete User"} onClose={() => { setDelUser(null); setDelConfirmId(""); }}
           footer={<><button className="btn bo" onClick={() => { setDelUser(null); setDelConfirmId(""); }}>{T.cancel}</button>
-            <button className="btn bd" onClick={() => delU(delUser)} disabled={String(delConfirmId).trim() !== String(delUser.id)}>{T.deleteBtn || "Delete"}</button></>
+            <button className="btn bd" onClick={() => delU(delUser)} disabled={delConfirmId.trim() !== delUser.username}>{T.deleteBtn || "Delete"}</button></>
           }>
           <div className="confirm-icon"><I n="warn" s={24} c="var(--red)" /></div>
           <div style={{ textAlign: "center", marginBottom: 4 }}>
             <strong>{delUser.username}</strong> ({delUser.email || "—"}) · <span style={{ color: "var(--text3)" }}>{delUser.role}</span>
           </div>
           <div style={{ textAlign: "center", marginBottom: 16, color: "var(--text3)", fontSize: 13 }}>
-            O'chirish uchun quyidagi ID ni kiriting:
+            O'chirishni tasdiqlash uchun foydalanuvchi nomini yozing:
           </div>
           <div style={{ background: "var(--bg)", border: "1px solid var(--border2)", borderRadius: "var(--rs)", padding: "8px 14px", textAlign: "center", fontWeight: 800, fontSize: 20, letterSpacing: "0.04em", color: "var(--text)", marginBottom: 14, fontFamily: "monospace" }}>
-            #{delUser.id}
+            {delUser.username}
           </div>
           <div className="form-group">
-            <label className="form-label">Foydalanuvchi ID sini kiriting:</label>
+            <label className="form-label">Foydalanuvchi nomini kiriting:</label>
             <input
               className="form-input"
               value={delConfirmId}
               onChange={e => setDelConfirmId(e.target.value)}
-              placeholder={`${delUser.id}`}
+              placeholder={delUser.username}
               autoFocus
             />
           </div>
@@ -2430,7 +2521,7 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: an
           <div className="empty-state"><I n="usrs" s={38} c="var(--border2)" /><h3>No users found</h3><p>Add a new user or check CORS settings.</p></div>
         ) : (
           <table>
-            <thead><tr><th>Username</th><th>Email</th><th>Role</th><th>ID</th><th></th></tr></thead>
+            <thead><tr><th>Username</th><th>Email</th><th>Role</th><th></th></tr></thead>
             <tbody>
               {filtered.map(user => (
                 <tr key={user.id}>
@@ -2440,32 +2531,6 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: an
                   </div></td>
                   <td className="dv">{user.email || "—"}</td>
                   <td>{rolePill(user.role)}</td>
-                  <td>
-                    <span
-                      title="Nusxa olish (copy)"
-                      onClick={() => copyId(user.id)}
-                      style={{
-                        cursor: "pointer",
-                        background: copiedId === user.id ? "var(--green-bg)" : "var(--bg)",
-                        color: copiedId === user.id ? "var(--green-t)" : "var(--text3)",
-                        border: `1px solid ${copiedId === user.id ? "var(--green-t)" : "var(--border)"}`,
-                        borderRadius: "var(--rx)",
-                        padding: "2px 9px",
-                        fontSize: 12,
-                        fontWeight: 700,
-                        fontFamily: "monospace",
-                        letterSpacing: "0.03em",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 5,
-                        transition: "all .18s",
-                        userSelect: "all",
-                      }}
-                    >
-                      {copiedId === user.id ? <I n="ck" s={11} c="var(--green-t)" /> : <I n="sc" s={11} />}
-                      #{user.id}
-                    </span>
-                  </td>
                   <td>
                     {(currentUser.role === "admin" || currentUser.role === "superadmin") && (
                       <button className="ib red" onClick={() => { setDelUser(user); setDelConfirmId(""); }}><I n="td" s={13} /></button>
