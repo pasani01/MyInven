@@ -16,7 +16,7 @@ class CompanyViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
 
-class IsAdminRole(permissions.BasePermission): 
+class IsAdminRole(permissions.BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
@@ -47,17 +47,23 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         company = self.request.user.company
         username = self.request.data.get('username')
+        password = self.request.data.get('password')
 
         if CustomUser.objects.filter(username=username, company=company).exists():
             raise ValidationError(
                 {"username": f"Bu şirkette '{username}' kullanıcı adı zaten mevcut."}
             )
 
-        serializer.save(company=company)
+        # Şifreyi hash'leyerek kaydet
+        user = serializer.save(company=company)
+        if password:
+            user.set_password(password)
+            user.save()
 
     def perform_update(self, serializer):
         company = self.request.user.company
         username = self.request.data.get('username')
+        password = self.request.data.get('password')
         instance = self.get_object()
 
         if username and CustomUser.objects.filter(
@@ -67,7 +73,11 @@ class CustomUserViewSet(viewsets.ModelViewSet):
                 {"username": f"Bu şirkette '{username}' kullanıcı adı zaten mevcut."}
             )
 
-        serializer.save()
+        user = serializer.save()
+        # Güncelleme sırasında da şifre geldiyse hash'le
+        if password:
+            user.set_password(password)
+            user.save()
 
     @action(detail=False, methods=['post'], url_path='change-password')
     def change_password(self, request):

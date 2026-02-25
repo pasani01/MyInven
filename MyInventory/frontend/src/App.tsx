@@ -2394,7 +2394,7 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: an
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const EMPTY = { username: "", email: "", password: "", role: "user", company: currentUser.company || "" };
+  const EMPTY = { username: "", password: "", password2: "", role: "user" };
   const [form, setForm] = useState(EMPTY);
 
   const isAdmin = currentUser.role === "admin" || currentUser.role === "superadmin";
@@ -2409,12 +2409,14 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: an
   });
 
   async function addUser() {
-    if (!form.username) return;
+    if (!form.username.trim()) { addToast("Username kiriting", "error"); return; }
+    if (!form.password) { addToast("Parol kiriting", "error"); return; }
+    if (form.password !== form.password2) { addToast("Parollar mos kelmadi!", "error"); return; }
+    if (form.password.length < 6) { addToast("Parol kamida 6 ta belgi bo'lishi kerak", "error"); return; }
     setSaving(true);
     try {
       await authAPI.createUser({
-        username: form.username,
-        email: form.email,
+        username: form.username.trim(),
         password: form.password,
         role: form.role,
         company: currentUser.company ? Number(currentUser.company) : null
@@ -2450,19 +2452,31 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: an
   return (
     <div className="fu">
       {showAdd && (
-        <Modal title={T.addUser || "Add New User"} onClose={() => setShowAdd(false)}
-          footer={<><button className="btn bo" onClick={() => setShowAdd(false)}>{T.cancel}</button><button className="btn bp" onClick={addUser} disabled={saving}>{saving ? "..." : T.save}</button></>}>
-          <div className="form-row">
-            <div className="form-group"><label className="form-label">Username *</label><input className="form-input" value={form.username} onChange={sf("username")} /></div>
-            <div className="form-group"><label className="form-label">Email</label><input className="form-input" type="email" value={form.email} onChange={sf("email")} /></div>
+        <Modal title={T.addUser || "Add New User"} onClose={() => { setShowAdd(false); setForm(EMPTY); }}
+          footer={<><button className="btn bo" onClick={() => { setShowAdd(false); setForm(EMPTY); }}>{T.cancel}</button><button className="btn bp" onClick={addUser} disabled={saving}>{saving ? "..." : T.save}</button></>}>
+          <div className="form-group">
+            <label className="form-label">Username *</label>
+            <input className="form-input" value={form.username} onChange={sf("username")} placeholder="username" autoFocus />
           </div>
-          <div className="form-group"><label className="form-label">Parol</label><input className="form-input" type="password" value={form.password} onChange={sf("password")} /></div>
           <div className="form-row">
-            <div className="form-group"><label className="form-label">Role</label>
-              <select className="form-select" value={form.role} onChange={sf("role")}>
-                <option value="admin">Admin</option><option value="user">User</option>
-              </select>
+            <div className="form-group">
+              <label className="form-label">Parol *</label>
+              <input className="form-input" type="password" value={form.password} onChange={sf("password")} placeholder="••••••" />
             </div>
+            <div className="form-group">
+              <label className="form-label">Parolni tasdiqlang *</label>
+              <input className="form-input" type="password" value={form.password2} onChange={sf("password2")} placeholder="••••••"
+                style={{ borderColor: form.password2 && form.password !== form.password2 ? "var(--red)" : "" }} />
+              {form.password2 && form.password !== form.password2 && (
+                <div style={{ fontSize: 11, color: "var(--red)", marginTop: 4 }}>Parollar mos kelmadi</div>
+              )}
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Role</label>
+            <select className="form-select" value={form.role} onChange={sf("role")}>
+              <option value="admin">Admin</option><option value="user">User</option>
+            </select>
           </div>
         </Modal>
       )}
