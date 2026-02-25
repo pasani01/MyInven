@@ -1520,19 +1520,20 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
                 <I n="ed" s={14} c="#fff" />Edit
               </button>
               <button className="btn" style={{ background: "rgba(34,197,94,.25)", color: "#fff", border: "1px solid rgba(255,255,255,.35)", backdropFilter: "blur(8px)" }}
-                onClick={() => {
+                onClick={async () => {
                   const token = getToken();
                   const url = `${BASE}/export-buylist-as-excel/${wh.id}/`;
-                  fetch(url, { headers: { Authorization: `Token ${token}` }, credentials: "include" as RequestCredentials })
-                    .then(r => r.blob())
-                    .then(blob => {
-                      const u = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = u; a.download = `${wh.name}_buylist.xlsx`;
-                      document.body.appendChild(a); a.click();
-                      document.body.removeChild(a); URL.revokeObjectURL(u);
-                    })
-                    .catch(err => console.error("Excel export error:", err));
+                  try {
+                    const r = await fetch(url, { headers: { Authorization: `Token ${token}` }, credentials: "include" as RequestCredentials });
+                    if (!r.ok) { addToast(`Excel xatosi: ${r.status}`, "error"); return; }
+                    const blob = await r.blob();
+                    const u = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = u; a.download = `${wh.name}_buylist.xlsx`;
+                    document.body.appendChild(a); a.click();
+                    document.body.removeChild(a); URL.revokeObjectURL(u);
+                    addToast("Excel yuklab olindi!", "success");
+                  } catch (err: any) { addToast(`Excel xatosi: ${err.message}`, "error"); }
                 }}>
                 <I n="dl" s={14} c="#fff" />Excel
               </button>
@@ -2389,12 +2390,14 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
 function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: any) {
   const [showAdd, setShowAdd] = useState(false);
   const [delUser, setDelUser] = useState<any>(null);
-  const [delConfirmId, setDelConfirmId] = useState("");
-  const [copiedId, setCopiedId] = useState<any>(null);
+  const [delConfirmName, setDelConfirmName] = useState("");
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const EMPTY = { username: "", email: "", password: "", role: "user", company: currentUser.company || "" };
   const [form, setForm] = useState(EMPTY);
+
+  const isAdmin = currentUser.role === "admin" || currentUser.role === "superadmin";
 
   const filtered = users.filter((u: any) => {
     const isSuper = u.role === "superadmin" || u.role === "super_admin" || u.username === "superadmin";
@@ -2421,29 +2424,28 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: an
     finally { setSaving(false); }
   }
 
-  async function delU(user) {
+  async function delU(user: any) {
+    // username doğruysa kullanıcıyı bul, id ile sil
+    setDeleting(true);
     try {
-      await authAPI.deleteUser(user.id);
-      addToast(`ID #${user.id} "${user.username}" o'chirildi`, "error");
+      // Refresh user list to get fresh data
+      const freshData = await authAPI.users();
+      const freshArr = Array.isArray(freshData) ? freshData : (freshData?.results ?? []);
+      const found = freshArr.find((u: any) => u.username === user.username);
+      if (!found) { addToast("Kullanıcı bulunamadı", "error"); return; }
+      await authAPI.deleteUser(found.id);
+      addToast(`"${user.username}" o'chirildi`, "error");
       onRefresh();
     } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
-    finally { setDelUser(null); setDelConfirmId(""); }
+    finally { setDelUser(null); setDelConfirmName(""); setDeleting(false); }
   }
 
-  function copyId(id: any) {
-    navigator.clipboard.writeText(String(id)).then(() => {
-      setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 1500);
-    });
-  }
-
-  const rolePill = (role) => {
+  const rolePill = (role: any) => {
     if (role === "admin") return <span className="role-pill role-admin">Admin</span>;
     if (role === "superadmin") return <span className="role-pill role-admin">Superadmin</span>;
     return <span className="role-pill role-staff">User</span>;
   };
-  const companyName = (id) => companies.find((c: any) => c.id === id)?.name ?? (id ? `#${id}` : "—");
-  const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+  const sf = (k: string) => (e: any) => setForm((f: any) => ({ ...f, [k]: e.target.value }));
 
   return (
     <div className="fu">
@@ -2465,10 +2467,14 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: an
         </Modal>
       )}
       {delUser && (
-        <Modal title={T.deleteUser || "Delete User"} onClose={() => { setDelUser(null); setDelConfirmId(""); }}
-          footer={<><button className="btn bo" onClick={() => { setDelUser(null); setDelConfirmId(""); }}>{T.cancel}</button>
-            <button className="btn bd" onClick={() => delU(delUser)} disabled={delConfirmId.trim() !== delUser.username}>{T.deleteBtn || "Delete"}</button></>
-          }>
+        <Modal title={T.deleteUser || "Delete User"} onClose={() => { setDelUser(null); setDelConfirmName(""); }}
+          footer={<>
+            <button className="btn bo" onClick={() => { setDelUser(null); setDelConfirmName(""); }}>{T.cancel}</button>
+            <button className="btn bd" onClick={() => delU(delUser)}
+              disabled={delConfirmName.trim() !== delUser.username || deleting}>
+              {deleting ? "..." : T.deleteBtn || "Delete"}
+            </button>
+          </>}>
           <div className="confirm-icon"><I n="warn" s={24} c="var(--red)" /></div>
           <div style={{ textAlign: "center", marginBottom: 4 }}>
             <strong>{delUser.username}</strong> ({delUser.email || "—"}) · <span style={{ color: "var(--text3)" }}>{delUser.role}</span>
@@ -2481,13 +2487,9 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: an
           </div>
           <div className="form-group">
             <label className="form-label">Foydalanuvchi nomini kiriting:</label>
-            <input
-              className="form-input"
-              value={delConfirmId}
-              onChange={e => setDelConfirmId(e.target.value)}
-              placeholder={delUser.username}
-              autoFocus
-            />
+            <input className="form-input" value={delConfirmName}
+              onChange={e => setDelConfirmName(e.target.value)}
+              placeholder={delUser.username} autoFocus />
           </div>
         </Modal>
       )}
@@ -2499,8 +2501,8 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: an
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <button className="btn bo" onClick={onRefresh}><I n="refresh" s={14} />Refresh</button>
-          {currentUser.role === "admin" && (
-            <button className="btn bp" onClick={() => setShowAdd(true)}><I n="pl" s={14} c="#fff" />Add User</button>
+          {isAdmin && (
+            <button className="btn bp" onClick={() => setShowAdd(true)}><I n="pl" s={14} c="#fff" />{T.addUser || "Add User"}</button>
           )}
         </div>
       </div>
@@ -2521,23 +2523,34 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: an
           <div className="empty-state"><I n="usrs" s={38} c="var(--border2)" /><h3>No users found</h3><p>Add a new user or check CORS settings.</p></div>
         ) : (
           <table>
-            <thead><tr><th>Username</th><th>Email</th><th>Role</th><th></th></tr></thead>
+            <thead><tr><th>Username</th><th>Email</th><th>Role</th>{isAdmin && <th></th>}</tr></thead>
             <tbody>
-              {filtered.map(user => (
-                <tr key={user.id}>
-                  <td><div className="ir">
-                    <div className="av" style={{ width: 32, height: 32, fontSize: 11, flexShrink: 0 }}>{user.username?.slice(0, 2).toUpperCase()}</div>
-                    <div><div className="itn">{user.username}</div></div>
-                  </div></td>
-                  <td className="dv">{user.email || "—"}</td>
-                  <td>{rolePill(user.role)}</td>
-                  <td>
-                    {(currentUser.role === "admin" || currentUser.role === "superadmin") && (
-                      <button className="ib red" onClick={() => { setDelUser(user); setDelConfirmId(""); }}><I n="td" s={13} /></button>
+              {filtered.map((user: any) => {
+                const isSelf = user.username === currentUser.username || user.id === currentUser.id;
+                return (
+                  <tr key={user.id} style={isSelf ? { background: "var(--blue-l)" } : {}}>
+                    <td><div className="ir">
+                      <div className="av" style={{ width: 32, height: 32, fontSize: 11, flexShrink: 0, background: isSelf ? "var(--blue)" : undefined }}>
+                        {user.username?.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="itn">{user.username}{isSelf && <span style={{ marginLeft: 7, fontSize: 10, fontWeight: 700, color: "var(--blue)", background: "var(--blue-l)", border: "1px solid var(--blue-m)", borderRadius: 10, padding: "1px 7px" }}>Sen</span>}</div>
+                      </div>
+                    </div></td>
+                    <td className="dv">{user.email || "—"}</td>
+                    <td>{rolePill(user.role)}</td>
+                    {isAdmin && (
+                      <td>
+                        {!isSelf && (
+                          <button className="ib red" onClick={() => { setDelUser(user); setDelConfirmName(""); }}>
+                            <I n="td" s={13} />
+                          </button>
+                        )}
+                      </td>
                     )}
-                  </td>
-                </tr>
-              ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
