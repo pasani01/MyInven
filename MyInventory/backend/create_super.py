@@ -15,11 +15,13 @@ password = os.environ.get('SUPER_PASSWORD', 'Admin1234!')
 if User.objects.filter(email=email).exists():
     u = User.objects.get(email=email)
     u.role = 'superadmin'
+    u.is_email_verified = True  # ekle
     u.set_password(password)
     u.save()
     print(f"User with email '{email}' updated to superadmin.")
 else:
     u = User(username=username, email=email, role='superadmin')
+    u.is_email_verified = True  # ekle
     u.set_password(password)
     u.save()
     print(f"Superuser with email '{email}' created successfully!")
