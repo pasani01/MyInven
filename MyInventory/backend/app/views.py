@@ -8,6 +8,8 @@ from django.db.models.functions import Coalesce
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .scan_view import InvoiceScanView
+from .expoer_as_excel import export_buylist_as_excel
+
 class ItemViewSet(viewsets.ModelViewSet):
     serializer_class = ItemSerializer
     permission_classes = [IsAuthenticated]
@@ -88,3 +90,10 @@ class BuyListViewSet(viewsets.ModelViewSet):
         )
 
         return Response(total)
+
+
+class ExportBuyListAsExcelView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return export_buylist_as_excel(request)
