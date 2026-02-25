@@ -1417,6 +1417,7 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
   function openEdit(item) {
     setForm({
       item: item.itemId || "",
+      _itemName: item.name || "",
       moneytype: item.moneytypeId || "",
       unit: item.unitId || "",
       qty: String(item.qty),
