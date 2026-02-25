@@ -1,24 +1,18 @@
-
 from .models import BuyList
-from user_app.models import Company
 from openpyxl import Workbook
 from django.http import HttpResponse
-from rest_framework import viewsets
-from rest_framework.views import APIView
-from rest_framework.response import Response
 
-
-
-def export_buylist_as_excel(request,depo_id):
+def export_buylist_as_excel(request, depo_id):
     if not request.user.is_authenticated:
         return HttpResponse("Unauthorized", status=401)
-    if request.user.company != BuyList.objects.get(id=depo_id).company:
-        return HttpResponse("Unauthorized", status=401)
     
-    buylist_items = BuyList.objects.filter(company=request.user.company)
-    
-    if depo_id:
-        buylist_items = buylist_items.filter(depo_id=depo_id)
+    try:
+        buylist_items = BuyList.objects.filter(
+            company=request.user.company,
+            depolar_id=depo_id  # ← depo_id ile filtrele
+        )
+    except Exception as e:
+        return HttpResponse(f"Error: {e}", status=500)
 
     wb = Workbook()
     ws = wb.active
@@ -31,16 +25,15 @@ def export_buylist_as_excel(request,depo_id):
         ws.append([
             item.id,
             item.item.name if item.item else "",
-            item.qty,
+            float(item.qty) if item.qty else 0,
             item.unit.name if item.unit else "",
-            item.narx,
+            float(str(item.narx).replace(",", "")) if item.narx else 0,
             item.moneytype.name if item.moneytype else "",
         ])
 
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     )
-    response['Content-Disposition'] = 'attachment; filename="buy_list.xlsx"'
+    response['Content-Disposition'] = f'attachment; filename="depo_{depo_id}_buylist.xlsx"'
     wb.save(response)
-
     return response
