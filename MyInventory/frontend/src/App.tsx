@@ -1956,7 +1956,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
           m.name?.toLowerCase() === curName.toLowerCase()
         );
         if (!mtFound) {
-          const newMt = await moneytypesAPI.create({ type: curName });
+          const newMt = await moneytypesAPI.create({ type: curName });  // backend 'type' bekliyor
           mtFound = { id: newMt.id, name: curName, code: curName, _raw: newMt };
           localMoneytypes.push(mtFound);
         }
@@ -1968,7 +1968,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
           u.name?.toLowerCase() === unitName.toLowerCase()
         );
         if (!unitFound) {
-          const newUnit = await unitlerAPI.create({ unit: unitName });
+          const newUnit = await unitlerAPI.create({ unit: unitName });  // backend 'unit' bekliyor
           unitFound = { id: newUnit.id, name: unitName, _raw: newUnit };
           localUnitler.push(unitFound);
         }
