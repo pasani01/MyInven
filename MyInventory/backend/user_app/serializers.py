@@ -12,6 +12,22 @@ class CustomUserSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = ['id', 'username', 'email', 'role', 'company']
 
+    def validate(self, data):
+        username = data.get('username')
+        company = data.get('company')
+        
+        # Güncelleme (PUT/PATCH) durumunda mevcut instance'ı hariç tut
+        instance = self.instance
+        qs = CustomUser.objects.filter(username=username, company=company)
+        if instance:
+            qs = qs.exclude(pk=instance.pk)
+        
+        if qs.exists():
+            raise serializers.ValidationError(
+                {"username": f"Bu şirkette '{username}' kullanıcı adı zaten mevcut."}
+            )
+        return data
+
 class UserLoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)

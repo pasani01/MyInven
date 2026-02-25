@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 from django.contrib.auth import authenticate
 from .models import CustomUser, Company
 from .serializers import CustomUserSerializer, CompanySerializer, UserLoginSerializer
@@ -44,7 +45,29 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         return CustomUser.objects.filter(id=user.id)
 
     def perform_create(self, serializer):
-        serializer.save(company=self.request.user.company)
+        company = self.request.user.company
+        username = self.request.data.get('username')
+
+        if CustomUser.objects.filter(username=username, company=company).exists():
+            raise ValidationError(
+                {"username": f"Bu şirkette '{username}' kullanıcı adı zaten mevcut."}
+            )
+
+        serializer.save(company=company)
+
+    def perform_update(self, serializer):
+        company = self.request.user.company
+        username = self.request.data.get('username')
+        instance = self.get_object()
+
+        if username and CustomUser.objects.filter(
+            username=username, company=company
+        ).exclude(pk=instance.pk).exists():
+            raise ValidationError(
+                {"username": f"Bu şirkette '{username}' kullanıcı adı zaten mevcut."}
+            )
+
+        serializer.save()
 
     @action(detail=False, methods=['post'], url_path='change-password')
     def change_password(self, request):
