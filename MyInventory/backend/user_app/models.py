@@ -19,18 +19,25 @@ class Company(models.Model):
     def __str__(self):
         return f"{self.name} ({self.company_id})"
 
+from django.contrib.auth.validators import UnicodeUsernameValidator
+
 class CustomUser(AbstractUser):
     ROLE_CHOICES = (
         ('superadmin', 'Super Admin'),
         ('admin', 'Admin'),
         ('user', 'User'),
     )
+    # username'in global unique kısıtlamasını kaldır
+    username = models.CharField(
+        max_length=150,
+        validators=[UnicodeUsernameValidator()],
+        verbose_name='username',
+    )
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='user')
     company = models.ForeignKey('Company', on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
-        # Aynı şirkette aynı username olamaz, farklı şirkette olabilir
-        unique_together = ('username', 'company')
+        unique_together = ('username', 'company')  # sadece aynı şirkette unique
 
     def save(self, *args, **kwargs):
         if self.role == 'superadmin':
