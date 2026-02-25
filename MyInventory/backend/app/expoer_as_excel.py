@@ -1,5 +1,5 @@
 
-from .models import Buylist
+from .models import BuyList
 from user_app.models import Company
 from openpyxl import Workbook
 from django.http import HttpResponse
@@ -7,10 +7,10 @@ from django.http import HttpResponse
 def export_buylist_as_excel(request,depo_id):
     if not request.user.is_authenticated:
         return HttpResponse("Unauthorized", status=401)
-    if request.user.company != Buylist.objects.get(id=depo_id).company:
+    if request.user.company != BuyList.objects.get(id=depo_id).company:
         return HttpResponse("Unauthorized", status=401)
     
-    buylist_items = Buylist.objects.filter(company=request.user.company)
+    buylist_items = BuyList.objects.filter(company=request.user.company)
     
     if depo_id:
         buylist_items = buylist_items.filter(depo_id=depo_id)
