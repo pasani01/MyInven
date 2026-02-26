@@ -7,7 +7,7 @@ const BASE = "https://myinven-production.up.railway.app";
 /* ═══════════════════ AUTH TOKEN ═══════════════════ */
 function setToken(token: string | null) {
   if (token) {
-    localStorage.setItem("token", token); // ✅ DÜZELTİLDİ: 't' → 'token'
+    localStorage.setItem("token", token);
   } else {
     localStorage.removeItem("token");
   }
@@ -31,21 +31,21 @@ function getCookie(name: string): string | null {
   return cookieValue;
 }
 
+// ✅ FIX 1: DELETE so'rovlarda Content-Type headerini yubormaslik (500 xato sababi)
 async function api(path: string, method: string = "GET", body: any = null) {
-  // 1. Header'ları hazırla
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
     "Accept": "application/json"
   };
+  // GET va DELETE uchun Content-Type kerak emas — ba'zi backendlar 500 qaytaradi
+  if (method !== "GET" && method !== "DELETE") {
+    headers["Content-Type"] = "application/json";
+  }
 
-  // 2. Token'ı ekle (LocalStorage'dan taze oku)
   const token = getToken();
   if (token) {
-    // Django Rest Framework varsayılan olarak "Token <anahtar>" bekler
     headers["Authorization"] = `Token ${token}`;
   }
 
-  // 3. CSRF Token'ı ekle (Cookie'den oku)
   const csrfToken = getCookie("csrftoken");
   if (csrfToken) {
     headers["X-CSRFToken"] = csrfToken;
@@ -57,7 +57,6 @@ async function api(path: string, method: string = "GET", body: any = null) {
     credentials: "include" as RequestCredentials,
   };
 
-  // 4. Body varsa ekle
   if (body && (method === "POST" || method === "PUT" || method === "PATCH")) {
     opts.body = JSON.stringify(body);
   }
@@ -65,10 +64,9 @@ async function api(path: string, method: string = "GET", body: any = null) {
   try {
     const res = await fetch(`${BASE}${path}`, opts);
 
-    // 401 Unauthorized hatası gelirse token'ı temizle
     if (res.status === 401) {
       console.warn("Oturum geçersiz, token temizlendi.");
-      setToken(null); // ✅ DÜZELTİLDİ: Token temizleme aktif edildi
+      setToken(null);
     }
 
     const data = await res.json().catch(() => ({}));
@@ -85,7 +83,6 @@ async function api(path: string, method: string = "GET", body: any = null) {
     throw err;
   }
 }
-// AuthPage içindeki handleLogin kullanılıyor (aşağıda)
 
 const authAPI = {
   login: (companyToken: string, username: string, password: string) => api(`/user_app/${companyToken}/login/`, "POST", { username, password }),
@@ -168,7 +165,6 @@ function normalizeItem(item: any) {
 }
 
 function normalizeMoneytype(m: any) {
-  // Backend serializer'da source='type' → 'name' olarak geliyor
   const name = m.name ?? m.type ?? m.nomi ?? m.valyuta ?? `MT #${m.id}`;
   return {
     id: m.id,
@@ -179,7 +175,6 @@ function normalizeMoneytype(m: any) {
 }
 
 function normalizeUnit(u: any) {
-  // Backend serializer'da source='unit' → 'name' olarak geliyor
   return {
     id: u.id,
     name: u.name ?? u.unit ?? u.nomi ?? u.birlik ?? `Unit #${u.id}`,
@@ -188,8 +183,6 @@ function normalizeUnit(u: any) {
 }
 
 function normalizeBuylist(b: any, itemler: any[] = [], moneytypes: any[] = [], unitler: any[] = []) {
-  // Backend serializer artık frontend ile aynı alan adlarını döndürüyor:
-  // qty, narx, unit, moneytype, depolar
   const itemId = typeof b.item === "object" ? b.item?.id : (b.item ?? null);
   const itemName = typeof b.item === "object"
     ? (b.item?.name ?? b.item?.nomi)
@@ -373,11 +366,11 @@ tbody tr:hover{background:var(--bg)}
 .pb:hover:not(.act){background:var(--bg);color:var(--text)}
 select{appearance:none;background:var(--surface);border:1px solid var(--border2);border-radius:var(--rs);padding:7px 28px 7px 10px;font-family:inherit;font-size:13px;color:var(--text);cursor:pointer;outline:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
 select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
-.wg{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}
-.wc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;transition:box-shadow .15s,transform .15s,background .25s;cursor:pointer}
+.wg{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-bottom:22px;align-items:stretch}
+.wc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;transition:box-shadow .15s,transform .15s,background .25s;cursor:pointer;display:flex;flex-direction:column}
 .wc:hover{box-shadow:var(--sh2);transform:translateY(-3px)}
 .wc:hover .wn{color:var(--blue)}
-.wb{padding:16px 16px 12px}
+.wb{padding:16px 16px 12px;flex:1}
 .whh{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
 .wi{width:38px;height:38px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .wi-bl{background:var(--blue-l)}.wi-or{background:var(--orange-bg)}.wi-pu{background:var(--purple-bg)}
@@ -392,7 +385,7 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
 .vv{font-size:14px;font-weight:700;letter-spacing:-.01em}
 .vv-g{color:var(--green)}.vv-b{color:var(--blue)}
 .wf{padding:10px 16px;border-top:1px solid var(--border);background:var(--surface2);display:flex;gap:7px}
-.aw{border:2px dashed var(--border2);border-radius:var(--r);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;cursor:pointer;transition:all .15s;color:var(--text4);text-align:center;background:var(--surface);min-height:220px}
+.aw{border:2px dashed var(--border2);border-radius:var(--r);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;cursor:pointer;transition:all .15s;color:var(--text4);text-align:center;background:var(--surface);min-height:220px;height:100%}
 .aw:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-l)}
 .awc{width:44px;height:44px;border:2px dashed currentColor;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 10px}
 .awt{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px}
@@ -826,7 +819,6 @@ function AuthPage({ onLogin, lang, onLang, accent }: any) {
 
   return (
     <div className="auth-page">
-      {/* Til Tanlash */}
       <div style={{ position: "absolute", top: 20, right: 20, zIndex: 10, display: "flex", gap: 8 }}>
         {LANGUAGES.map(l => (
           <button key={l.code} onClick={() => onLang(l.code)}
@@ -878,7 +870,6 @@ function AuthPage({ onLogin, lang, onLang, accent }: any) {
           <button className="sub-btn" onClick={handleLogin} disabled={loading}>
             {loading ? T.signingIn : T.signIn}
           </button>
-
         </div>
         <div className="auth-hero">
           <div className="auth-hero-glow" style={{ width: 300, height: 300, top: -80, right: -80 }} />
@@ -905,7 +896,6 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
     try { return localStorage.getItem(`rf_dark_${currentUser.username}`) === "true"; } catch { return false; }
   });
 
-  // API Data
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [buylist, setBuylist] = useState<any[]>([]);
   const [itemler, setItemler] = useState<any[]>([]);
@@ -955,7 +945,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
       const data = await itemlerAPI.list();
       const arr = Array.isArray(data) ? data : (data?.results ?? []);
       setItemler(arr.map(normalizeItem));
-    } catch { /* ignore */ }
+    } catch { }
   }, []);
 
   const fetchMoneytypes = useCallback(async () => {
@@ -963,7 +953,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
       const data = await moneytypesAPI.list();
       const arr = Array.isArray(data) ? data : (data?.results ?? []);
       setMoneytypes(arr.map(normalizeMoneytype));
-    } catch { /* ignore */ }
+    } catch { }
   }, []);
 
   const fetchUnitler = useCallback(async () => {
@@ -971,7 +961,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
       const data = await unitlerAPI.list();
       const arr = Array.isArray(data) ? data : (data?.results ?? []);
       setUnitler(arr.map(normalizeUnit));
-    } catch { /* ignore */ }
+    } catch { }
   }, []);
 
   const fetchBuylist = useCallback(async (im = itemler, mm = moneytypes, um = unitler) => {
@@ -979,7 +969,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
       const data = await buylistAPI.list();
       const arr = Array.isArray(data) ? data : (data?.results ?? []);
       setBuylist(arr.map((b: any) => normalizeBuylist(b, im, mm, um)));
-    } catch { /* ignore */ }
+    } catch { }
   }, []);
 
   const fetchUsers = useCallback(async () => {
@@ -987,7 +977,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
       const data = await authAPI.users();
       const arr = Array.isArray(data) ? data : (data?.results ?? []);
       setUsers(arr);
-    } catch { /* may need admin */ }
+    } catch { }
   }, []);
 
   const fetchCompanies = useCallback(async () => {
@@ -995,7 +985,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
       const data = await authAPI.companies();
       const arr = Array.isArray(data) ? data : (data?.results ?? []);
       setCompanies(arr);
-    } catch { /* may need admin */ }
+    } catch { }
   }, []);
 
   useEffect(() => {
@@ -1033,11 +1023,11 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
       const data = await buylistAPI.list();
       const arr = Array.isArray(data) ? data : (data?.results ?? []);
       setBuylist(arr.map((b: any) => normalizeBuylist(b, itemler, moneytypes, unitler)));
-    } catch { /* ignore */ }
+    } catch { }
   }
 
   async function handleLogout() {
-    try { await authAPI.logout(); } catch { /* ignore */ }
+    try { await authAPI.logout(); } catch { }
     setToken(""); onLogout();
   }
 
@@ -1191,7 +1181,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
   );
 }
 
-/* ═══════════════════ REFERENCE PAGE (Itemler / Moneytypes / Unitler) ═══════════════════ */
+/* ═══════════════════ REFERENCE PAGE ═══════════════════ */
 function RefPage({ title, icon, data, setData, api, normalize, fields, addToast, T }: any) {
   const [showAdd, setShowAdd] = useState(false);
   const [delItem, setDelItem] = useState<any>(null);
@@ -1232,8 +1222,7 @@ function RefPage({ title, icon, data, setData, api, normalize, fields, addToast,
           ))}
         </Modal>
       )}
-      {delItem && <ConfirmModal title={`Delete ${title}`} desc={<>«<strong>{delItem.name}</strong>»?
-      </>} onConfirm={() => delIt(delItem)} onClose={() => setDelItem(null)} />}
+      {delItem && <ConfirmModal title={`Delete ${title}`} desc={<>«<strong>{delItem.name}</strong>»?</>} onConfirm={() => delIt(delItem)} onClose={() => setDelItem(null)} />}
 
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
@@ -1338,8 +1327,7 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
     <div className="fu">
       {showAdd && <Modal title={T.createWh} onClose={() => setShowAdd(false)} footer={<><button className="btn bo" onClick={() => setShowAdd(false)}>{T.cancel}</button><button className="btn bp" onClick={addWH} disabled={saving}>{saving ? "..." : T.save}</button></>}>{formBody}</Modal>}
       {showEdit && <Modal title="Edit Warehouse" onClose={() => setShowEdit(null)} footer={<><button className="btn bo" onClick={() => setShowEdit(null)}>{T.cancel}</button><button className="btn bp" onClick={editWH} disabled={saving}>{saving ? "..." : T.save}</button></>}>{formBody}</Modal>}
-      {showDel && <ConfirmModal title="Delete Warehouse" desc={<>«<strong>{showDel.name}</strong>»?
-      </>} onConfirm={() => delWH(showDel)} onClose={() => setShowDel(null)} />}
+      {showDel && <ConfirmModal title="Delete Warehouse" desc={<>«<strong>{showDel.name}</strong>»?</>} onConfirm={() => delWH(showDel)} onClose={() => setShowDel(null)} />}
 
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
@@ -1355,7 +1343,7 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
         </div>
       </div>
 
-      {/* Currency totals across all warehouses */}
+      {/* ✅ FIX 2: Stat cards — always 4 fixed columns, no dynamic overflow */}
       {(() => {
         const currMap: Record<string, number> = {};
         buylist.forEach((b: any) => {
@@ -1364,24 +1352,62 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
           currMap[cur] = (currMap[cur] || 0) + val;
         });
         const currEntries = Object.entries(currMap).filter(([, v]) => v > 0);
+        // Always 4 columns: Total WH | Total Items | Currency1 | Currency2 (or Low Stock)
         return (
-          <div className="sg" style={{ gridTemplateColumns: `repeat(${Math.max(3, currEntries.length + 2)}, 1fr)`, marginBottom: 0 }}>
-            <div className="sc"><div className="slb">{T.totalWhs}</div><div className="sv">{warehouses.length}</div><div style={{ marginTop: 7 }}><span className="badge bdg">{T.statusActive}</span></div></div>
-            <div className="sc"><div className="slb">{T.totalItems}</div><div className="sv bl">{buylist.length}</div><div className="sss">{T.acrossAll}</div></div>
-            {currEntries.length > 0
-              ? currEntries.map(([cur, total]) => (
-                <div key={cur} className="sc">
-                  <div className="slb">{T.all} · {cur}</div>
-                  <div className="sv" style={{ color: "var(--green)", fontSize: 18 }}>{total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                  <div className="sss">{cur}</div>
+          <div className="sg" style={{ marginBottom: 22 }}>
+            <div className="sc">
+              <div className="slb">{T.totalWhs}</div>
+              <div className="sv">{warehouses.length}</div>
+              <div style={{ marginTop: 7 }}><span className="badge bdg">{T.statusActive}</span></div>
+            </div>
+            <div className="sc">
+              <div className="slb">{T.totalItems}</div>
+              <div className="sv bl">{buylist.length}</div>
+              <div className="sss">{T.acrossAll}</div>
+            </div>
+            {currEntries.length > 0 ? (
+              // Show first 2 currencies in the last 2 columns
+              [0, 1].map(i => {
+                if (currEntries[i]) {
+                  const [cur, total] = currEntries[i];
+                  return (
+                    <div key={cur} className="sc">
+                      <div className="slb">{T.all} · {cur}</div>
+                      <div className="sv" style={{ color: "var(--green)", fontSize: 18 }}>
+                        {(total as number).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                      <div className="sss">{cur}</div>
+                    </div>
+                  );
+                }
+                // If only 1 currency, fill 4th with low stock
+                return (
+                  <div key={`low-${i}`} className="sc">
+                    <div className="slb">{T.lowStock}</div>
+                    <div className="sv rd">{buylist.filter((i: any) => i.low).length}</div>
+                    <div className="sss">{T.viewAll}</div>
+                  </div>
+                );
+              })
+            ) : (
+              <>
+                <div className="sc">
+                  <div className="slb">{T.lowStock}</div>
+                  <div className="sv rd">{buylist.filter((i: any) => i.low).length}</div>
+                  <div className="sss">{T.viewAll}</div>
                 </div>
-              ))
-              : <div className="sc"><div className="slb">{T.lowStock}</div><div className="sv rd">{buylist.filter((i: any) => i.low).length}</div><div className="sss">{T.viewAll}</div></div>
-            }
+                <div className="sc">
+                  <div className="slb">{T.inventoryVal}</div>
+                  <div className="sv" style={{ fontSize: 18 }}>—</div>
+                  <div className="sss">No data yet</div>
+                </div>
+              </>
+            )}
           </div>
         );
       })()}
 
+      {/* ✅ FIX 3: Warehouse cards use auto-fill responsive grid (defined in CSS .wg) */}
       {loading ? <Spinner /> : (
         <div className="wg">
           {filtered.map((w) => {
@@ -1446,7 +1472,6 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
   const [delItem, setDelItem] = useState<any>(null);
   const [showEditWh, setShowEditWh] = useState(false);
 
-  // buylist form — uses FK IDs
   const EMPTY_BL = { item: "", _itemName: "", moneytype: "", unit: "", qty: "", narx: "" };
   const [form, setForm] = useState(EMPTY_BL);
   const [whForm, setWhForm] = useState({ name: wh.name });
@@ -1460,7 +1485,6 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
   const lowCount = whBl.filter((i: any) => i.low).length;
   const grad = WC_GRADIENT[wh.wc] || WC_GRADIENT.bl;
 
-  // DB'deki para birimlerine göre toplam hesapla
   const currencyTotals = moneytypes.map((m: any) => {
     const total = whBl
       .filter((b: any) => String(b.moneytypeId) === String(m.id))
@@ -1472,7 +1496,6 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
     return { id: m.id, name: m.name, total };
   }).filter((c: any) => c.total > 0);
 
-  // Build API payload for buylist — serializer alan adlarıyla eşleşiyor
   function buildBlPayload(f) {
     return {
       item: Number(f.item) || undefined,
@@ -1490,11 +1513,9 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
     setSaving(true);
     try {
       let itemId = form.item ? Number(form.item) : null;
-      // Agar item DB da yo'q bo'lsa — yangi item yaratamiz
       if (!itemId && itemName) {
         const newItem = await itemlerAPI.create({ name: itemName });
         itemId = newItem.id;
-        // itemler listini yangilash uchun — parent'dan refresh kerak, lekin local ham qo'shamiz
       }
       const payload = { ...buildBlPayload({ ...form, item: itemId }), item: itemId };
       const created = await buylistAPI.create(payload);
@@ -1602,8 +1623,7 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
           {blForm}
         </Modal>
       )}
-      {delItem && <ConfirmModal title="Delete Item" desc={<>«<strong>{delItem.name}</strong>»?
-      </>} onConfirm={() => delBl(delItem)} onClose={() => setDelItem(null)} />}
+      {delItem && <ConfirmModal title="Delete Item" desc={<>«<strong>{delItem.name}</strong>»?</>} onConfirm={() => delBl(delItem)} onClose={() => setDelItem(null)} />}
       {showEditWh && (
         <Modal title="Edit Warehouse" onClose={() => setShowEditWh(false)}
           footer={<><button className="btn bo" onClick={() => setShowEditWh(false)}>{T.cancel}</button><button className="btn bp" onClick={saveWh} disabled={saving}>{saving ? "..." : T.save}</button></>}>
@@ -1611,7 +1631,6 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
         </Modal>
       )}
 
-      {/* Banner */}
       <div className="wdh">
         <div className="wdh-banner" style={{ background: grad }}>
           <div className="wdh-glow" style={{ width: 280, height: 280, top: -100, right: -60 }} />
@@ -1668,7 +1687,6 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
         </div>
       </div>
 
-      {/* Reference data warning */}
       {(itemler.length === 0 || moneytypes.length === 0 || unitler.length === 0) && (
         <div className="api-err" style={{ marginBottom: 16 }}>
           <I n="warn" s={16} c="var(--orange)" />
@@ -1681,7 +1699,6 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
         </div>
       )}
 
-      {/* Buylist Table */}
       <div className="tc">
         <div style={{ borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", paddingLeft: 6 }}>
           <div style={{ padding: "8px 16px", fontWeight: 700, fontSize: 13, color: "var(--blue)", borderBottom: "2px solid var(--blue)" }}>
@@ -1702,7 +1719,6 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
         {showAdd && (
           <div style={{ padding: "16px 18px", borderBottom: "1px solid var(--border)", background: "var(--blue-l)" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1.5fr 90px 100px 90px 120px auto", gap: 10, alignItems: "flex-end" }}>
-              {/* 1. Item — select or type new */}
               <div>
                 <label className="form-label">Mahsulot *</label>
                 <input
@@ -1724,12 +1740,10 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
                   {itemler.map((i: any) => <option key={i.id} value={i.name} />)}
                 </datalist>
               </div>
-              {/* 2. Qty */}
               <div>
                 <label className="form-label">{T.qty} *</label>
                 <input className="form-input" type="number" min="0" value={form.qty} onChange={sf("qty")} onKeyDown={e => e.key === "Enter" && addBl()} />
               </div>
-              {/* 3. Unit */}
               <div>
                 <label className="form-label">{T.unit}</label>
                 <select className="form-select" style={{ width: "100%" }} value={form.unit} onChange={sf("unit")}>
@@ -1737,12 +1751,10 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
                   {unitler.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               </div>
-              {/* 4. Price */}
               <div>
                 <label className="form-label">{T.price}</label>
                 <input className="form-input" type="number" min="0" step="0.01" value={form.narx} onChange={sf("narx")} onKeyDown={e => e.key === "Enter" && addBl()} />
               </div>
-              {/* 5. Currency */}
               <div>
                 <label className="form-label">{T.currency}</label>
                 <select className="form-select" style={{ width: "100%" }} value={form.moneytype} onChange={sf("moneytype")}>
@@ -1842,8 +1854,7 @@ function ShipmentsPage({ shipments, setShipments, addToast, T }: any) {
           </div>
         </Modal>
       )}
-      {delShip && <ConfirmModal title="Delete Shipment" desc={<>«<strong>{delShip.item}</strong>»?
-      </>} onConfirm={() => { setShipments(s => s.filter((x: any) => x.id !== delShip.id)); addToast("Deleted", "error"); }} onClose={() => setDelShip(null)} />}
+      {delShip && <ConfirmModal title="Delete Shipment" desc={<>«<strong>{delShip.item}</strong>»?</>} onConfirm={() => { setShipments(s => s.filter((x: any) => x.id !== delShip.id)); addToast("Deleted", "error"); }} onClose={() => setDelShip(null)} />}
 
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
@@ -1898,7 +1909,6 @@ function ReportsPage({ warehouses, buylist, addToast, T }: any) {
   const maxWH = Math.max(...byWH.map((w: any) => w.count), 1);
   const colors = ["var(--blue)", "var(--orange)", "var(--purple)", "var(--green)", "var(--red)"];
 
-  // Per-currency totals
   const currMap: Record<string, number> = {};
   buylist.forEach((b: any) => {
     const cur = b.moneytypeName || "?";
@@ -1908,7 +1918,6 @@ function ReportsPage({ warehouses, buylist, addToast, T }: any) {
   const currEntries = Object.entries(currMap);
   const maxCurr = Math.max(...currEntries.map(([, v]) => v), 1);
 
-  // Top items by total value
   const topItems = [...buylist]
     .sort((a: any, b: any) => Number(b.total) - Number(a.total))
     .slice(0, 8);
@@ -1924,7 +1933,6 @@ function ReportsPage({ warehouses, buylist, addToast, T }: any) {
         </div>
       </div>
 
-      {/* KPI Stats */}
       <div className="sg" style={{ gridTemplateColumns: `repeat(${Math.max(3, currEntries.length + 2)}, 1fr)`, marginBottom: 20 }}>
         <div className="sc"><div className="slb">Jami Mahsulotlar</div><div className="sv">{buylist.length}</div><div style={{ marginTop: 6 }}><span className="badge bdg">Barcha omborlar</span></div></div>
         <div className="sc"><div className="slb">Omborlar</div><div className="sv bl">{warehouses.length}</div></div>
@@ -1932,14 +1940,13 @@ function ReportsPage({ warehouses, buylist, addToast, T }: any) {
         {currEntries.map(([cur, total]) => (
           <div key={cur} className="sc">
             <div className="slb">Jami · {cur}</div>
-            <div className="sv" style={{ color: "var(--green)", fontSize: 17 }}>{total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            <div className="sv" style={{ color: "var(--green)", fontSize: 17 }}>{(total as number).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             <div className="sss">{cur}</div>
           </div>
         ))}
       </div>
 
       <div className="rep-grid">
-        {/* Items by Warehouse */}
         <div className="rep-chart">
           <div className="rep-chart-title">Omborlar bo'yicha mahsulotlar soni</div>
           {byWH.length === 0 ? <div style={{ color: "var(--text4)", fontSize: 13 }}>Ma'lumot yo'q</div> :
@@ -1952,7 +1959,6 @@ function ReportsPage({ warehouses, buylist, addToast, T }: any) {
             ))}
         </div>
 
-        {/* Currency breakdown */}
         <div className="rep-chart">
           <div className="rep-chart-title">Valyuta bo'yicha jami qiymat</div>
           {currEntries.length === 0
@@ -1960,14 +1966,13 @@ function ReportsPage({ warehouses, buylist, addToast, T }: any) {
             : currEntries.map(([cur, total], i) => (
               <div key={cur} className="bar-row">
                 <div className="bar-label">{cur}</div>
-                <div className="bar-track"><div className="bar-fill" style={{ width: `${Math.max(4, (total / maxCurr) * 100)}%`, background: colors[i % colors.length] }} /></div>
-                <div className="bar-val">{total.toLocaleString("en-US", { maximumFractionDigits: 0 })}</div>
+                <div className="bar-track"><div className="bar-fill" style={{ width: `${Math.max(4, ((total as number) / maxCurr) * 100)}%`, background: colors[i % colors.length] }} /></div>
+                <div className="bar-val">{(total as number).toLocaleString("en-US", { maximumFractionDigits: 0 })}</div>
               </div>
             ))}
         </div>
       </div>
 
-      {/* Top Items by Value */}
       <div className="tc" style={{ marginTop: 20 }}>
         <div className="sh2"><div className="st2">Eng qimmat mahsulotlar (Top 8)</div></div>
         {topItems.length === 0
@@ -1991,7 +1996,6 @@ function ReportsPage({ warehouses, buylist, addToast, T }: any) {
         }
       </div>
 
-      {/* Low stock list */}
       {lowItems.length > 0 && (
         <div className="tc" style={{ marginTop: 20 }}>
           <div className="sh2"><div className="st2" style={{ color: "var(--red)" }}>⚠ Kam Zaxira Mahsulotlar ({lowItems.length})</div></div>
@@ -2015,10 +2019,8 @@ function ReportsPage({ warehouses, buylist, addToast, T }: any) {
   );
 }
 
-
 /* ═══════════════════ SMART INVOICE INTAKE ═══════════════════ */
 let INTAKE_ID = 100;
-const DEFAULT_LINES = [];
 
 function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unitler, addToast, T }: any) {
   const [lines, setLines] = useState<any[]>([]);
@@ -2031,11 +2033,9 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
   const [showAddLine, setShowAddLine] = useState(false);
   const [newLine, setNewLine] = useState({ desc: "", qty: "", price: "", cur: moneytypes[0]?.name || "UZS" });
 
-  // Upload state
-  const [uploadedFile, setUploadedFile] = useState<any>(null);       // File objesi
-  const [previewUrl, setPreviewUrl] = useState<any>(null);           // Önizleme URL'i
+  const [uploadedFile, setUploadedFile] = useState<any>(null);
+  const [previewUrl, setPreviewUrl] = useState<any>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = { current: null };
 
   useEffect(() => {
     if (warehouses.length && !selWh) setSelWh(warehouses[0].id);
@@ -2043,7 +2043,6 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
 
   const total = lines.reduce((acc, l) => acc + (Number(l.qty) * parseFloat(l.price || 0)), 0);
 
-  // Dosya seçildiğinde
   function handleFileSelect(file) {
     if (!file) return;
     const allowed = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
@@ -2063,7 +2062,6 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
     handleFileSelect(file);
   }
 
-  // OCR + AI Scan
   async function handleScan() {
     if (!uploadedFile) { addToast("Önce bir fatura resmi yükleyin", "error"); return; }
     setScanning(true);
@@ -2078,7 +2076,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
           ...(token ? { "Authorization": `Token ${token}` } : {}),
         },
         credentials: "include" as RequestCredentials,
-        body: formData,  // Content-Type otomatik multipart/form-data olur
+        body: formData,
       });
 
       const data = await res.json().catch(() => ({}));
@@ -2128,14 +2126,12 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
     let success = 0;
     const errors: string[] = [];
 
-    // Lokal cache — aynı ismi birden fazla kez yaratmamak için
     const localMoneytypes = [...moneytypes];
     const localUnitler = [...unitler];
     const localItemler = [...itemler];
 
     for (const line of lines) {
       try {
-        // 1. Item bul veya yarat
         let itemId: number | null = null;
         if (line.desc) {
           const found = localItemler.find((i: any) =>
@@ -2151,26 +2147,24 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
         }
         if (!itemId) { errors.push(`${line.desc}: item yaratilmadi`); continue; }
 
-        // 2. Moneytype bul veya yarat
         const curName = line.cur?.trim() || "UZS";
         let mtFound = localMoneytypes.find((m: any) =>
           m.code?.toLowerCase() === curName.toLowerCase() ||
           m.name?.toLowerCase() === curName.toLowerCase()
         );
         if (!mtFound) {
-          const newMt = await moneytypesAPI.create({ name: curName });  // serializer 'name' bekliyor
+          const newMt = await moneytypesAPI.create({ name: curName });
           mtFound = { id: newMt.id, name: curName, code: curName, _raw: newMt };
           localMoneytypes.push(mtFound);
         }
         const mtId = mtFound.id;
 
-        // 3. Unit bul veya yarat
         const unitName = line.birlik?.trim() || "dona";
         let unitFound = localUnitler.find((u: any) =>
           u.name?.toLowerCase() === unitName.toLowerCase()
         );
         if (!unitFound) {
-          const newUnit = await unitlerAPI.create({ name: unitName });  // serializer 'name' bekliyor
+          const newUnit = await unitlerAPI.create({ name: unitName });
           unitFound = { id: newUnit.id, name: unitName, _raw: newUnit };
           localUnitler.push(unitFound);
         }
@@ -2215,7 +2209,6 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
 
   return (
     <div className="fu">
-      {/* Page header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 22 }}>
         <div>
           <h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-.025em" }}>{T.intake || "Smart Invoice Intake"}</h1>
@@ -2224,10 +2217,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "420px 1fr", gap: 20, alignItems: "start" }}>
-
-        {/* ── LEFT: Upload Panel ── */}
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r)", boxShadow: "var(--sh)", overflow: "hidden" }}>
-          {/* Header */}
           <div style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 28, height: 28, background: "var(--blue-l)", border: "1px solid var(--blue-m)", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -2238,17 +2228,14 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
               </span>
             </div>
             {uploadedFile && (
-              <button className="ib" onClick={() => { setUploadedFile(null); setPreviewUrl(null); setLines([]); }}
-                title="Tozalash">
+              <button className="ib" onClick={() => { setUploadedFile(null); setPreviewUrl(null); setLines([]); }} title="Tozalash">
                 <I n="x" s={13} />
               </button>
             )}
           </div>
 
-          {/* Upload area veya preview */}
           <div style={{ padding: 16, background: "#f5f6f8", minHeight: 460 }}>
             {!previewUrl ? (
-              /* Drop zone */
               <div
                 onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
                 onDragLeave={() => setIsDragging(false)}
@@ -2271,66 +2258,37 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
                 <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--blue-l)", border: "1.5px solid var(--blue-m)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
                   <I n="dl" s={24} c="var(--blue)" />
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>
-                  Fatura rasmini yuklang
-                </div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>Fatura rasmini yuklang</div>
                 <div style={{ fontSize: 12, color: "var(--text3)", marginBottom: 18, lineHeight: 1.6 }}>
                   Sudrab tashlang yoki bosing<br />JPG, PNG, WEBP · Max 10MB
                 </div>
                 <button className="btn bp" style={{ pointerEvents: "none" }}>
                   <I n="fi" s={14} c="#fff" />Fayl tanlash
                 </button>
-                <input
-                  id="invoice-file-input"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  style={{ display: "none" }}
-                  onChange={e => handleFileSelect(e.target.files!![0])}
-                />
+                <input id="invoice-file-input" type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }} onChange={e => handleFileSelect(e.target.files!![0])} />
               </div>
             ) : (
-              /* Image preview */
               <div style={{ borderRadius: "var(--rs)", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,.12)", background: "#fff" }}>
-                <img
-                  src={previewUrl}
-                  alt="Fatura"
-                  style={{ width: "100%", display: "block", maxHeight: 420, objectFit: "contain" }}
-                />
+                <img src={previewUrl} alt="Fatura" style={{ width: "100%", display: "block", maxHeight: 420, objectFit: "contain" }} />
               </div>
             )}
           </div>
 
-          {/* Scan button */}
           <div style={{ padding: "14px 16px", borderTop: "1px solid var(--border)", display: "flex", gap: 10 }}>
-            <button
-              className="btn bp"
-              style={{ flex: 1, justifyContent: "center", fontSize: 14, padding: "10px" }}
-              onClick={handleScan}
-              disabled={!uploadedFile || scanning}>
+            <button className="btn bp" style={{ flex: 1, justifyContent: "center", fontSize: 14, padding: "10px" }} onClick={handleScan} disabled={!uploadedFile || scanning}>
               {scanning
                 ? <><div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />Skanlanmoqda...</>
                 : <><I n="mg" s={15} c="#fff" />AI bilan Skan Qilish</>
               }
             </button>
-            <button
-              className="btn bo"
-              onClick={() => document.getElementById("invoice-file-input").click()}
-              title="Boshqa rasm tanlash">
+            <button className="btn bo" onClick={() => document.getElementById("invoice-file-input").click()} title="Boshqa rasm tanlash">
               <I n="refresh" s={14} />
-              <input
-                id="invoice-file-input"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                style={{ display: "none" }}
-                onChange={e => handleFileSelect(e.target.files!![0])}
-              />
+              <input id="invoice-file-input" type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }} onChange={e => handleFileSelect(e.target.files!![0])} />
             </button>
           </div>
         </div>
 
-        {/* ── RIGHT: AI Extraction Results ── */}
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r)", boxShadow: "var(--sh)", overflow: "hidden" }}>
-          {/* AI Header */}
           <div style={{ padding: "18px 22px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
               <div style={{ width: 38, height: 38, background: "var(--blue)", borderRadius: "var(--rs)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -2339,11 +2297,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
               <div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)" }}>AI Extraction Results</div>
                 <div style={{ fontSize: 13, color: "var(--text3)", marginTop: 2 }}>
-                  {scanning
-                    ? "Fatura skanlanmoqda..."
-                    : lines.length > 0
-                      ? `${lines.length} ta mahsulot topildi.`
-                      : "Fatura yuklang va AI bilan skanlang."}
+                  {scanning ? "Fatura skanlanmoqda..." : lines.length > 0 ? `${lines.length} ta mahsulot topildi.` : "Fatura yuklang va AI bilan skanlang."}
                 </div>
               </div>
             </div>
@@ -2359,7 +2313,6 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
             )}
           </div>
 
-          {/* Scanning overlay */}
           {scanning && (
             <div style={{ padding: "60px 24px", textAlign: "center", color: "var(--text3)" }}>
               <div className="spinner" style={{ margin: "0 auto 16px" }} />
@@ -2368,7 +2321,6 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
             </div>
           )}
 
-          {/* Empty state */}
           {!scanning && lines.length === 0 && (
             <div style={{ padding: "60px 24px", textAlign: "center", color: "var(--text4)" }}>
               <I n="sc" s={42} c="var(--border2)" />
@@ -2377,10 +2329,8 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
             </div>
           )}
 
-          {/* Results */}
           {!scanning && lines.length > 0 && (
             <>
-              {/* Summary row */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", borderBottom: "1px solid var(--border)" }}>
                 <div style={{ padding: "14px 18px", borderRight: "1px solid var(--border)" }}>
                   <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--text4)", marginBottom: 6 }}>Mahsulotlar</div>
@@ -2392,13 +2342,10 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
                 </div>
                 <div style={{ padding: "14px 18px", background: "var(--blue-l)" }}>
                   <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--blue)", marginBottom: 6 }}>Jami Summa</div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: "var(--blue)", letterSpacing: "-.02em" }}>
-                    {total.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: "var(--blue)", letterSpacing: "-.02em" }}>{total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
                 </div>
               </div>
 
-              {/* Line items table */}
               <div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", borderBottom: "1px solid var(--border)" }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>Aniqlangan Mahsulotlar</div>
@@ -2422,14 +2369,12 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
                   </div>
                 )}
 
-                {/* Table header */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 110px 80px 36px", gap: 8, padding: "8px 18px", borderBottom: "1px solid var(--border)", background: "var(--surface2)" }}>
                   {["MAHSULOT", "SONI", "NARX", "BIRLIK", ""].map((h, i) => (
                     <div key={i} style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: "var(--text4)" }}>{h}</div>
                   ))}
                 </div>
 
-                {/* Rows */}
                 {lines.map(line => (
                   <div key={line.id} style={{ display: "grid", gridTemplateColumns: "1fr 70px 110px 80px 36px", gap: 8, padding: "10px 18px", borderBottom: "1px solid var(--border)", alignItems: "center" }}
                     onMouseEnter={e => e.currentTarget.style.background = "var(--bg)"}
@@ -2461,7 +2406,6 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
                 ))}
               </div>
 
-              {/* Warehouse & approve */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, padding: "16px 18px", borderTop: "1px solid var(--border)", background: "var(--surface2)" }}>
                 <div>
                   <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--text4)", marginBottom: 7 }}>Omborga joylash</div>
@@ -2477,9 +2421,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
               </div>
 
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderTop: "1px solid var(--border)" }}>
-                <button className="btn bo" style={{ color: "var(--text3)" }} onClick={() => { setLines([]); }}>
-                  Bekor qilish
-                </button>
+                <button className="btn bo" style={{ color: "var(--text3)" }} onClick={() => { setLines([]); }}>Bekor qilish</button>
                 <button className="btn bp" style={{ padding: "9px 20px", fontWeight: 700, fontSize: 14 }} onClick={approve} disabled={saving}>
                   {saving ? "Qo'shilmoqda..." : <><I n="ck" s={15} c="#fff" />Tasdiqlash va Inventarga Qo'shish →</>}
                 </button>
@@ -2488,7 +2430,6 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
           )}
         </div>
       </div>
-
     </div>
   );
 }
@@ -2533,6 +2474,7 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: an
     finally { setSaving(false); }
   }
 
+  // ✅ FIX 1 ta'siri: DELETE Content-Type yo'q → 500 yo'q
   async function delU(user: any) {
     if (!user.id) { addToast("Foydalanuvchi ID topilmadi", "error"); return; }
     setDeleting(true);
@@ -2541,7 +2483,13 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: an
       addToast(`"${user.username}" muvaffaqiyatli o'chirildi`);
       onRefresh();
     } catch (e: any) {
-      addToast(`Xato: ${(e as Error).message}`, "error");
+      const msg = (e as Error).message || "";
+      // Backend DB migration xatosi — usersettings jadvali yo'q
+      if (msg.includes("usersettings") || msg.includes("does not exist") || msg.includes("500")) {
+        addToast(`Server xatosi: Admin backendda "python manage.py migrate" buyrug'ini ishga tushirsin`, "error");
+      } else {
+        addToast(`Xato: ${msg}`, "error");
+      }
     } finally {
       setDelUser(null);
       setDelConfirmName("");
@@ -2679,8 +2627,6 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: an
     </div>
   );
 }
-
-
 
 /* ═══════════════════ SETTINGS ═══════════════════ */
 const SETTINGS_NAV = [
