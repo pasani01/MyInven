@@ -300,9 +300,9 @@ html,body{font-family:'DM Sans',-apple-system,sans-serif;background:var(--bg);co
 .dm-label{flex:1}
 .s-foot{border-top:1px solid var(--border);padding:10px 8px}
 .main{margin-left:var(--sw);flex:1;display:flex;flex-direction:column;min-height:100vh;max-width:100%;overflow-x:hidden;width:100%}
-.topbar{background:var(--surface);border-bottom:1px solid var(--border);height:56px;padding:0 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;transition:background .25s,border-color .25s}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);height:52px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;transition:background .25s,border-color .25s}
 .tb-r{display:flex;align-items:center;gap:10px}
-.content{padding:26px;flex:1}
+.content{padding:20px;flex:1}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--rs);font-size:13.5px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:all .12s;font-family:inherit;line-height:1}
 .bp{background:var(--blue);color:#fff;border-color:var(--blue)}.bp:hover{opacity:.9;box-shadow:0 4px 12px var(--blue-m)}
 .bo{background:var(--surface);color:var(--text2);border-color:var(--border2)}.bo:hover{border-color:var(--text4);background:var(--bg)}
@@ -438,6 +438,10 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(5px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .18s ease}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .modal{background:var(--surface);border-radius:14px;width:100%;max-width:520px;box-shadow:var(--sh3);animation:slideUp .22s ease;max-height:90vh;overflow-y:auto;border:1px solid var(--border)}
+.intake-layout{display:grid;grid-template-columns:420px 1fr;gap:20px;align-items:start}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+.card-h{background:var(--surface2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between}
+@media (max-width:1024px){.intake-layout{grid-template-columns:1fr}}
 @keyframes slideUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
 .modal-header{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .modal-title{font-size:16px;font-weight:800;color:var(--text)}
@@ -569,29 +573,46 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
   .sidebar{transform:translateX(-100%);transition:transform .3s cubic-bezier(0.4, 0, 0.2, 1);width:260px;box-shadow:20px 0 50px rgba(0,0,0,.15)}
   .sidebar.open{transform:translateX(0)}
   .main{margin-left:0}
-  .topbar{padding:0 16px;height:60px}
+  .topbar{padding:0 12px;height:52px}
+  .content{padding:14px}
   .auth-card{grid-template-columns:1fr;min-height:auto}
   .auth-hero{display:none}
-  .sg{grid-template-columns:1fr 1fr}
-  .sg3,.sg2{grid-template-columns:1fr}
-  .detail-grid,.rep-grid{grid-template-columns:1fr}
-  .wdh-banner{height:100px;padding:15px}
-  .wdh-body{grid-template-columns:1fr}
-  .wdh-stat:not(:last-child){border-bottom:1px solid var(--border)}
-  .form-row{grid-template-columns:1fr}
-  .mobile-toggle{display:flex!important}
+  .sg{grid-template-columns:1fr 1fr;gap:10px}
+  .sg3,.sg2{grid-template-columns:1fr;gap:10px}
+  .detail-grid,.rep-grid{grid-template-columns:1fr;gap:12px}
+  .wdh-banner{height:auto;min-height:90px;padding:12px}
+  .wdh-icon{width:44px;height:44px}
+  .wdh-title{font-size:18px}
+  .wdh-body{grid-template-columns:1fr;padding:12px}
+  .wdh-stat{padding:10px}
+  .wdh-stat:not(:last-child){border-right:none;border-bottom:1px solid var(--border)}
+  .form-row{grid-template-columns:1fr;gap:10px}
+  .mobile-toggle{display:flex!important;width:34px;height:34px;margin-right:8px}
+  .mobile-toggle svg{width:18px;height:18px}
   
   .modal{max-width:100%;margin:0;width:100%;border-radius:20px 20px 0 0;position:fixed;bottom:0}
   .modal-backdrop{align-items:flex-end;padding:0}
+  .modal-header{padding:14px 18px}
+  .modal-body{padding:18px}
+  .modal-footer{padding:12px 18px}
+  
+  .footer{flex-direction:column;gap:10px;padding:12px 16px;text-align:center}
+  .fh,.fl{justify-content:center}
+  .ht{font-size:10px;padding:3px 6px}
 }
 
 @media (max-width:480px){
   .sg{grid-template-columns:1fr}
-  .content{padding:16px}
+  .content{padding:12px}
+  .tb-r .btn{padding:6px 10px;font-size:12px}
   .tb-r .btn span{display:none}
-  .tb-r .btn{padding:8px}
-  .wdh-title{font-size:18px}
-  .sv{font-size:20px}
+  .ph-l h1{font-size:18px!important}
+  .ph-l p{font-size:11px!important}
+  .sv{font-size:18px}
+  .sc{padding:12px 14px}
+  .ti{font-size:11px}
+  .pb{width:28px;height:28px;font-size:12px}
+  .wg{grid-template-columns:1fr}
 }
 
 .mobile-toggle{display:none;width:40px;height:40px;align-items:center;justify-content:center;color:var(--text);cursor:pointer;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;margin-right:8px;transition:all .2s cubic-bezier(0.4, 0, 0.2, 1);box-shadow:var(--sh);position:relative;z-index:20}
@@ -2298,16 +2319,15 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
 
   return (
     <div className="fu">
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 22 }}>
-        <div>
-          <h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-.025em" }}>{T.intake || "Smart Invoice Intake"}</h1>
-          <p style={{ fontSize: 13, color: "var(--text3)", marginTop: 3 }}>Fatura rasmini yuklang va AI bilan skanlang</p>
+      <div className="ph" style={{ marginBottom: 16 }}>
+        <div className="ph-l">
+          <h1 style={{ fontWeight: 800, letterSpacing: "-.025em" }}>{T.intake || "Smart Invoice Intake"}</h1>
+          <p style={{ color: "var(--text3)", marginTop: 2 }}>Fatura rasmini yuklang va AI bilan skanlang</p>
         </div>
       </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "420px 1fr", gap: 20, alignItems: "start" }}>
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r)", boxShadow: "var(--sh)", overflow: "hidden" }}>
-          <div style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div className="intake-layout">
+        <div className="card">
+          <div className="card-h">
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 28, height: 28, background: "var(--blue-l)", border: "1px solid var(--blue-m)", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <I n="fi" s={14} c="var(--blue)" />
@@ -2376,8 +2396,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
             </button>
           </div>
         </div>
-
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r)", boxShadow: "var(--sh)", overflow: "hidden" }}>
+        <div className="card">
           <div style={{ padding: "18px 22px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
               <div style={{ width: 38, height: 38, background: "var(--blue)", borderRadius: "var(--rs)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
