@@ -399,19 +399,19 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
 .wh-dd-item:hover{background:var(--bg)}
 .wh-dd-item.del{color:var(--red)}.wh-dd-item.del:hover{background:var(--red-bg)}
 .wh-dd-sep{height:1px;background:var(--border);margin:3px 0}
-.wdh{border-radius:var(--r);overflow:hidden;margin-bottom:22px;position:relative}
-.wdh-banner{height:130px;display:flex;align-items:flex-end;padding:22px 26px 18px;position:relative}
+.wdh{position:relative;margin-bottom:30px}
+.wdh-banner{min-height:160px;display:flex;align-items:flex-start;padding:24px 26px 60px;position:relative;border-radius:var(--r);overflow:hidden}
 .wdh-glow{position:absolute;border-radius:50%;background:rgba(255,255,255,.1);pointer-events:none}
 .wdh-icon{width:56px;height:56px;background:rgba(255,255,255,.2);border-radius:14px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.3);flex-shrink:0;position:relative;z-index:1}
 .wdh-title{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.03em;position:relative;z-index:1}
 .wdh-addr{font-size:13px;color:rgba(255,255,255,.8);margin-top:3px;display:flex;align-items:center;gap:5px;position:relative;z-index:1}
-.wdh-body{background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r) var(--r);padding:18px 26px;display:grid;grid-template-columns:repeat(4,1fr);gap:0}
-.wdh-stat{padding:0 20px;border-right:1px solid var(--border)}
-.wdh-stat:first-child{padding-left:0}
+.wdh-body{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin:-50px 20px 0;position:relative;z-index:2;box-shadow:var(--sh2)}
+.wdh-stat{padding:0 20px;border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:center}
+.wdh-stat:first-child{padding-left:10px}
 .wdh-stat:last-child{border-right:none}
-.wdh-stat-l{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text4);margin-bottom:5px}
-.wdh-stat-v{font-size:22px;font-weight:800;letter-spacing:-.03em}
-.wdh-stat-s{font-size:12px;color:var(--text4);margin-top:3px}
+.wdh-stat-l{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text4);margin-bottom:6px}
+.wdh-stat-v{font-size:22px;font-weight:800;letter-spacing:-.03em;line-height:1.1}
+.wdh-stat-s{font-size:12px;color:var(--text4);margin-top:4px}
 .detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}
 .info-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
 .info-card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surface2)}
@@ -1523,6 +1523,14 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
             const icColor = WC_ICON_COLOR[w.wc];
             const whBl = buylist.filter((b: any) => String(b.depolarId) === String(w.id));
             const isOpen = openMenu === w.id;
+            const totalsByCur: Record<string, number> = {};
+            whBl.forEach((b: any) => {
+              const cur = b.moneytypeName || "UZS";
+              const val = (Number(b.qty) || 0) * (parseFloat(String(b._raw?.narx ?? b.price ?? "0").replace(/,/g, "")) || 0);
+              totalsByCur[cur] = (totalsByCur[cur] || 0) + val;
+            });
+            const curEntries = Object.entries(totalsByCur).filter(([, v]) => v > 0);
+
             return (
               <div key={w.id} className="wc" onClick={() => onOpenWh(w)}>
                 <div className="wb">
@@ -1541,7 +1549,20 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
                     </div>
                   </div>
                   <div className="wn">{w.name}</div>
-                  <div style={{ height: 12 }}></div>
+                  <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: "6px 12px", borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+                    <div style={{ fontSize: 12, color: "var(--text3)" }}>
+                      <strong style={{ color: "var(--text)" }}>{whBl.length}</strong> {T.items.toLowerCase()}
+                    </div>
+                    {curEntries.map(([cur, val]) => (
+                      <div key={cur} style={{ fontSize: 12, color: "var(--text3)" }}>
+                        <strong style={{ color: cur === "USD" ? "var(--green)" : "var(--blue)" }}>
+                          {cur === "USD" ? "$" : ""}{val.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                        </strong> {cur !== "USD" ? cur : ""}
+                      </div>
+                    ))}
+                    {curEntries.length === 0 && <div style={{ fontSize: 12, color: "var(--text4)" }}>Bo'sh</div>}
+                  </div>
+                  <div style={{ height: 4 }}></div>
                 </div>
                 <div className="wf" onClick={e => e.stopPropagation()}>
                   <button className="btn bo" style={{ flex: 1, justifyContent: "center" }} onClick={() => onOpenWh(w)}>{T.details} →</button>
@@ -1732,7 +1753,7 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
       )}
 
       <div className="wdh">
-        <div className="wdh-banner" style={{ background: grad, height: "auto", minHeight: 130 }}>
+        <div className="wdh-banner" style={{ background: grad }}>
           <div className="wdh-glow" style={{ width: 280, height: 280, top: -100, right: -60 }} />
           <div className="wdh-top">
             <div className="wdh-icon"><I n={wh.ic} s={26} c="#fff" /></div>
