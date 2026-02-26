@@ -540,6 +540,52 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
 .ref-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;background:var(--bg);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text2);font-weight:500}
 .ref-chip button{background:none;border:none;cursor:pointer;color:var(--text4);display:flex;align-items:center;font-size:14px;line-height:1;padding:0;margin-left:2px}
 .ref-chip button:hover{color:var(--red)}
+
+/* ═══════════════════ RESPONSIVE ═══════════════════ */
+@media (max-width:920px){
+  .settings-layout{grid-template-columns:1fr}
+  .settings-nav{position:static;display:flex;overflow-x:auto;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+  .settings-nav-item{border-left:none;border-bottom:3px solid transparent;white-space:nowrap}
+  .settings-nav-item.active{border-bottom-color:var(--blue)}
+  .wdh-body{grid-template-columns:1fr 1fr;gap:12px}
+  .wdh-stat{border:none;padding:10px}
+}
+
+@media (max-width:768px){
+  :root{--sw:0px}
+  .sidebar{transform:translateX(-100%);transition:transform .3s cubic-bezier(0.4, 0, 0.2, 1);width:260px;box-shadow:20px 0 50px rgba(0,0,0,.15)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0}
+  .topbar{padding:0 16px;height:60px}
+  .auth-card{grid-template-columns:1fr;min-height:auto}
+  .auth-hero{display:none}
+  .sg{grid-template-columns:1fr 1fr}
+  .sg3,.sg2{grid-template-columns:1fr}
+  .detail-grid,.rep-grid{grid-template-columns:1fr}
+  .wdh-banner{height:100px;padding:15px}
+  .wdh-body{grid-template-columns:1fr}
+  .wdh-stat:not(:last-child){border-bottom:1px solid var(--border)}
+  .form-row{grid-template-columns:1fr}
+  .mobile-toggle{display:flex!important}
+  
+  .modal{max-width:100%;margin:0;width:100%;border-radius:20px 20px 0 0;position:fixed;bottom:0}
+  .modal-backdrop{align-items:flex-end;padding:0}
+}
+
+@media (max-width:480px){
+  .sg{grid-template-columns:1fr}
+  .content{padding:16px}
+  .tb-r .btn span{display:none}
+  .tb-r .btn{padding:8px}
+  .wdh-title{font-size:18px}
+  .sv{font-size:20px}
+}
+
+.mobile-toggle{display:none;width:40px;height:40px;align-items:center;justify-content:center;color:var(--text);cursor:pointer;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;margin-right:8px;transition:all .2s cubic-bezier(0.4, 0, 0.2, 1);box-shadow:var(--sh);position:relative;z-index:20}
+.mobile-toggle:hover{border-color:var(--blue);color:var(--blue);transform:scale(1.05);background:var(--blue-l)}
+.mobile-toggle:active{transform:scale(0.95)}
+
+.sidebar-backdrop{position:fixed;inset:0;background:rgba(15,23,42,0.4);backdrop-filter:blur(8px);z-index:90;animation:fadeIn .3s ease;display:block}
 `;
 
 /* ═══════════════════ ICONS ═══════════════════ */
@@ -586,6 +632,7 @@ const P = {
   co: "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z",
   tag: "M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z M7 7h.01",
   pkg: "M16.5 9.4l-9-5.19 M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z M3.27 6.96 12 12.01l8.73-5.05 M12 22.08V12",
+  menu: "M3 12h18 M3 6h18 M3 18h18",
 };
 
 function I({ n, s = 16, c = "currentColor" }: any) {
@@ -1110,7 +1157,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
         <header className="topbar">
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div className="mobile-toggle" onClick={() => setSbOpen(true)}>
-              <I n="sc" s={20} />
+              <I n="menu" s={22} />
             </div>
             {page === "whdetail" && (
               <button className="ib" onClick={backToWarehouses}><I n="arr" s={15} /></button>
