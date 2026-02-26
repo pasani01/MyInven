@@ -253,7 +253,7 @@ const makeCSS = (accent = "#2563eb") => `
   --tog-off:#374151;
 }
 html,body{font-family:'DM Sans',-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;transition:background .25s,color .25s;overflow-x:hidden!important;width:100%;height:100%;-webkit-text-size-adjust:100%}
-.app,.main,.content{overflow-x:hidden!important;max-width:100vw!important}
+.app,.main,.content{overflow-x:hidden!important;max-width:100%!important;width:100%}
 ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 .auth-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px;position:relative;overflow:hidden}
 .auth-bg-blob{position:fixed;border-radius:50%;filter:blur(80px);opacity:.35;pointer-events:none;z-index:0}

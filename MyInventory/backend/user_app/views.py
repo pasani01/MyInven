@@ -118,17 +118,22 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         
         try:
             with transaction.atomic():
+                # Explicitly delete tokens first to avoid foreign key violation
+                Token.objects.filter(user=instance).delete()
                 instance.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
             
         except DatabaseError as e:
             traceback.print_exc()
             msg = str(e)
-            # Agar muammo bog'langan UserSettings jadvali yo'qligida bo'lsa
-            if "usersettings" in msg.lower():
+            # Agar muammo bog'langan UserSettings jadvali yoki Token bog'liqligida bo'lsa
+            if "usersettings" in msg.lower() or "authtoken_token" in msg.lower():
                 try:
-                    # To'g'ridan-to'g'ri SQL bilan o'chirib ko'ramiz (Django ORM bog'liqliklarni tekshirmasligi uchun)
+                    # To'g'ridan-to'g'ri SQL bilan o'chirib ko'ramiz
                     with connection.cursor() as cursor:
+                        # Avval tokenni o'chirish (SQL orqali ham)
+                        cursor.execute('DELETE FROM authtoken_token WHERE user_id = %s', [user_id])
+                        # Keyin foydalanuvchini
                         cursor.execute('DELETE FROM user_app_customuser WHERE id = %s', [user_id])
                     return Response(status=status.HTTP_204_NO_CONTENT)
                 except Exception as ex:
