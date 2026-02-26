@@ -682,10 +682,112 @@ const LANGUAGES = [
   { code: "tr", flag: "🇹🇷", name: "Turkish", local: "Türkçe" },
 ];
 const STRINGS = {
-  en: { warehouses: "Warehouses", analytics: "Analytics", intake: "Smart Invoice Intake", settings: "Settings", users: "Users", darkMode: "Dark Mode", lightMode: "Light Mode", logout: "Logout", createWh: "Create Warehouse", save: "Save", cancel: "Cancel", search: "Search...", items: "Items", moneytypes: "Currencies", units: "Units", deleteUser: "Delete User", deleteConfirmText: (name: string) => `Are you sure you want to delete "${name}"?`, deleteConfirmLabel: "Type the username to confirm:", deleteBtn: "Delete", addUser: "Add New User" },
-  uz: { warehouses: "Omborlar", analytics: "Tahlil", intake: "Aqlli Hisob-faktura", settings: "Sozlamalar", users: "Foydalanuvchilar", darkMode: "Tungi rejim", lightMode: "Kunduzgi Rejim", logout: "Chiqish", createWh: "Ombor Yaratish", save: "Saqlash", cancel: "Bekor qilish", search: "Qidirish...", items: "Mahsulotlar", moneytypes: "Valyutalar", units: "Birliklar", deleteUser: "Foydalanuvchini o'chirish", deleteConfirmText: (name: string) => `Haqiqatdan ham "${name}" ni o'chirmoqchimisiz?`, deleteConfirmLabel: "Tasdiqlash uchun foydalanuvchi nomini yozing:", deleteBtn: "O'chirish", addUser: "Yangi foydalanuvchi qo'shish" },
-  ru: { warehouses: "Склады", analytics: "Аналитика", intake: "Сканирование счёта", settings: "Настройки", users: "Пользователи", darkMode: "Тёмный", lightMode: "Светлый", logout: "Выйти", createWh: "Создать Склад", save: "Сохранить", cancel: "Отмена", search: "Поиск...", items: "Товары", moneytypes: "Валюты", units: "Единицы", deleteUser: "Удалить пользователя", deleteConfirmText: (name: string) => `Вы уверены, что хотите удалить "${name}"?`, deleteConfirmLabel: "Введите имя пользователя для подтверждения:", deleteBtn: "Удалить", addUser: "Добавить пользователя" },
-  tr: { warehouses: "Depolar", analytics: "Analiz", intake: "Akıllı Fatura Tarama", settings: "Ayarlar", users: "Kullanıcılar", darkMode: "Karanlık Mod", lightMode: "Aydınlık Mod", logout: "Çıkış", createWh: "Depo Oluştur", save: "Kaydet", cancel: "İptal", search: "Ara...", items: "Ürünler", moneytypes: "Para Birimleri", units: "Birimler", deleteUser: "Kullanıcıyı sil", deleteConfirmText: (name: string) => `"${name}" adlı kullanıcıyı silmek istediğinizden emin misiniz?`, deleteConfirmLabel: "Onaylamak için kullanıcı adını yazın:", deleteBtn: "Sil", addUser: "Yeni kullanıcı ekle" },
+  en: {
+    warehouses: "Warehouses", analytics: "Analytics", intake: "Smart Intake", settings: "Settings", users: "Users",
+    darkMode: "Dark Mode", lightMode: "Light Mode", logout: "Logout", createWh: "Create Warehouse", save: "Save",
+    cancel: "Cancel", search: "Search...", items: "Items", moneytypes: "Currencies", units: "Units",
+    deleteUser: "Delete User", deleteConfirmText: (name: string) => `Are you sure you want to delete "${name}"?`,
+    deleteConfirmLabel: "Type the username to confirm:", deleteBtn: "Delete", addUser: "Add New User",
+    loginTitle: "Welcome back", loginSub: "Sign in to RenoFlow", username: "Nickname", password: "Password",
+    enterUsername: "Enter nickname", signIn: "Sign In →", signingIn: "Signing in...",
+    totalWhs: "Total Warehouses", inventoryVal: "Inventory Value", lowStock: "Low Stock Items",
+    recentShipments: "Recent Shipments", viewAll: "View All", whStats: "Warehouse Statistics",
+    addBtn: "Add", editBtn: "Edit", filter: "Filter", all: "All",
+    scanning: "Scanning...", detected: "Detected Products", confirmAdd: "Confirm & Add",
+    profile: "Profile", appearance: "Appearance", security: "Security", general: "General",
+    language: "Language", accentColor: "Accent Color", compactMode: "Compact Mode",
+    changePass: "Change Password", currentPass: "Current Password", newPass: "New Password",
+    statusActive: "Active", totalItems: "Total Items", acrossAll: "Across all warehouses",
+    view: "View", details: "Details", value: "Value", itemsInStock: "Items in stock", low: "low",
+    addWhDesc: "Create a new warehouse.",
+    mainSec: "Main", refSec: "References", analytSec: "Analytics", mgmtSec: "Management",
+    profileAcc: "Profile & Account", designColor: "Design and color settings",
+    notifSettings: "Notifications", secPrivacy: "Security & Privacy",
+    regionalSett: "Regional Settings", dangerZone: "Danger Zone",
+    config: "Configuration",
+    qty: "Qty", price: "Price", currency: "Currency", unit: "Unit",
+    total: "Total", date: "Date", product: "Product", backBtn: "Back",
+    you: "You", noResults: "No results found", addUserPrompt: "Add a new user to begin.",
+  },
+  uz: {
+    warehouses: "Omborlar", analytics: "Tahlil", intake: "Aqlli Skan", settings: "Sozlamalar", users: "Foydalanuvchilar",
+    darkMode: "Tungi rejim", lightMode: "Kunduzgi", logout: "Chiqish", createWh: "Ombor yaratish", save: "Saqlash",
+    cancel: "Bekor qilish", search: "Qidirish...", items: "Mahsulotlar", moneytypes: "Valyutalar", units: "Birliklar",
+    deleteUser: "O'chirish", deleteConfirmText: (name: string) => `"${name}" ni o'chirmoqchimisiz?`,
+    deleteConfirmLabel: "Tasdiqlash uchun foydalanuvchi nomini yozing:", deleteBtn: "O'chirish", addUser: "Yangi foydalanuvchi",
+    loginTitle: "Xush kelibsiz", loginSub: "RenoFlow tizimiga kiring", username: "Nickname", password: "Parol",
+    enterUsername: "Nickname kiriting", signIn: "Kirish →", signingIn: "Kirilmoqda...",
+    totalWhs: "Jami omborlar", inventoryVal: "Invertar qiymati", lowStock: "Kam qolganlar",
+    recentShipments: "So'nggi harakatlar", viewAll: "Hammasi", whStats: "Ombor statistikasi",
+    addBtn: "Qo'shish", editBtn: "Tahrirlash", filter: "Saralash", all: "Hammasi",
+    scanning: "Skanerlanmoqda...", detected: "Topilgan mahsulotlar", confirmAdd: "Tasdiqlash va qo'shish",
+    profile: "Profil", appearance: "Ko'rinish", security: "Xavfsizlik", general: "Umumiy",
+    language: "Til", accentColor: "Asosiy rang", compactMode: "Ixcham ko'rinish",
+    changePass: "Parolni o'zgartirish", currentPass: "Eski parol", newPass: "Yangi parol",
+    statusActive: "Faol", totalItems: "Jami Mahsulotlar", acrossAll: "Barcha omborlarda",
+    view: "Ko'rish", details: "Tafsilotlar", value: "Qiymat", itemsInStock: "Zaxirada", low: "kam",
+    addWhDesc: "Yangi ombor yarating.",
+    mainSec: "Asosiy", refSec: "Ma'lumotnomalar", analytSec: "Tahlillar", mgmtSec: "Boshqaruv",
+    profileAcc: "Profil va Hisob", designColor: "Dizayn va rang sozlamalari",
+    notifSettings: "Bildirishnomalar", secPrivacy: "Xavfsizlik va Maxfiylik",
+    regionalSett: "Mintaqaviy sozlamalar", dangerZone: "Xavfli hudud",
+    config: "Konfiguratsiya",
+    qty: "Miqdor", price: "Narx", currency: "Valyuta", unit: "Birlik",
+    total: "Jami", date: "Sana", product: "Mahsulot", backBtn: "Orqaga",
+    you: "Siz", noResults: "Foydalanuvchilar topilmadi", addUserPrompt: "Boshlash uchun yangi foydalanuvchi qo'shing.",
+  },
+  ru: {
+    warehouses: "Склады", analytics: "Аналитика", intake: "Скан-приход", settings: "Настройки", users: "Пользователи",
+    darkMode: "Темная тема", lightMode: "Светлая", logout: "Выйти", createWh: "Создать склад", save: "Сохранить",
+    cancel: "Отмена", search: "Поиск...", items: "Товары", moneytypes: "Валюты", units: "Единицы",
+    deleteUser: "Удалить", deleteConfirmText: (name: string) => `Удалить "${name}"?`,
+    deleteConfirmLabel: "Введите имя для подтверждения:", deleteBtn: "Удалить", addUser: "Новый пользователь",
+    loginTitle: "С возвращением", loginSub: "Войти в RenoFlow", username: "Никнейм", password: "Пароль",
+    enterUsername: "Введите никнейм", signIn: "Войти →", signingIn: "Вход...",
+    totalWhs: "Всего складов", inventoryVal: "Стоимость запасов", lowStock: "Мало товара",
+    recentShipments: "Последние поставки", viewAll: "Все", whStats: "Статистика склада",
+    addBtn: "Добавить", editBtn: "Изм.", filter: "Фильтр", all: "Все",
+    scanning: "Сканирование...", detected: "Найдено товаров", confirmAdd: "Подтвердить",
+    profile: "Профиль", appearance: "Оформление", security: "Безопасность", general: "Общие",
+    language: "Язык", accentColor: "Основной цвет", compactMode: "Компактный вид",
+    changePass: "Сменить пароль", currentPass: "Старый пароль", newPass: "Новый пароль",
+    statusActive: "Активно", totalItems: "Всего товаров", acrossAll: "По всем складам",
+    view: "Смотреть", details: "Детали", value: "Цена", itemsInStock: "В наличии", low: "мало",
+    addWhDesc: "Создать новый склад.",
+    mainSec: "Главное", refSec: "Справочники", analytSec: "Аналитика", mgmtSec: "Управление",
+    profileAcc: "Профиль и Аккаунт", designColor: "Настройки дизайна",
+    notifSettings: "Уведомления", secPrivacy: "Безопасность",
+    regionalSett: "Региональные настройки", dangerZone: "Опасная зона",
+    config: "Конфигурация",
+    qty: "Кол-во", price: "Цена", currency: "Валюта", unit: "Ед.",
+    total: "Итого", date: "Дата", product: "Товар", backBtn: "Назад",
+  },
+  tr: {
+    warehouses: "Depolar", analytics: "Analiz", intake: "Akıllı Giriş", settings: "Ayarlar", users: "Kullanıcılar",
+    darkMode: "Karanlık Mod", lightMode: "Aydınlık", logout: "Çıkış", createWh: "Depo Oluştur", save: "Kaydet",
+    cancel: "İptal", search: "Ara...", items: "Ürünler", moneytypes: "Para Birimleri", units: "Birimler",
+    deleteUser: "Kullanıcıyı sil", deleteConfirmText: (name: string) => `"${name}" silinsin mi?`,
+    deleteConfirmLabel: "Onay için kullanıcı adını girin:", deleteBtn: "Sil", addUser: "Yeni Kullanıcı",
+    loginTitle: "Tekrar hoşgeldiniz", loginSub: "RenoFlow'a giriş yapın", username: "Kullanıcı Adı", password: "Şifre",
+    enterUsername: "Kullanıcı adı girin", signIn: "Giriş Yap →", signingIn: "Giriş yapılıyor...",
+    totalWhs: "Toplam Depo", inventoryVal: "Envanter Değeri", lowStock: "Kritik Stok",
+    recentShipments: "Son Hareketler", viewAll: "Tümü", whStats: "Depo İstatistikleri",
+    addBtn: "Ekle", editBtn: "Düzenle", filter: "Filtrele", all: "Tümü",
+    scanning: "Taranıyor...", detected: "Tespit Edilenler", confirmAdd: "Onayla ve Ekle",
+    profile: "Profil", appearance: "Görünüm", security: "Güvenlik", general: "Genel",
+    language: "Dil", accentColor: "Vurgu Rengi", compactMode: "Sıkışık Görünüm",
+    changePass: "Şifre Değiştir", currentPass: "Mevcut Şifre", newPass: "Yeni Şifre",
+    statusActive: "Aktif", totalItems: "Toplam Ürün", acrossAll: "Tüm depolarda",
+    view: "Görüntüle", details: "Detaylar", value: "Değer", itemsInStock: "Stokta", low: "az",
+    addWhDesc: "Yeni depo oluşturun.",
+    mainSec: "Ana Menü", refSec: "Referanslar", analytSec: "Analizler", mgmtSec: "Yönetim",
+    profileAcc: "Profil ve Hesap", designColor: "Tasarım ayarları",
+    notifSettings: "Bildirimler", secPrivacy: "Güvenlik ve Gizlilik",
+    regionalSett: "Bölgesel Ayarlar", dangerZone: "Tehlikeli Bölge",
+    config: "Konfigürasyon",
+    qty: "Miktar", price: "Fiyat", currency: "Para Birimi", unit: "Birim",
+    total: "Toplam", date: "Tarih", product: "Ürün", backBtn: "Geri",
+  },
 };
 
 const SHIP_ST = {
@@ -695,10 +797,9 @@ const SHIP_ST = {
 };
 
 /* ═══════════════════ AUTH PAGE ═══════════════════ */
-function AuthPage({ onLogin }: any) {
+function AuthPage({ onLogin, lang, onLang, accent }: any) {
   const [username, setUsername] = useState("");
   const [companyToken] = useState(() => {
-    // URL: domain.com/ABC123XYZ → "ABC123XYZ"
     return window.location.pathname.replace(/\//g, "").trim();
   });
   const [pass, setPass] = useState("");
@@ -706,9 +807,11 @@ function AuthPage({ onLogin }: any) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
+  const T = STRINGS[lang] || STRINGS.en;
+
   async function handleLogin() {
-    if (!companyToken) { setErr("Invalid company link. Please use the correct URL."); return; }
-    if (!username.trim()) { setErr("Please enter your username"); return; }
+    if (!companyToken) { setErr(T.noCompany || "Invalid company link."); return; }
+    if (!username.trim()) { setErr(T.enterUsername); return; }
     setLoading(true); setErr("");
     try {
       const data = await authAPI.login(companyToken, username, pass);
@@ -717,13 +820,31 @@ function AuthPage({ onLogin }: any) {
       const userData = data.user ?? { username, role: data.role ?? "staff", email: data.email ?? "", company: data.company ?? null, id: data.id ?? null };
       onLogin(userData);
     } catch (e: any) {
-      setErr((e as Error).message || "Login failed.");
+      setErr((e as Error).message || T.loginErr);
     } finally { setLoading(false); }
   }
 
   return (
     <div className="auth-page">
-      <div className="auth-bg-blob" style={{ width: 500, height: 500, background: "#2563eb", top: -150, right: -100 }} />
+      {/* Til Tanlash */}
+      <div style={{ position: "absolute", top: 20, right: 20, zIndex: 10, display: "flex", gap: 8 }}>
+        {LANGUAGES.map(l => (
+          <button key={l.code} onClick={() => onLang(l.code)}
+            style={{
+              background: lang === l.code ? "var(--surface)" : "transparent",
+              border: "1px solid var(--border)",
+              borderRadius: 8, padding: "6px 10px", cursor: "pointer",
+              fontSize: 14, display: "flex", alignItems: "center", gap: 6,
+              boxShadow: lang === l.code ? "var(--sh)" : "none",
+              color: "var(--text)"
+            }}>
+            <span>{l.flag}</span>
+            <span style={{ fontWeight: 600 }}>{l.code.toUpperCase()}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="auth-bg-blob" style={{ width: 500, height: 500, background: accent, top: -150, right: -100 }} />
       <div className="auth-bg-blob" style={{ width: 400, height: 400, background: "#7c3aed", bottom: -100, left: -80 }} />
       <div className="auth-card">
         <div className="auth-panel">
@@ -731,20 +852,20 @@ function AuthPage({ onLogin }: any) {
             <div className="auth-logo-mark"><I n="wh" s={16} c="#fff" /></div>
             <div className="auth-logo-name">Reno<span>Flow</span></div>
           </div>
-          <h2>Welcome back</h2>
-          <p className="auth-sub">Sign in to your warehouse management system</p>
+          <h2>{T.loginTitle}</h2>
+          <p className="auth-sub">{T.loginSub}</p>
           {err && <div className="auth-err">⚠ {err}</div>}
           <div className="fld">
-            <label className="fld-label">Username</label>
+            <label className="fld-label">{T.username}</label>
             <div className="fld-wrap">
-              <input type="text" placeholder="Enter username" value={username}
+              <input type="text" placeholder={T.enterUsername} value={username}
                 onChange={e => setUsername(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && handleLogin()} />
               <span className="fic"><I n="usr" s={15} /></span>
             </div>
           </div>
           <div className="fld">
-            <label className="fld-label">Password</label>
+            <label className="fld-label">{T.password}</label>
             <div className="fld-wrap">
               <input type={showPw ? "text" : "password"} placeholder="••••••••"
                 value={pass} onChange={e => setPass(e.target.value)}
@@ -755,7 +876,7 @@ function AuthPage({ onLogin }: any) {
             </div>
           </div>
           <button className="sub-btn" onClick={handleLogin} disabled={loading}>
-            {loading ? "Signing in..." : "Sign In →"}
+            {loading ? T.signingIn : T.signIn}
           </button>
 
         </div>
@@ -764,9 +885,9 @@ function AuthPage({ onLogin }: any) {
           <div className="auth-hero-glow" style={{ width: 200, height: 200, bottom: -60, left: -60 }} />
           <div className="auth-hero-icon"><I n="wh" s={32} c="#fff" /></div>
           <h2>RenoFlow Warehouse MGT</h2>
-          <p>Manage warehouses, inventory and users with ease.</p>
+          <p>{T.heroSubtitle || "Manage warehouses, inventory and users with ease."}</p>
           <div style={{ marginTop: 32, display: "flex", gap: 10, flexWrap: "wrap", position: "relative", zIndex: 1 }}>
-            {["Warehouses", "Inventory", "Shipments", "Reports", "Users"].map((f: any) => (
+            {[T.warehouses, T.items, "Shipments", "Reports", T.users].map((f: any) => (
               <span key={f} style={{ background: "rgba(255,255,255,.18)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 20, backdropFilter: "blur(4px)", border: "1px solid rgba(255,255,255,.25)" }}>{f}</span>
             ))}
           </div>
@@ -777,17 +898,11 @@ function AuthPage({ onLogin }: any) {
 }
 
 /* ═══════════════════ DASHBOARD ═══════════════════ */
-function Dashboard({ currentUser, onUserUpdate, onLogout }: any) {
+function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, onAccent }: any) {
   const [page, setPage] = useState("warehouses");
   const [selectedWh, setSelectedWh] = useState<any>(null);
   const [darkMode, setDarkMode] = useState(() => {
     try { return localStorage.getItem(`rf_dark_${currentUser.username}`) === "true"; } catch { return false; }
-  });
-  const [accent, setAccent] = useState(() => {
-    try { return localStorage.getItem(`rf_accent_${currentUser.username}`) || "#2563eb"; } catch { return "#2563eb"; }
-  });
-  const [lang, setLang] = useState(() => {
-    try { return localStorage.getItem(`rf_lang_${currentUser.username}`) || "en"; } catch { return "en"; }
   });
 
   // API Data
@@ -818,14 +933,6 @@ function Dashboard({ currentUser, onUserUpdate, onLogout }: any) {
     document.documentElement.setAttribute("data-theme", darkMode ? "dark" : "light");
     try { localStorage.setItem(`rf_dark_${currentUser.username}`, String(darkMode)); } catch { }
   }, [darkMode]);
-
-  useEffect(() => {
-    try { localStorage.setItem(`rf_accent_${currentUser.username}`, accent); } catch { }
-  }, [accent]);
-
-  useEffect(() => {
-    try { localStorage.setItem(`rf_lang_${currentUser.username}`, lang); } catch { }
-  }, [lang]);
 
   const addToast = useCallback((msg, type = "success") => {
     const id = Date.now();
@@ -951,7 +1058,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout }: any) {
           <div><div className="s-name">Reno<span>Flow</span></div><div className="s-sub">Warehouse Management</div></div>
         </div>
         <nav className="s-nav">
-          <div className="n-sec">Main</div>
+          <div className="n-sec">{T.mainSec}</div>
           <div className={`n-item${whActive ? " active" : ""}`} onClick={() => { setPage("warehouses"); setSelectedWh(null); }}>
             <I n="wh" s={15} />{T.warehouses}
           </div>
@@ -959,7 +1066,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout }: any) {
             <I n="sc" s={15} />{T.intake}
           </div>
           <div className="n-div" />
-          <div className="n-sec">References</div>
+          <div className="n-sec">{T.refSec}</div>
           <div className={`n-item${page === "itemler" ? " active" : ""}`} onClick={() => { setPage("itemler"); setSelectedWh(null); fetchItemler(); }}>
             <I n="pkg" s={15} />{T.items}
           </div>
@@ -970,12 +1077,12 @@ function Dashboard({ currentUser, onUserUpdate, onLogout }: any) {
             <I n="tag" s={15} />{T.units}
           </div>
           <div className="n-div" />
-          <div className="n-sec">Analytics</div>
+          <div className="n-sec">{T.analytSec}</div>
           <div className={`n-item${page === "reports" ? " active" : ""}`} onClick={() => { setPage("reports"); setSelectedWh(null); }}>
             <I n="ch" s={15} />{T.analytics}
           </div>
           <div className="n-div" />
-          <div className="n-sec">Management</div>
+          <div className="n-sec">{T.mgmtSec}</div>
           <div className={`n-item${page === "users" ? " active" : ""}`} onClick={() => { setPage("users"); setSelectedWh(null); fetchUsers(); }}>
             <I n="usrs" s={15} />{T.users}
           </div>
@@ -1063,8 +1170,8 @@ function Dashboard({ currentUser, onUserUpdate, onLogout }: any) {
           {page === "settings" && (
             <SettingsPage settings={settings} setSettings={setSettings}
               darkMode={darkMode} onDarkMode={setDarkMode}
-              accent={accent} onAccent={setAccent}
-              lang={lang} onLang={setLang}
+              accent={accent} onAccent={onAccent}
+              lang={lang} onLang={onLang}
               currentUser={currentUser} onUserUpdate={onUserUpdate} addToast={addToast} onLogout={handleLogout} T={T} />
           )}
         </main>
@@ -1237,7 +1344,7 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
           <h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-.025em" }}>{T.warehouses}</h1>
-          <p style={{ fontSize: 13, color: "var(--text3)", marginTop: 3 }}>{warehouses.length} warehouses total</p>
+          <p style={{ fontSize: 13, color: "var(--text3)", marginTop: 3 }}>{warehouses.length} {T.warehouses.toLowerCase()} {T.all.toLowerCase()}</p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <div className="sw-wrap" style={{ width: 200 }}>
@@ -1259,17 +1366,17 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
         const currEntries = Object.entries(currMap).filter(([, v]) => v > 0);
         return (
           <div className="sg" style={{ gridTemplateColumns: `repeat(${Math.max(3, currEntries.length + 2)}, 1fr)`, marginBottom: 0 }}>
-            <div className="sc"><div className="slb">Jami Omborlar</div><div className="sv">{warehouses.length}</div><div style={{ marginTop: 7 }}><span className="badge bdg">Faol</span></div></div>
-            <div className="sc"><div className="slb">Jami Mahsulotlar</div><div className="sv bl">{buylist.length}</div><div className="sss">Barcha omborlarda</div></div>
+            <div className="sc"><div className="slb">{T.totalWhs}</div><div className="sv">{warehouses.length}</div><div style={{ marginTop: 7 }}><span className="badge bdg">{T.statusActive}</span></div></div>
+            <div className="sc"><div className="slb">{T.totalItems}</div><div className="sv bl">{buylist.length}</div><div className="sss">{T.acrossAll}</div></div>
             {currEntries.length > 0
               ? currEntries.map(([cur, total]) => (
                 <div key={cur} className="sc">
-                  <div className="slb">Jami · {cur}</div>
+                  <div className="slb">{T.all} · {cur}</div>
                   <div className="sv" style={{ color: "var(--green)", fontSize: 18 }}>{total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                   <div className="sss">{cur}</div>
                 </div>
               ))
-              : <div className="sc"><div className="slb">Kam Zaxira</div><div className="sv rd">{buylist.filter((i: any) => i.low).length}</div><div className="sss">Diqqat talab qiladi</div></div>
+              : <div className="sc"><div className="slb">{T.lowStock}</div><div className="sv rd">{buylist.filter((i: any) => i.low).length}</div><div className="sss">{T.viewAll}</div></div>
             }
           </div>
         );
@@ -1290,10 +1397,10 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
                       <button className="wh-menu-btn" onClick={() => setOpenMenu(isOpen ? null : w.id)}>···</button>
                       {isOpen && (
                         <div className="wh-dropdown">
-                          <div className="wh-dd-item" onClick={() => { onOpenWh(w); setOpenMenu(null); }}><I n="eye2" s={13} />Ko'rish</div>
-                          <div className="wh-dd-item" onClick={() => openEdit(w)}><I n="ed" s={13} />Edit</div>
+                          <div className="wh-dd-item" onClick={() => { onOpenWh(w); setOpenMenu(null); }}><I n="eye2" s={13} />{T.view}</div>
+                          <div className="wh-dd-item" onClick={() => openEdit(w)}><I n="ed" s={13} />{T.editBtn}</div>
                           <div className="wh-dd-sep" />
-                          <div className="wh-dd-item del" onClick={() => { setShowDel(w); setOpenMenu(null); }}><I n="td" s={13} />Delete</div>
+                          <div className="wh-dd-item del" onClick={() => { setShowDel(w); setOpenMenu(null); }}><I n="td" s={13} />{T.deleteBtn}</div>
                         </div>
                       )}
                     </div>
@@ -1301,17 +1408,17 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
                   <div className="wn">{w.name}</div>
                   <div className="wa"><I n="lc" s={11} c="var(--text4)" />{w.addr}</div>
                   <div className="wdd" />
-                  <div className="wss">Buylist: <strong>{whBl.length} ta</strong>
-                    {whBl.filter((b: any) => b.low).length > 0 && <span style={{ color: "var(--red)", fontWeight: 700, fontSize: 11, marginLeft: 7 }}>⚠ {whBl.filter((b: any) => b.low).length} kam</span>}
+                  <div className="wss">{T.items}: <strong>{whBl.length} {T.itemsInStock.toLowerCase()}</strong>
+                    {whBl.filter((b: any) => b.low).length > 0 && <span style={{ color: "var(--red)", fontWeight: 700, fontSize: 11, marginLeft: 7 }}>⚠ {whBl.filter((b: any) => b.low).length} {T.low}</span>}
                   </div>
-                  <div className="vsl">Qiymat</div>
+                  <div className="vsl">{T.value}</div>
                   <div className="vgg">
                     <div><div className="vl">USD</div><div className="vv vv-g">{w.usd}</div></div>
                     <div><div className="vl">SOM</div><div className="vv vv-b">{Number(String(w.som).replace(/,/g, "")).toLocaleString()}</div></div>
                   </div>
                 </div>
                 <div className="wf" onClick={e => e.stopPropagation()}>
-                  <button className="btn bo" style={{ flex: 1, justifyContent: "center" }} onClick={() => onOpenWh(w)}>Tafsilotlar →</button>
+                  <button className="btn bo" style={{ flex: 1, justifyContent: "center" }} onClick={() => onOpenWh(w)}>{T.details} →</button>
                   <button className="btn bo bs" onClick={() => openEdit(w)}><I n="ed" s={13} /></button>
                   <button className="btn bd bs" onClick={() => setShowDel(w)}><I n="td" s={13} /></button>
                 </div>
@@ -1319,12 +1426,12 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
             );
           })}
           {filtered.length === 0 && warehouses.length > 0 && (
-            <div style={{ gridColumn: "span 3" }}><div className="empty-state"><h3>No results found</h3><p>"{search}" — no warehouses found</p></div></div>
+            <div style={{ gridColumn: "span 3" }}><div className="empty-state"><h3>{T.noResults || "No results found"}</h3><p>"{search}" — {T.noResults || "no warehouses found"}</p></div></div>
           )}
           <div className="aw" onClick={() => { setForm(EMPTY); setShowAdd(true); }}>
             <div className="awc"><I n="pl" s={20} /></div>
-            <div className="awt">Add Warehouse</div>
-            <div className="aws">Yangi ombor yarating.</div>
+            <div className="awt">{T.createWh}</div>
+            <div className="aws">{T.addWhDesc}</div>
           </div>
         </div>
       )}
@@ -1619,27 +1726,27 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
               </div>
               {/* 2. Qty */}
               <div>
-                <label className="form-label">Miqdor *</label>
+                <label className="form-label">{T.qty} *</label>
                 <input className="form-input" type="number" min="0" value={form.qty} onChange={sf("qty")} onKeyDown={e => e.key === "Enter" && addBl()} />
               </div>
               {/* 3. Unit */}
               <div>
-                <label className="form-label">Birlik</label>
+                <label className="form-label">{T.unit}</label>
                 <select className="form-select" style={{ width: "100%" }} value={form.unit} onChange={sf("unit")}>
-                  <option value="">— Birlik —</option>
+                  <option value="">— {T.unit} —</option>
                   {unitler.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               </div>
               {/* 4. Price */}
               <div>
-                <label className="form-label">Narx</label>
+                <label className="form-label">{T.price}</label>
                 <input className="form-input" type="number" min="0" step="0.01" value={form.narx} onChange={sf("narx")} onKeyDown={e => e.key === "Enter" && addBl()} />
               </div>
               {/* 5. Currency */}
               <div>
-                <label className="form-label">Valyuta</label>
+                <label className="form-label">{T.currency}</label>
                 <select className="form-select" style={{ width: "100%" }} value={form.moneytype} onChange={sf("moneytype")}>
-                  <option value="">— Valyuta —</option>
+                  <option value="">— {T.currency} —</option>
                   {moneytypes.map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
               </div>
@@ -1651,10 +1758,10 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
         )}
 
         {shown.length === 0 ? (
-          <div className="empty-state"><I n="bx" s={38} c="var(--border2)" /><h3>Inventory is empty</h3><p>Add your first item.</p></div>
+          <div className="empty-state"><I n="bx" s={38} c="var(--border2)" /><h3>{T.noResults || "Inventory is empty"}</h3><p>{T.addFirstItem || "Add your first item."}</p></div>
         ) : (
           <table>
-            <thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Currency</th><th>Unit</th><th>Total</th><th>Date</th><th></th></tr></thead>
+            <thead><tr><th>{T.product}</th><th>{T.qty}</th><th>{T.price}</th><th>{T.currency}</th><th>{T.unit}</th><th>{T.total}</th><th>{T.date}</th><th></th></tr></thead>
             <tbody>
               {shown.map(item => (
                 <tr key={item.id}>
@@ -1662,7 +1769,7 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
                     <div className="ith"><I n="bx" s={17} c="var(--blue)" /></div>
                     <div>
                       <div className="itn">{item.name}</div>
-                      <div className="iti">ID: {item.itemId}{item.low && <span style={{ color: "var(--red)", fontWeight: 700 }}> · KAM ZAXIRA</span>}</div>
+                      <div className="iti">ID: {item.itemId}{item.low && <span style={{ color: "var(--red)", fontWeight: 700 }}> · {T.lowStock?.toUpperCase()}</span>}</div>
                     </div>
                   </div></td>
                   <td><span className={`qv${item.low ? " ql" : ""}`}>{item.qty}</span></td>
@@ -1693,8 +1800,8 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
       </div>
 
       <div style={{ marginTop: 22, paddingTop: 16, borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <button className="back-link" onClick={onBack}><I n="arr" s={14} />← {T.warehouses}ga qaytish</button>
-        <button className="btn bo" onClick={() => setShowEditWh(true)}><I n="ed" s={14} />Edit Warehouse</button>
+        <button className="back-link" onClick={onBack}><I n="arr" s={14} />← {T.backBtn} ({T.warehouses})</button>
+        <button className="btn bo" onClick={() => setShowEditWh(true)}><I n="ed" s={14} />{T.editBtn}</button>
       </div>
     </div>
   );
@@ -2427,19 +2534,19 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: an
   }
 
   async function delU(user: any) {
-    // username doğruysa kullanıcıyı bul, id ile sil
+    if (!user.id) { addToast("Foydalanuvchi ID topilmadi", "error"); return; }
     setDeleting(true);
     try {
-      // Refresh user list to get fresh data
-      const freshData = await authAPI.users();
-      const freshArr = Array.isArray(freshData) ? freshData : (freshData?.results ?? []);
-      const found = freshArr.find((u: any) => u.username === user.username);
-      if (!found) { addToast("Kullanıcı bulunamadı", "error"); return; }
-      await authAPI.deleteUser(found.id);
-      addToast(`"${user.username}" o'chirildi`, "error");
+      await authAPI.deleteUser(user.id);
+      addToast(`"${user.username}" muvaffaqiyatli o'chirildi`);
       onRefresh();
-    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
-    finally { setDelUser(null); setDelConfirmName(""); setDeleting(false); }
+    } catch (e: any) {
+      addToast(`Xato: ${(e as Error).message}`, "error");
+    } finally {
+      setDelUser(null);
+      setDelConfirmName("");
+      setDeleting(false);
+    }
   }
 
   const rolePill = (role: any) => {
@@ -2511,10 +2618,10 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: an
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
           <h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-.025em" }}>{T.users}</h1>
-          <p style={{ fontSize: 13, color: "var(--text3)", marginTop: 3 }}>{users.length} users total</p>
+          <p style={{ fontSize: 13, color: "var(--text3)", marginTop: 3 }}>{filtered.length} {T.users.toLowerCase()} {T.all.toLowerCase()}</p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <button className="btn bo" onClick={onRefresh}><I n="refresh" s={14} />Refresh</button>
+          <button className="btn bo" onClick={onRefresh}><I n="refresh" s={14} />{T.refresh || "Refresh"}</button>
           {isAdmin && (
             <button className="btn bp" onClick={() => setShowAdd(true)}><I n="pl" s={14} c="#fff" />{T.addUser || "Add User"}</button>
           )}
@@ -2522,22 +2629,22 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: an
       </div>
 
       <div className="sg sg2" style={{ marginBottom: 16 }}>
-        <div className="sc"><div className="slb">Total</div><div className="sv">{users.length}</div></div>
-        <div className="sc"><div className="slb">Admin</div><div className="sv rd">{users.filter((u: any) => u.role === "admin").length}</div></div>
+        <div className="sc"><div className="slb">{T.total || "Total"}</div><div className="sv">{filtered.length}</div></div>
+        <div className="sc"><div className="slb">Admin</div><div className="sv rd">{filtered.filter((u: any) => u.role === "admin").length}</div></div>
       </div>
 
       <div className="tc">
         <div style={{ padding: "12px 18px", borderBottom: "1px solid var(--border)" }}>
           <div className="sw-wrap" style={{ maxWidth: 300 }}>
             <span className="si-ico"><I n="sr" s={14} /></span>
-            <input placeholder="Username yoki email..." value={search} onChange={e => setSearch(e.target.value)} />
+            <input placeholder={T.search} value={search} onChange={e => setSearch(e.target.value)} />
           </div>
         </div>
         {filtered.length === 0 ? (
-          <div className="empty-state"><I n="usrs" s={38} c="var(--border2)" /><h3>No users found</h3><p>Add a new user or check CORS settings.</p></div>
+          <div className="empty-state"><I n="usrs" s={38} c="var(--border2)" /><h3>{T.noResults || "No users found"}</h3><p>{T.addUserPrompt || "Add a new user to begin."}</p></div>
         ) : (
           <table>
-            <thead><tr><th>Username</th><th>Email</th><th>Role</th>{isAdmin && <th></th>}</tr></thead>
+            <thead><tr><th>{T.username}</th><th>Email</th><th>Role</th>{isAdmin && <th></th>}</tr></thead>
             <tbody>
               {filtered.map((user: any) => {
                 const isSelf = user.username === currentUser.username || user.id === currentUser.id;
@@ -2548,7 +2655,7 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: an
                         {user.username?.slice(0, 2).toUpperCase()}
                       </div>
                       <div>
-                        <div className="itn">{user.username}{isSelf && <span style={{ marginLeft: 7, fontSize: 10, fontWeight: 700, color: "var(--blue)", background: "var(--blue-l)", border: "1px solid var(--blue-m)", borderRadius: 10, padding: "1px 7px" }}>Sen</span>}</div>
+                        <div className="itn">{user.username}{isSelf && <span style={{ marginLeft: 7, fontSize: 10, fontWeight: 700, color: "var(--blue)", background: "var(--blue-l)", border: "1px solid var(--blue-m)", borderRadius: 10, padding: "1px 7px" }}>{T.you || "Sen"}</span>}</div>
                       </div>
                     </div></td>
                     <td className="dv">{user.email || "—"}</td>
@@ -2615,25 +2722,25 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
   const sections = {
     profile: (
       <div className="settings-section">
-        {card(<I n="usr" s={17} c="var(--blue)" />, "var(--blue-l)", "Profile & Account", "Manage your personal information",
+        {card(<I n="usr" s={17} c="var(--blue)" />, "var(--blue-l)", T.profileAcc, T.profileSub || "Manage your personal information",
           <>
             <div className="profile-avatar-area">
               <div className="profile-avatar-big">{pf.name?.slice(0, 2).toUpperCase()}</div>
               <div>
                 <div className="profile-avatar-name">{pf.name}</div>
-                <div className="profile-avatar-role">{pf.role} · {currentUser.email || "no email"}</div>
+                <div className="profile-avatar-role">{pf.role} · {currentUser.email || "—"}</div>
                 <div style={{ fontSize: 12, color: "var(--text4)", marginTop: 3 }}>ID: #{currentUser.id ?? "—"}</div>
               </div>
             </div>
             <div className="form-row">
-              <div className="form-group"><label className="form-label">Username</label><input className="form-input" value={pf.name} onChange={e => setPf(f => ({ ...f, name: e.target.value }))} /></div>
+              <div className="form-group"><label className="form-label">{T.username}</label><input className="form-input" value={pf.name} onChange={e => setPf(f => ({ ...f, name: e.target.value }))} /></div>
               <div className="form-group"><label className="form-label">Email</label><input className="form-input" type="email" value={pf.email} onChange={e => setPf(f => ({ ...f, email: e.target.value }))} /></div>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end" }}><button className="btn bp" onClick={async () => {
               try {
                 const updated = await authAPI.updateUser(currentUser.id, { username: pf.name, email: pf.email });
                 onUserUpdate(updated);
-                addToast("Profil muvaffaqiyatli saqlandi!");
+                addToast(T.saveSuccess || "Muvaffaqiyatli saqlandi!");
               } catch (e: any) {
                 addToast(`Xato: ${e.message}`, "error");
               }
@@ -2644,16 +2751,16 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
     ),
     appearance: (
       <div className="settings-section">
-        {card(<I n={darkMode ? "moon" : "sun"} s={17} c="var(--purple)" />, "var(--purple-bg)", "Appearance", "Design and color settings",
+        {card(<I n={darkMode ? "moon" : "sun"} s={17} c="var(--purple)" />, "var(--purple-bg)", T.appearance, T.designColor,
           <>
-            {srow("Dark Mode", "Dark interface", <Toggle checked={darkMode} onChange={onDarkMode} />)}
-            {srow("Compact View", "Use less space", <Toggle checked={settings.compactView} onChange={v => upd("compactView", v)} />)}
+            {srow(T.darkMode, "Dark interface", <Toggle checked={darkMode} onChange={onDarkMode} />)}
+            {srow(T.compactMode, "Use less space", <Toggle checked={settings.compactView} onChange={v => upd("compactView", v)} />)}
             <div className="settings-row">
-              <div className="settings-row-info"><div className="settings-row-label">Asosiy Rang</div></div>
+              <div className="settings-row-info"><div className="settings-row-label">{T.accentColor}</div></div>
               <div style={{ marginLeft: 14 }}>
                 <div className="color-swatches">{ACCENT_COLORS.map(ac => (
                   <div key={ac.val} className={`color-swatch${accent === ac.val ? " active" : ""}`}
-                    style={{ background: ac.val }} title={ac.name} onClick={() => { onAccent(ac.val); addToast(`Rang: ${ac.name}`, "info"); }} />
+                    style={{ background: ac.val }} title={ac.name} onClick={() => { onAccent(ac.val); addToast(`${ac.name}`, "info"); }} />
                 ))}</div>
               </div>
             </div>
@@ -2663,7 +2770,7 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
     ),
     notifications: (
       <div className="settings-section">
-        {card(<I n="bell2" s={17} c="var(--orange)" />, "var(--orange-bg)", "Notifications", "",
+        {card(<I n="bell2" s={17} c="var(--orange)" />, "var(--orange-bg)", T.notifSettings, "",
           <>
             {srow("Low Stock", "When quantity drops low", <Toggle checked={settings.notifLowStock} onChange={v => upd("notifLowStock", v)} />)}
             {srow("Shipments", "When status changes", <Toggle checked={settings.notifShipments} onChange={v => upd("notifShipments", v)} />)}
@@ -2674,19 +2781,19 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
     ),
     privacy: (
       <div className="settings-section">
-        {card(<I n="key" s={17} c="var(--green)" />, "var(--green-bg)", "Security", "",
+        {card(<I n="key" s={17} c="var(--green)" />, "var(--green-bg)", T.changePass, "Update your password",
           <>
             <div className="form-group">
-              <label className="form-label">Joriy Parol</label>
+              <label className="form-label">{T.currentPass}</label>
               <div style={{ position: "relative" }}>
-                <input className="form-input" type={showPw ? "text" : "password"} value={pw.current} onChange={e => setPw(p => ({ ...p, current: e.target.value }))} style={{ paddingRight: 38 }} />
+                <input className="form-input" type="password" value={pw.current} onChange={e => setPw(p => ({ ...p, current: e.target.value }))} style={{ paddingRight: 38 }} />
                 <button onClick={() => setShowPw(v => !v)} style={{ position: "absolute", top: "50%", right: 10, transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--text4)" }}>
                   <I n={showPw ? "eyeoff" : "eye2"} s={14} />
                 </button>
               </div>
             </div>
             <div className="form-row">
-              <div className="form-group"><label className="form-label">Yangi Parol</label><input className="form-input" type="password" value={pw.next} onChange={e => setPw(p => ({ ...p, next: e.target.value }))} /></div>
+              <div className="form-group"><label className="form-label">{T.newPass}</label><input className="form-input" type="password" value={pw.next} onChange={e => setPw(p => ({ ...p, next: e.target.value }))} /></div>
               <div className="form-group"><label className="form-label">Tasdiqlash</label><input className="form-input" type="password" value={pw.confirm} onChange={e => setPw(p => ({ ...p, confirm: e.target.value }))} /></div>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -2695,7 +2802,7 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
                 if (pw.next !== pw.confirm) { addToast("Passwords do not match", "error"); return; }
                 try {
                   await authAPI.changePassword({ current_password: pw.current, new_password: pw.next });
-                  addToast("Parol muvaffaqiyatli o'zgartirildi!");
+                  addToast(T.passSuccess || "Parol yangilandi!");
                   setPw({ current: "", next: "", confirm: "" });
                 } catch (e: any) {
                   addToast(`Xato: ${e.message}`, "error");
@@ -2748,12 +2855,12 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
       </div>
       <div className="settings-layout">
         <div className="settings-nav">
-          <div className="settings-nav-header">Konfiguratsiya</div>
+          <div className="settings-nav-header">{T.config}</div>
           {SETTINGS_NAV.map((item, idx) => (
             <div key={item.k}>
               {idx === 5 && <div className="settings-nav-divider" />}
               <div className={`settings-nav-item${active === item.k ? " active" : ""}`} onClick={() => setActive(item.k)}>
-                <I n={item.i} s={14} />{item.l}
+                <I n={item.i} s={14} />{T[item.k] || item.l}
               </div>
             </div>
           ))}
@@ -2767,12 +2874,31 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
 /* ═══════════════════ ROOT ═══════════════════ */
 export default function App() {
   const [user, setUser] = useState<any>(null);
+  const [lang, setLang] = useState(() => {
+    try { return localStorage.getItem("rf_lang_global") || "en"; } catch { return "en"; }
+  });
+  const [accent, setAccent] = useState(() => {
+    try { return localStorage.getItem("rf_accent_global") || "#2563eb"; } catch { return "#2563eb"; }
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem("rf_lang_global", lang); } catch { }
+  }, [lang]);
+
+  useEffect(() => {
+    try { localStorage.setItem("rf_accent_global", accent); } catch { }
+  }, [accent]);
 
   if (!user) {
     return (
       <>
-        <style>{makeCSS()}</style>
-        <AuthPage onLogin={userData => setUser(userData)} />
+        <style>{makeCSS(accent)}</style>
+        <AuthPage
+          onLogin={userData => setUser(userData)}
+          lang={lang}
+          onLang={setLang}
+          accent={accent}
+        />
       </>
     );
   }
@@ -2780,6 +2906,10 @@ export default function App() {
   return (
     <Dashboard
       currentUser={user}
+      lang={lang}
+      onLang={setLang}
+      accent={accent}
+      onAccent={setAccent}
       onUserUpdate={u => setUser(prev => ({ ...prev, ...u }))}
       onLogout={() => { setToken(""); setUser(null); }}
     />

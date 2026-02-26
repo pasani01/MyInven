@@ -16,18 +16,37 @@ class CompanyViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
 
-class IsAdminRole(permissions.BasePermission):
+class IsAdminOrSelf(permissions.BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
+        
+        # POST (Yangi foydalanuvchi yaratish) faqat adminlar uchun
+        if request.method == 'POST':
+            return request.user.role in ('admin', 'superadmin')
+            
+        return True
+
+    def has_object_permission(self, request, view, obj):
+        # Superadmin va Admin hamma amalni bajara oladi
+        if request.user.role in ('admin', 'superadmin'):
+            return True
+            
+        # O'qish (GET) hamma uchun ochiq (get_queryset orqali filtrlangan)
         if request.method in permissions.SAFE_METHODS:
             return True
-        return request.user.role in ('admin', 'superadmin')
+            
+        # DELETE (O'chirish) faqat adminlar uchun (yuqorida admin bo'lmasa True qaytmaydi)
+        if request.method == 'DELETE':
+            return False
+            
+        # Update (PUT/PATCH) faqat o'zi uchun ruxsat
+        return obj == request.user
 
 
 class CustomUserViewSet(viewsets.ModelViewSet):
     serializer_class = CustomUserSerializer
-    permission_classes = [IsAuthenticated, IsAdminRole]
+    permission_classes = [IsAuthenticated, IsAdminOrSelf]
 
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
@@ -37,11 +56,13 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         if user.role == 'superadmin':
             return CustomUser.objects.exclude(role='superadmin')
 
+        # Eğer kullanıcının bir şirketi varsa, o şirketteki herkesi görsün (istek sahibi admin olmasa bile)
         if user.company:
             return CustomUser.objects.filter(
                 company=user.company
             ).exclude(role='superadmin')
 
+        # Şirketi yoksa sadece kendisini görsün
         return CustomUser.objects.filter(id=user.id)
 
     def perform_create(self, serializer):
@@ -61,10 +82,21 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             user.save()
 
     def perform_update(self, serializer):
-        company = self.request.user.company
+        user = self.request.user
+        company = user.company
         username = self.request.data.get('username')
         password = self.request.data.get('password')
+        role = self.request.data.get('role')
+        company_data = self.request.data.get('company')
         instance = self.get_object()
+
+        # Rol ve şirket değişikliği sadece admin/superadmin tarafından yapılabilir
+        # Veya en azından kullanıcı kendi rolünü yükseltemez
+        if user.role not in ('admin', 'superadmin'):
+            if role and role != instance.role:
+                raise ValidationError({"detail": "Senda ro'xsat yo'q (Rolni o'zgartira olmaysiz)"})
+            if company_data and int(company_data) != instance.company_id:
+                raise ValidationError({"detail": "Senda ro'xsat yo'q (Şirketni o'zgartira olmaysiz)"})
 
         if username and CustomUser.objects.filter(
             username=username, company=company
@@ -73,11 +105,27 @@ class CustomUserViewSet(viewsets.ModelViewSet):
                 {"username": f"Bu şirkette '{username}' kullanıcı adı zaten mevcut."}
             )
 
-        user = serializer.save()
-        # Güncelleme sırasında da şifre geldiyse hash'le
+        updated_instance = serializer.save()
         if password:
-            user.set_password(password)
-            user.save()
+            updated_instance.set_password(password)
+            updated_instance.save()
+
+    def destroy(self, request, *args, **kwargs):
+        import traceback
+        from django.db.models.deletion import ProtectedError
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError:
+            return Response(
+                {"detail": "Ushbu foydalanuvchini o'chirib bo'lmaydi, chunki unga bog'langan ma'lumotlar mavjud. Avval ularni o'chiring."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            traceback.print_exc()
+            return Response(
+                {"detail": f"O'chirishda xatolik yuz berdi: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     @action(detail=False, methods=['post'], url_path='change-password')
     def change_password(self, request):
