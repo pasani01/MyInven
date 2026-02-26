@@ -112,18 +112,38 @@ class CustomUserViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         import traceback
-        from django.db.models.deletion import ProtectedError
+        from django.db import transaction, DatabaseError, connection
+        instance = self.get_object()
+        user_id = instance.id
+        
         try:
-            return super().destroy(request, *args, **kwargs)
-        except ProtectedError:
+            with transaction.atomic():
+                instance.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+            
+        except DatabaseError as e:
+            traceback.print_exc()
+            msg = str(e)
+            # Agar muammo bog'langan UserSettings jadvali yo'qligida bo'lsa
+            if "usersettings" in msg.lower():
+                try:
+                    # To'g'ridan-to'g'ri SQL bilan o'chirib ko'ramiz (Django ORM bog'liqliklarni tekshirmasligi uchun)
+                    with connection.cursor() as cursor:
+                        cursor.execute('DELETE FROM user_app_customuser WHERE id = %s', [user_id])
+                    return Response(status=status.HTTP_204_NO_CONTENT)
+                except Exception as ex:
+                    return Response(
+                        {"detail": f"Bazaviy o'chirishda xato: {str(ex)}. Iltimos, serverda 'python manage.py migrate' buyrug'ini bering."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
             return Response(
-                {"detail": "Ushbu foydalanuvchini o'chirib bo'lmaydi, chunki unga bog'langan ma'lumotlar mavjud. Avval ularni o'chiring."},
+                {"detail": f"Bazaviy xatolik yuz berdi: {msg}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
             traceback.print_exc()
             return Response(
-                {"detail": f"O'chirishda xatolik yuz berdi: {str(e)}"},
+                {"detail": f"O'chirishda kutilmagan xatolik: {str(e)}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
