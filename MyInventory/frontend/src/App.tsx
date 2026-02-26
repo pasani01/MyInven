@@ -1541,16 +1541,7 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
                     </div>
                   </div>
                   <div className="wn">{w.name}</div>
-                  <div className="wa"><I n="lc" s={11} c="var(--text4)" />{w.addr}</div>
-                  <div className="wdd" />
-                  <div className="wss">{T.items}: <strong>{whBl.length} {T.itemsInStock.toLowerCase()}</strong>
-                    {whBl.filter((b: any) => b.low).length > 0 && <span style={{ color: "var(--red)", fontWeight: 700, fontSize: 11, marginLeft: 7 }}>⚠ {whBl.filter((b: any) => b.low).length} {T.low}</span>}
-                  </div>
-                  <div className="vsl">{T.value}</div>
-                  <div className="vgg">
-                    <div><div className="vl">USD</div><div className="vv vv-g">{w.usd}</div></div>
-                    <div><div className="vl">SOM</div><div className="vv vv-b">{Number(String(w.som).replace(/,/g, "")).toLocaleString()}</div></div>
-                  </div>
+                  <div style={{ height: 12 }}></div>
                 </div>
                 <div className="wf" onClick={e => e.stopPropagation()}>
                   <button className="btn bo" style={{ flex: 1, justifyContent: "center" }} onClick={() => onOpenWh(w)}>{T.details} →</button>
