@@ -892,6 +892,7 @@ function AuthPage({ onLogin, lang, onLang, accent }: any) {
 function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, onAccent }: any) {
   const [page, setPage] = useState("warehouses");
   const [selectedWh, setSelectedWh] = useState<any>(null);
+  const [sbOpen, setSbOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
     try { return localStorage.getItem(`rf_dark_${currentUser.username}`) === "true"; } catch { return false; }
   });
@@ -912,6 +913,13 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
     compactView: false, animationsEnabled: true, autoSave: true,
     twoFactor: false, sessionTimeout: "30min", currency: "USD", timezone: "UTC+5",
   });
+
+  const goto = (p: string, cb?: any) => {
+    setPage(p);
+    setSelectedWh(null);
+    setSbOpen(false);
+    if (cb) cb();
+  };
   const [shipments, setShipments] = useState([
     { id: 20, item: "Premium Wall Latex Paint", batch: "#902-X", from: "Warehouse 1", to: "Construction", date: "2024-10-24", status: "Delivered", val: "+$1,200", pos: true },
     { id: 21, item: "Oak Flooring Planks", batch: "#122-O", from: "Warehouse 2", to: "Base", date: "2024-10-23", status: "In Transit", val: "-$4,500", pos: false },
@@ -1042,38 +1050,39 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
       <style>{makeCSS(accent)}</style>
       <ToastList toasts={toasts} />
 
-      <aside className="sidebar">
+      {sbOpen && <div className="sidebar-backdrop" onClick={() => setSbOpen(false)} />}
+      <aside className={`sidebar ${sbOpen ? "open" : ""}`}>
         <div className="s-logo">
           <div className="s-mark"><I n="wh" s={18} c="#fff" /></div>
           <div><div className="s-name">Reno<span>Flow</span></div><div className="s-sub">Warehouse Management</div></div>
         </div>
         <nav className="s-nav">
           <div className="n-sec">{T.mainSec}</div>
-          <div className={`n-item${whActive ? " active" : ""}`} onClick={() => { setPage("warehouses"); setSelectedWh(null); }}>
+          <div className={`n-item${whActive ? " active" : ""}`} onClick={() => goto("warehouses")}>
             <I n="wh" s={15} />{T.warehouses}
           </div>
-          <div className={`n-item${page === "intake" ? " active" : ""}`} onClick={() => { setPage("intake"); setSelectedWh(null); }}>
+          <div className={`n-item${page === "intake" ? " active" : ""}`} onClick={() => goto("intake")}>
             <I n="sc" s={15} />{T.intake}
           </div>
           <div className="n-div" />
           <div className="n-sec">{T.refSec}</div>
-          <div className={`n-item${page === "itemler" ? " active" : ""}`} onClick={() => { setPage("itemler"); setSelectedWh(null); fetchItemler(); }}>
+          <div className={`n-item${page === "itemler" ? " active" : ""}`} onClick={() => goto("itemler", fetchItemler)}>
             <I n="pkg" s={15} />{T.items}
           </div>
-          <div className={`n-item${page === "moneytypes" ? " active" : ""}`} onClick={() => { setPage("moneytypes"); setSelectedWh(null); fetchMoneytypes(); }}>
+          <div className={`n-item${page === "moneytypes" ? " active" : ""}`} onClick={() => goto("moneytypes", fetchMoneytypes)}>
             <I n="dr" s={15} />{T.moneytypes}
           </div>
-          <div className={`n-item${page === "unitler" ? " active" : ""}`} onClick={() => { setPage("unitler"); setSelectedWh(null); fetchUnitler(); }}>
+          <div className={`n-item${page === "unitler" ? " active" : ""}`} onClick={() => goto("unitler", fetchUnitler)}>
             <I n="tag" s={15} />{T.units}
           </div>
           <div className="n-div" />
           <div className="n-sec">{T.analytSec}</div>
-          <div className={`n-item${page === "reports" ? " active" : ""}`} onClick={() => { setPage("reports"); setSelectedWh(null); }}>
+          <div className={`n-item${page === "reports" ? " active" : ""}`} onClick={() => goto("reports")}>
             <I n="ch" s={15} />{T.analytics}
           </div>
           <div className="n-div" />
           <div className="n-sec">{T.mgmtSec}</div>
-          <div className={`n-item${page === "users" ? " active" : ""}`} onClick={() => { setPage("users"); setSelectedWh(null); fetchUsers(); }}>
+          <div className={`n-item${page === "users" ? " active" : ""}`} onClick={() => goto("users", fetchUsers)}>
             <I n="usrs" s={15} />{T.users}
           </div>
           <div className="n-div" />
@@ -1082,7 +1091,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
             <span className="dm-label">{darkMode ? T.lightMode : T.darkMode}</span>
             <Toggle checked={darkMode} onChange={setDarkMode} />
           </div>
-          <div className={`n-item${page === "settings" ? " active" : ""}`} onClick={() => { setPage("settings"); setSelectedWh(null); }}>
+          <div className={`n-item${page === "settings" ? " active" : ""}`} onClick={() => goto("settings")}>
             <I n="cg" s={15} />{T.settings}
           </div>
           <div style={{ flex: 1 }} />
@@ -1100,6 +1109,9 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
       <div className="main">
         <header className="topbar">
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div className="mobile-toggle" onClick={() => setSbOpen(true)}>
+              <I n="sc" s={20} />
+            </div>
             {page === "whdetail" && (
               <button className="ib" onClick={backToWarehouses}><I n="arr" s={15} /></button>
             )}
