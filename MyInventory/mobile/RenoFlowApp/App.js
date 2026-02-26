@@ -284,9 +284,24 @@ async function apiUpload(path, uri, type) {
   return data;
 }
 
-const AUTH = { login: (u, p) => api('/user_app/login/', 'POST', { username: u, password: p }), users: () => api('/user_app/users/'), createUser: (d) => api('/user_app/users/', 'POST', d), companies: () => api('/user_app/companies/'), createCompany: (d) => api('/user_app/companies/', 'POST', d), deleteCompany: (id) => api(`/user_app/companies/${id}/`, 'DELETE') };
+const AUTH = {
+  login: (u, p) => api('/user_app/login/', 'POST', { username: u, password: p }),
+  users: () => api('/user_app/users/'),
+  createUser: (d) => api('/user_app/users/', 'POST', d),
+  deleteUser: (id) => api(`/user_app/users/${id}/`, 'DELETE'),
+  updateUser: (id, d) => api(`/user_app/users/${id}/`, 'PUT', d),
+  changePassword: (d) => api('/user_app/users/change-password/', 'POST', d),
+  companies: () => api('/user_app/companies/'),
+  createCompany: (d) => api('/user_app/companies/', 'POST', d),
+  deleteCompany: (id) => api(`/user_app/companies/${id}/`, 'DELETE'),
+};
 const DEPOLAR = { list: () => api('/depolar/'), create: (d) => api('/depolar/', 'POST', d), delete: (id) => api(`/depolar/${id}/`, 'DELETE') };
-const BUYLIST = { list: () => api('/buylist/'), create: (d) => api('/buylist/', 'POST', d), delete: (id) => api(`/buylist/${id}/`, 'DELETE') };
+const BUYLIST = {
+  list: () => api('/buylist/'),
+  create: (d) => api('/buylist/', 'POST', d),
+  update: (id, d) => api(`/buylist/${id}/`, 'PUT', d),
+  delete: (id) => api(`/buylist/${id}/`, 'DELETE'),
+};
 const ITEMS = { list: () => api('/itemler/'), create: (d) => api('/itemler/', 'POST', d), delete: (id) => api(`/itemler/${id}/`, 'DELETE') };
 const MONEY = { list: () => api('/moneytypes/'), create: (d) => api('/moneytypes/', 'POST', d), delete: (id) => api(`/moneytypes/${id}/`, 'DELETE') };
 const UNITS = { list: () => api('/unitler/'), create: (d) => api('/unitler/', 'POST', d), delete: (id) => api(`/unitler/${id}/`, 'DELETE') };
@@ -767,6 +782,9 @@ function WarehouseDetailScreen({ route, navigation }) {
   const EF = { item: '', moneytype: '', unit: '', qty: '', narx: '' };
   const [form, setForm] = useState(EF);
   const [searchBl, setSearchBl] = useState('');
+  const [editItem, setEditItem] = useState(null); // buylist item being edited
+  const [editForm, setEditForm] = useState(EF);
+  const [editSaving, setEditSaving] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -814,6 +832,20 @@ function WarehouseDetailScreen({ route, navigation }) {
     finally { setSaving(false); }
   }
 
+  async function updateItem() {
+    if (!editForm.item || !editForm.qty) { Alert.alert('Xato', 'Mahsulot va miqdor kerak'); return; }
+    setEditSaving(true);
+    try {
+      await BUYLIST.update(editItem.id, {
+        item: Number(editForm.item), moneytype: Number(editForm.moneytype) || undefined,
+        unit: Number(editForm.unit) || undefined, depolar: wh.id,
+        qty: Number(editForm.qty), narx: editForm.narx || '0'
+      });
+      setEditItem(null); load();
+    } catch (e) { Alert.alert('Xato', e.message); }
+    finally { setEditSaving(false); }
+  }
+
   if (loading) return <View style={[s.center, { backgroundColor: T.bg }]}><ActivityIndicator size="large" color={T.blue} /></View>;
   const low = buylist.filter(b => Number(b.qty) < 20).length;
   const filteredBl = buylist.filter(b =>
@@ -835,9 +867,26 @@ function WarehouseDetailScreen({ route, navigation }) {
             </View>
           )}
         </View>
-        <TouchableOpacity style={[s.addBtn, { backgroundColor: 'rgba(255,255,255,0.2)' }]} onPress={openAddModal}>
-          <Ionicons name="add" size={24} color="#fff" />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity
+            style={[s.addBtn, { backgroundColor: 'rgba(255,255,255,0.2)', width: 38, height: 38 }]}
+            onPress={async () => {
+              try {
+                const token = await getToken();
+                const url = `${BASE_URL}/export-buylist-as-excel/${wh.id}/`;
+                const res = await fetch(url, {
+                  headers: token ? { Authorization: `Token ${token}` } : {},
+                });
+                if (!res.ok) { Alert.alert('Xato', `Excel yuklanmadi: ${res.status}`); return; }
+                Alert.alert('✅ Muvaffaqiyatli', 'Excel fayl serverdan yuklandi. Uni ilovangizdan ko'rish mumkin.');
+              } catch (e) { Alert.alert('Xato', e.message); }
+            }}>
+            <MaterialIcons name="file-download" size={20} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity style={[s.addBtn, { backgroundColor: 'rgba(255,255,255,0.2)' }]} onPress={openAddModal}>
+            <Ionicons name="add" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16 }}>
@@ -932,14 +981,68 @@ function WarehouseDetailScreen({ route, navigation }) {
                     </View>
                   )}
                 </View>
-                <TouchableOpacity onPress={() => cfm(t.delete, t.confirmDelete, async () => {
-                  try { await BUYLIST.delete(item.id); load(); } catch (e) { Alert.alert('Xato', e.message); }
-                })} style={[s.delBtn, { backgroundColor: T.redL }]}><MaterialIcons name="delete-outline" size={18} color={T.red} /></TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TouchableOpacity onPress={() => {
+                    setEditItem(item);
+                    setEditForm({
+                      item: String(item.item?.id || item.item || ''),
+                      moneytype: String(item.moneytype?.id || item.moneytype || ''),
+                      unit: String(item.unit?.id || item.unit || ''),
+                      qty: String(item.qty || ''),
+                      narx: String(item.narx || ''),
+                    });
+                  }} style={[s.delBtn, { backgroundColor: T.blueL }]}>
+                    <MaterialIcons name="edit" size={18} color={T.blue} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => cfm(t.delete, t.confirmDelete, async () => {
+                    try { await BUYLIST.delete(item.id); load(); } catch (e) { Alert.alert('Xato', e.message); }
+                  })} style={[s.delBtn, { backgroundColor: T.redL }]}><MaterialIcons name="delete-outline" size={18} color={T.red} /></TouchableOpacity>
+                </View>
               </View>
             </Card>
           ))
         }
       </ScrollView>
+
+      {/* Edit Modal */}
+      <Modal visible={!!editItem} transparent animationType="slide">
+        <View style={s.modalBg}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            <ScrollView keyboardShouldPersistTaps="handled">
+              <View style={[s.modalBox, { backgroundColor: T.surface }]}>
+                <Text style={[s.modalTitle, { color: T.text }]}>✏️ Mahsulotni tahrirlash</Text>
+
+                <ItemPicker items={itemler} selected={editForm.item}
+                  onSelect={v => setEditForm(f => ({ ...f, item: v }))}
+                  onCreateNew={async (name) => {
+                    try {
+                      const created = await ITEMS.create({ name });
+                      setItemler(prev => [...prev, created]);
+                      setEditForm(f => ({ ...f, item: String(created.id) }));
+                    } catch (e) { Alert.alert('Xato', e.message); }
+                  }} />
+
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <View style={{ flex: 1 }}>
+                    <Input label={t.qty} value={editForm.qty} onChangeText={v => setEditForm(f => ({ ...f, qty: v }))} numeric placeholder="0" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Input label={t.price} value={editForm.narx} onChangeText={v => setEditForm(f => ({ ...f, narx: v }))} numeric placeholder="0" />
+                  </View>
+                </View>
+
+                <ChipPicker label={t.unit} items={unitler} selected={editForm.unit} onSelect={v => setEditForm(f => ({ ...f, unit: v }))} nameKey="unit" />
+                <ChipPicker label={t.currency} items={moneytypes} selected={editForm.moneytype} onSelect={v => setEditForm(f => ({ ...f, moneytype: v }))} nameKey="name" />
+
+                <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+                  <Btn title={t.cancel} onPress={() => setEditItem(null)} outline color={T.text3} style={{ flex: 1 }} />
+                  <Btn title={t.save} onPress={updateItem} loading={editSaving} style={{ flex: 1 }} />
+                </View>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
 
       {/* Add Modal */}
       <Modal visible={showAdd} transparent animationType="slide">
@@ -1407,6 +1510,16 @@ function UsersScreen() {
                   {item.email && <Text style={{ fontSize: 12, color: T.text3 }}>{item.email}</Text>}
                 </View>
                 <Badge text={item.role || 'staff'} color={rc.c} bg={rc.bg} />
+                <TouchableOpacity onPress={() => cfm("O'chirish", `"${item.username}" o'chirilsinmi?`, async () => {
+                  try { await AUTH.deleteUser(item.id); load(); } catch (e) {
+                    const msg = e.message || '';
+                    if (msg.includes('usersettings') || msg.includes('does not exist')) {
+                      Alert.alert('Server xatosi', 'Admin "python manage.py migrate" buyrug'ini ishga tushirsin');
+                    } else { Alert.alert('Xato', msg); }
+                  }
+                })} style={[s.delBtn, { backgroundColor: T.redL, marginLeft: 8 }]}>
+                  <MaterialIcons name="delete-outline" size={18} color={T.red} />
+                </TouchableOpacity>
               </Card>
             );
           }}
@@ -1530,6 +1643,11 @@ function ProfileScreen() {
   const [emailModal, setEmailModal] = useState(false);
   const [newEmail, setNewEmail] = useState(user?.email || '');
   const [langModal, setLangModal] = useState(false);
+  const [pwModal, setPwModal] = useState(false);
+  const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
+  const [pwSaving, setPwSaving] = useState(false);
+  const [notifLowStock, setNotifLowStock] = useState(true);
+  const [notifReports, setNotifReports] = useState(false);
 
   const currentLang = LANGUAGES.find(l => l.key === lang) || LANGUAGES[0];
 
@@ -1537,6 +1655,21 @@ function ProfileScreen() {
     // In real app you'd call API here
     Alert.alert(t.emailUpdated, newEmail);
     setEmailModal(false);
+  }
+
+  async function changePassword() {
+    if (!pw.current) { Alert.alert('Xato', 'Eski parolni kiriting'); return; }
+    if (!pw.next) { Alert.alert('Xato', 'Yangi parolni kiriting'); return; }
+    if (pw.next !== pw.confirm) { Alert.alert('Xato', 'Parollar mos kelmadi'); return; }
+    setPwSaving(true);
+    try {
+      await AUTH.changePassword({ current_password: pw.current, new_password: pw.next });
+      Alert.alert('✅ Muvaffaqiyatli', 'Parol yangilandi!');
+      setPwModal(false);
+      setPw({ current: '', next: '', confirm: '' });
+    } catch (e) {
+      Alert.alert('Xato', e.message);
+    } finally { setPwSaving(false); }
   }
 
   return (
@@ -1652,6 +1785,57 @@ function ProfileScreen() {
           </SettingRow>
         </Card>
 
+        {/* Change Password */}
+        <SectionHeader title="Xavfsizlik" />
+        <TouchableOpacity
+          onPress={() => { setPw({ current: '', next: '', confirm: '' }); setPwModal(true); }}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 10,
+            backgroundColor: T.surface, borderRadius: 12, padding: 14,
+            borderWidth: 1, borderColor: T.border,
+          }}>
+          <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: T.greenL, alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="key-outline" size={18} color={T.green} />
+          </View>
+          <Text style={{ color: T.text, fontWeight: '700', fontSize: 14, flex: 1 }}>Parolni o'zgartirish</Text>
+          <Ionicons name="chevron-forward" size={16} color={T.text4} />
+        </TouchableOpacity>
+
+        {/* Notifications */}
+        <SectionHeader title="Bildirishnomalar" />
+        <Card style={{ padding: 0, overflow: 'hidden' }}>
+          <SettingRow icon="notifications-outline" label="Kam zaxira ogohlantirishlar">
+            <TouchableOpacity
+              onPress={() => setNotifLowStock(v => !v)}
+              style={{
+                width: 52, height: 30, borderRadius: 15,
+                backgroundColor: notifLowStock ? T.blue : T.border2,
+                justifyContent: 'center', paddingHorizontal: 3,
+              }}>
+              <View style={{
+                width: 24, height: 24, borderRadius: 12, backgroundColor: '#fff',
+                transform: [{ translateX: notifLowStock ? 22 : 0 }],
+                shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 3,
+              }} />
+            </TouchableOpacity>
+          </SettingRow>
+          <SettingRow icon="document-text-outline" label="Haftalik hisobot" last>
+            <TouchableOpacity
+              onPress={() => setNotifReports(v => !v)}
+              style={{
+                width: 52, height: 30, borderRadius: 15,
+                backgroundColor: notifReports ? T.blue : T.border2,
+                justifyContent: 'center', paddingHorizontal: 3,
+              }}>
+              <View style={{
+                width: 24, height: 24, borderRadius: 12, backgroundColor: '#fff',
+                transform: [{ translateX: notifReports ? 22 : 0 }],
+                shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 3,
+              }} />
+            </TouchableOpacity>
+          </SettingRow>
+        </Card>
+
         {/* Logout */}
         <View style={{ marginTop: 24 }}>
           <Btn title={t.logout} iconName="log-out-outline" color={T.red}
@@ -1662,6 +1846,24 @@ function ProfileScreen() {
           />
         </View>
       </View>
+
+      {/* Change Password Modal */}
+      <Modal visible={pwModal} transparent animationType="slide">
+        <View style={[s.modalBg]}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            <View style={[s.modalBox, { backgroundColor: T.surface }]}>
+              <Text style={[s.modalTitle, { color: T.text }]}>🔑 Parolni o'zgartirish</Text>
+              <Input label="Eski parol" value={pw.current} onChangeText={v => setPw(p => ({ ...p, current: v }))} placeholder="••••••••" secure autoFocus />
+              <Input label="Yangi parol" value={pw.next} onChangeText={v => setPw(p => ({ ...p, next: v }))} placeholder="••••••••" secure />
+              <Input label="Yangi parolni tasdiqlang" value={pw.confirm} onChangeText={v => setPw(p => ({ ...p, confirm: v }))} placeholder="••••••••" secure />
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <Btn title={t.cancel} onPress={() => setPwModal(false)} outline color={T.text3} style={{ flex: 1 }} />
+                <Btn title="O'zgartirish" onPress={changePassword} loading={pwSaving} style={{ flex: 1 }} />
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
 
       {/* Email Modal */}
       <Modal visible={emailModal} transparent animationType="slide">
@@ -1705,11 +1907,199 @@ function ProfileScreen() {
   );
 }
 
+
+// ─── ANALYTICS SCREEN ─────────────────────────────────────────────────────────
+function AnalyticsScreen() {
+  const T = useTheme();
+  const t = useLang();
+  const [warehouses, setWarehouses] = useState([]);
+  const [buylist, setBuylist] = useState([]);
+  const [itemler, setItemler] = useState([]);
+  const [moneytypes, setMoneytypes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const [wh, bl, im, mm] = await Promise.all([
+        DEPOLAR.list(), BUYLIST.list(), ITEMS.list(), MONEY.list(),
+      ]);
+      setWarehouses(Array.isArray(wh) ? wh : wh?.results ?? []);
+      setBuylist(Array.isArray(bl) ? bl : bl?.results ?? []);
+      setItemler(Array.isArray(im) ? im : im?.results ?? []);
+      setMoneytypes(Array.isArray(mm) ? mm : mm?.results ?? []);
+    } catch (e) { Alert.alert('Xato', e.message); }
+    finally { setLoading(false); setRefreshing(false); }
+  }, []);
+
+  useEffect(() => { load(); }, []);
+
+  if (loading) return (
+    <View style={[s.center, { backgroundColor: T.bg }]}>
+      <ActivityIndicator size="large" color={T.blue} />
+    </View>
+  );
+
+  const totalItems = buylist.length;
+  const lowItems = buylist.filter(b => Number(b.qty) < 20);
+
+  // Products by warehouse
+  const byWH = warehouses.map(w => ({
+    name: w.name || w.nomi || 'Ombor',
+    count: buylist.filter(b => String(b.depolar) === String(w.id)).length,
+  })).sort((a, b) => b.count - a.count);
+  const maxWH = Math.max(...byWH.map(w => w.count), 1);
+
+  // Value by currency
+  const currMap = {};
+  buylist.forEach(b => {
+    const mt = moneytypes.find(m => String(m.id) === String(b.moneytype));
+    const name = mt?.name || mt?.type || 'Unknown';
+    const val = Number(b.qty || 0) * parseFloat(String(b.narx || 0).replace(/,/g, '') || '0');
+    currMap[name] = (currMap[name] || 0) + val;
+  });
+  const currEntries = Object.entries(currMap).sort((a, b) => b[1] - a[1]);
+  const maxCurr = Math.max(...currEntries.map(e => e[1]), 1);
+
+  // Top items by total value
+  const topItems = [...buylist]
+    .map(b => ({
+      ...b,
+      _name: itemler.find(i => String(i.id) === String(b.item))?.name || `#${b.item}`,
+      _currency: moneytypes.find(m => String(m.id) === String(b.moneytype))?.name || '',
+      _total: Number(b.qty || 0) * parseFloat(String(b.narx || 0).replace(/,/g, '') || '0'),
+    }))
+    .sort((a, b) => b._total - a._total)
+    .slice(0, 8);
+
+  const CHART_COLORS = [T.blue, T.green, T.orange, T.purple, '#0d9488', '#e11d48'];
+
+  return (
+    <ScrollView
+      style={[s.screen, { backgroundColor: T.bg }]}
+      contentContainerStyle={{ paddingBottom: 40 }}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={T.blue} colors={[T.blue]} />}
+    >
+      <StatusBar barStyle={T.bg === '#0f172a' ? 'light-content' : 'dark-content'} backgroundColor={T.surface} />
+      {/* Header */}
+      <View style={[s.header, { backgroundColor: T.surface, borderBottomColor: T.border }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <MaterialIcons name="bar-chart" size={20} color={T.blue} />
+          <Text style={[s.headerTitle, { color: T.text }]}>Tahlil</Text>
+        </View>
+      </View>
+
+      <View style={{ padding: 16 }}>
+        {/* Stat cards */}
+        <View style={{ flexDirection: 'row', marginBottom: 16 }}>
+          <StatCard label="Omborlar" value={warehouses.length} color={T.blue} iconName="warehouse" iconLib="MaterialIcons" iconColor={T.blue} />
+          <StatCard label="Mahsulotlar" value={totalItems} color={T.blue} iconName="inventory-2" iconLib="MaterialIcons" iconColor={T.blue} />
+          <StatCard label="Kam zaxira" value={lowItems.length} color={lowItems.length > 0 ? T.red : T.green} iconName={lowItems.length > 0 ? 'warning' : 'check-circle'} iconLib="MaterialIcons" iconColor={lowItems.length > 0 ? T.red : T.green} />
+        </View>
+
+        {/* Bar chart: by warehouse */}
+        <View style={{ backgroundColor: T.surface, borderRadius: 14, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: T.border }}>
+          <Text style={{ fontSize: 14, fontWeight: '800', color: T.text, marginBottom: 14 }}>📦 Ombor bo'yicha mahsulotlar</Text>
+          {byWH.length === 0
+            ? <Text style={{ color: T.text4, fontSize: 13 }}>Ma'lumot yo'q</Text>
+            : byWH.map((w, i) => (
+              <View key={i} style={{ marginBottom: 10 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <Text style={{ fontSize: 12, color: T.text2, fontWeight: '600', flex: 1 }} numberOfLines={1}>{w.name}</Text>
+                  <Text style={{ fontSize: 12, color: T.text3, marginLeft: 8 }}>{w.count}</Text>
+                </View>
+                <View style={{ height: 8, backgroundColor: T.border, borderRadius: 4 }}>
+                  <View style={{ height: 8, borderRadius: 4, backgroundColor: CHART_COLORS[i % CHART_COLORS.length], width: `${Math.max(4, (w.count / maxWH) * 100)}%` }} />
+                </View>
+              </View>
+            ))
+          }
+        </View>
+
+        {/* Bar chart: by currency */}
+        <View style={{ backgroundColor: T.surface, borderRadius: 14, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: T.border }}>
+          <Text style={{ fontSize: 14, fontWeight: '800', color: T.text, marginBottom: 14 }}>💰 Valyuta bo'yicha jami qiymat</Text>
+          {currEntries.length === 0
+            ? <Text style={{ color: T.text4, fontSize: 13 }}>Ma'lumot yo'q</Text>
+            : currEntries.map(([cur, total], i) => (
+              <View key={cur} style={{ marginBottom: 10 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <Text style={{ fontSize: 12, color: T.text2, fontWeight: '700' }}>{cur}</Text>
+                  <Text style={{ fontSize: 12, color: CHART_COLORS[i % CHART_COLORS.length], fontWeight: '800' }}>
+                    {total.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                  </Text>
+                </View>
+                <View style={{ height: 8, backgroundColor: T.border, borderRadius: 4 }}>
+                  <View style={{ height: 8, borderRadius: 4, backgroundColor: CHART_COLORS[i % CHART_COLORS.length], width: `${Math.max(4, (total / maxCurr) * 100)}%` }} />
+                </View>
+              </View>
+            ))
+          }
+        </View>
+
+        {/* Top 8 items */}
+        <View style={{ backgroundColor: T.surface, borderRadius: 14, borderWidth: 1, borderColor: T.border, overflow: 'hidden', marginBottom: 14 }}>
+          <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: T.border }}>
+            <Text style={{ fontSize: 14, fontWeight: '800', color: T.text }}>🏆 Eng qimmat mahsulotlar (Top 8)</Text>
+          </View>
+          {topItems.length === 0
+            ? <View style={{ padding: 20 }}><Text style={{ color: T.text4, fontSize: 13 }}>Ma'lumot yo'q</Text></View>
+            : topItems.map((b, i) => (
+              <View key={b.id || i} style={{
+                flexDirection: 'row', alignItems: 'center', padding: 12,
+                borderBottomWidth: i < topItems.length - 1 ? 1 : 0, borderBottomColor: T.border,
+              }}>
+                <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: i < 3 ? T.blue : T.border, alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '900', color: i < 3 ? '#fff' : T.text3 }}>{i + 1}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: T.text }} numberOfLines={1}>{b._name}</Text>
+                  <Text style={{ fontSize: 11, color: T.text3 }}>Miqdor: {b.qty}</Text>
+                </View>
+                <Text style={{ fontSize: 13, fontWeight: '800', color: T.green }}>
+                  {b._total.toLocaleString('en-US', { maximumFractionDigits: 0 })} {b._currency}
+                </Text>
+              </View>
+            ))
+          }
+        </View>
+
+        {/* Low stock warning */}
+        {lowItems.length > 0 && (
+          <View style={{ backgroundColor: T.surface, borderRadius: 14, borderWidth: 1, borderColor: T.orange + '60', overflow: 'hidden' }}>
+            <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: T.border, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <MaterialIcons name="warning" size={16} color={T.orange} />
+              <Text style={{ fontSize: 14, fontWeight: '800', color: T.orange }}>Kam zaxira mahsulotlar ({lowItems.length})</Text>
+            </View>
+            {lowItems.map((b, i) => (
+              <View key={b.id || i} style={{
+                flexDirection: 'row', alignItems: 'center', padding: 12,
+                borderBottomWidth: i < lowItems.length - 1 ? 1 : 0, borderBottomColor: T.border,
+              }}>
+                <MaterialIcons name="inventory-2" size={16} color={T.orange} style={{ marginRight: 10 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: T.text }} numberOfLines={1}>
+                    {itemler.find(it => String(it.id) === String(b.item))?.name || `#${b.item}`}
+                  </Text>
+                </View>
+                <View style={{ backgroundColor: T.redL, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: T.red }}>{b.qty} qoldi</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+    </ScrollView>
+  );
+}
+
 // ─── NAVIGATION ───────────────────────────────────────────────────────────────
 const Tab = createBottomTabNavigator();
 const TAB_ICONS = {
   Warehouses: { icon: 'warehouse', lib: 'MaterialIcons' },
   Scan: { icon: 'scan', lib: 'Ionicons' },
+  Analytics: { icon: 'bar-chart', lib: 'MaterialIcons' },
   References: { icon: 'list', lib: 'Ionicons' },
   Profile: { icon: 'person-circle', lib: 'Ionicons' },
 };
@@ -1732,6 +2122,7 @@ function MainApp() {
     })}>
       <Tab.Screen name="Warehouses" component={WarehousesTab} options={{ tabBarLabel: t.warehouses }} />
       <Tab.Screen name="Scan" component={ScanScreen} options={{ tabBarLabel: t.scan }} />
+      <Tab.Screen name="Analytics" component={AnalyticsScreen} options={{ tabBarLabel: 'Tahlil' }} />
       <Tab.Screen name="References" component={ReferencesScreen} options={{ tabBarLabel: t.references }} />
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: t.profile }} />
     </Tab.Navigator>
