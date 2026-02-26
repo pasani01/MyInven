@@ -252,7 +252,8 @@ const makeCSS = (accent = "#2563eb") => `
   --sh:0 1px 3px rgba(0,0,0,.3);--sh2:0 8px 24px rgba(0,0,0,.4);--sh3:0 20px 60px rgba(0,0,0,.6);
   --tog-off:#374151;
 }
-html,body{font-family:'DM Sans',-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;transition:background .25s,color .25s;overflow-x:hidden;width:100%;height:100%;-webkit-text-size-adjust:100%}
+html,body{font-family:'DM Sans',-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;transition:background .25s,color .25s;overflow-x:hidden!important;width:100%;height:100%;-webkit-text-size-adjust:100%}
+.app,.main,.content{overflow-x:hidden!important;max-width:100vw!important}
 ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 .auth-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px;position:relative;overflow:hidden}
 .auth-bg-blob{position:fixed;border-radius:50%;filter:blur(80px);opacity:.35;pointer-events:none;z-index:0}
@@ -540,6 +541,18 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
 .ref-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;background:var(--bg);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text2);font-weight:500}
 .ref-chip button{background:none;border:none;cursor:pointer;color:var(--text4);display:flex;align-items:center;font-size:14px;line-height:1;padding:0;margin-left:2px}
 .ref-chip button:hover{color:var(--red)}
+.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap;max-width:100%}
+.ph-l{flex:1;min-width:180px;max-width:100%}
+.ph-r{display:flex;gap:10px;align-items:center;flex-wrap:wrap;max-width:100%}
+.wdh-top{display:flex;align-items:flex-end;gap:18px;width:100%;position:relative;z-index:1;flex-wrap:wrap}
+@media (max-width:640px){
+  .ph{flex-direction:column;align-items:stretch;gap:15px}
+  .ph-r{flex-direction:column;align-items:stretch;gap:8px}
+  .ph-r .sw-wrap{width:100%!important}
+  .ph-r .btn{width:100%;justify-content:center}
+  .wdh-top{flex-direction:column;align-items:stretch;gap:12px}
+  .wdh-top .btn{width:100%;justify-content:center}
+}
 
 /* ═══════════════════ RESPONSIVE ═══════════════════ */
 @media (max-width:920px){
@@ -1297,12 +1310,14 @@ function RefPage({ title, icon, data, setData, api, normalize, fields, addToast,
       )}
       {delItem && <ConfirmModal title={`Delete ${title}`} desc={<>«<strong>{delItem.name}</strong>»?</>} onConfirm={() => delIt(delItem)} onClose={() => setDelItem(null)} />}
 
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
-        <div>
+      <div className="ph">
+        <div className="ph-l">
           <h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-.025em" }}>{title}</h1>
           <p style={{ fontSize: 13, color: "var(--text3)", marginTop: 3 }}>{data.length} ta yozuv</p>
         </div>
-        <button className="btn bp" onClick={() => { setForm({}); setShowAdd(true); }}><I n="pl" s={14} c="#fff" />Add {title}</button>
+        <div className="ph-r">
+          <button className="btn bp" onClick={() => { setForm({}); setShowAdd(true); }}><I n="pl" s={14} c="#fff" />Add {title}</button>
+        </div>
       </div>
 
       <div className="tc">
@@ -1402,12 +1417,12 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
       {showEdit && <Modal title="Edit Warehouse" onClose={() => setShowEdit(null)} footer={<><button className="btn bo" onClick={() => setShowEdit(null)}>{T.cancel}</button><button className="btn bp" onClick={editWH} disabled={saving}>{saving ? "..." : T.save}</button></>}>{formBody}</Modal>}
       {showDel && <ConfirmModal title="Delete Warehouse" desc={<>«<strong>{showDel.name}</strong>»?</>} onConfirm={() => delWH(showDel)} onClose={() => setShowDel(null)} />}
 
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
-        <div>
+      <div className="ph">
+        <div className="ph-l">
           <h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-.025em" }}>{T.warehouses}</h1>
           <p style={{ fontSize: 13, color: "var(--text3)", marginTop: 3 }}>{warehouses.length} {T.warehouses.toLowerCase()} {T.all.toLowerCase()}</p>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div className="ph-r">
           <div className="sw-wrap" style={{ width: 200 }}>
             <span className="si-ico"><I n="sr" s={14} /></span>
             <input placeholder={T.search} value={search} onChange={e => setSearch(e.target.value)} />
@@ -1705,18 +1720,18 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
       )}
 
       <div className="wdh">
-        <div className="wdh-banner" style={{ background: grad }}>
+        <div className="wdh-banner" style={{ background: grad, height: "auto", minHeight: 130 }}>
           <div className="wdh-glow" style={{ width: 280, height: 280, top: -100, right: -60 }} />
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 18, width: "100%", position: "relative", zIndex: 1 }}>
+          <div className="wdh-top">
             <div className="wdh-icon"><I n={wh.ic} s={26} c="#fff" /></div>
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, minWidth: 200 }}>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "rgba(255,255,255,.65)", marginBottom: 4 }}>{wh.type}</div>
               <div className="wdh-title">{wh.name}</div>
               <div className="wdh-addr"><I n="lc" s={12} c="rgba(255,255,255,.7)" />{wh.addr}</div>
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button className="btn" style={{ background: "rgba(255,255,255,.2)", color: "#fff", border: "1px solid rgba(255,255,255,.35)", backdropFilter: "blur(8px)" }} onClick={() => setShowEditWh(true)}>
-                <I n="ed" s={14} c="#fff" />Edit
+                <I n="ed" s={14} c="#fff" />{T.editBtn || "Edit"}
               </button>
               <button className="btn" style={{ background: "rgba(34,197,94,.25)", color: "#fff", border: "1px solid rgba(255,255,255,.35)", backdropFilter: "blur(8px)" }}
                 onClick={async () => {
@@ -1737,7 +1752,7 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
                 <I n="dl" s={14} c="#fff" />Excel
               </button>
               <button className="btn" style={{ background: "rgba(255,255,255,.2)", color: "#fff", border: "1px solid rgba(255,255,255,.35)", backdropFilter: "blur(8px)" }} onClick={onBack}>
-                <I n="arr" s={14} c="#fff" />Orqaga
+                <I n="arr" s={14} c="#fff" />{T.back || "Back"}
               </button>
             </div>
           </div>
@@ -1773,18 +1788,19 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
       )}
 
       <div className="tc">
-        <div style={{ borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", paddingLeft: 6 }}>
-          <div style={{ padding: "8px 16px", fontWeight: 700, fontSize: 13, color: "var(--blue)", borderBottom: "2px solid var(--blue)" }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 6 }}><I n="bx" s={13} />Buylist ({whBl.length})</span>
+        <div className="ph" style={{ borderBottom: "1px solid var(--border)", padding: "8px 14px", marginBottom: 0 }}>
+          <div className="ph-l" style={{ minWidth: "auto" }}>
+            <div style={{ padding: "4px 0", fontWeight: 700, fontSize: 13, color: "var(--blue)", display: "flex", alignItems: "center", gap: 6 }}>
+              <I n="bx" s={13} />Buylist ({whBl.length})
+            </div>
           </div>
-          <div style={{ flex: 1 }} />
-          <div style={{ display: "flex", gap: 8, padding: "0 14px" }}>
-            <div className="sw-wrap" style={{ width: 200 }}>
+          <div className="ph-r">
+            <div className="sw-wrap" style={{ width: 160 }}>
               <span className="si-ico"><I n="sr" s={14} /></span>
               <input placeholder={T.search} value={search} onChange={e => { setSearch(e.target.value); setPg(1); }} />
             </div>
             <button className="btn bp bs" onClick={() => { setForm(EMPTY_BL); setShowAdd(v => !v); }}>
-              <I n={showAdd ? "x" : "pl"} s={13} c="#fff" />{showAdd ? "Cancel" : "+ Add"}
+              <I n={showAdd ? "x" : "pl"} s={13} c="#fff" />{showAdd ? (T.cancel || "Cancel") : (T.addBtn || "+ Add")}
             </button>
           </div>
         </div>
@@ -2404,9 +2420,9 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
 
           {!scanning && lines.length > 0 && (
             <>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", borderBottom: "1px solid var(--border)" }}>
+              <div className="sg sg3" style={{ borderBottom: "1px solid var(--border)", margin: 0 }}>
                 <div style={{ padding: "14px 18px", borderRight: "1px solid var(--border)" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--text4)", marginBottom: 6 }}>Mahsulotlar</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--text4)", marginBottom: 6 }}>{T.items || "Mahsulotlar"}</div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{lines.length} ta</div>
                 </div>
                 <div style={{ padding: "14px 18px", borderRight: "1px solid var(--border)" }}>
@@ -2414,7 +2430,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
                   <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", fontStyle: "italic" }}>{refId || "—"}</div>
                 </div>
                 <div style={{ padding: "14px 18px", background: "var(--blue-l)" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--blue)", marginBottom: 6 }}>Jami Summa</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--blue)", marginBottom: 6 }}>{T.totalSum || "Jami Summa"}</div>
                   <div style={{ fontSize: 20, fontWeight: 800, color: "var(--blue)", letterSpacing: "-.02em" }}>{total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
                 </div>
               </div>
@@ -2636,13 +2652,16 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: an
         </Modal>
       )}
 
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
-        <div>
-          <h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-.025em" }}>{T.users}</h1>
-          <p style={{ fontSize: 13, color: "var(--text3)", marginTop: 3 }}>{filtered.length} {T.users.toLowerCase()} {T.all.toLowerCase()}</p>
+      <div className="ph">
+        <div className="ph-l">
+          <h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-.025em" }}>{T.users || "Users"}</h1>
+          <p style={{ fontSize: 13, color: "var(--text3)", marginTop: 3 }}>{users.length} foydalanuvchi jami</p>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button className="btn bo" onClick={onRefresh}><I n="refresh" s={14} />{T.refresh || "Refresh"}</button>
+        <div className="ph-r">
+          <div className="sw-wrap" style={{ width: 180 }}>
+            <span className="si-ico"><I n="sr" s={14} /></span>
+            <input placeholder={T.search} value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
           {isAdmin && (
             <button className="btn bp" onClick={() => setShowAdd(true)}><I n="pl" s={14} c="#fff" />{T.addUser || "Add User"}</button>
           )}
