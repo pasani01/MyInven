@@ -31,12 +31,10 @@ function getCookie(name: string): string | null {
   return cookieValue;
 }
 
-// ✅ FIX 1: DELETE so'rovlarda Content-Type headerini yubormaslik (500 xato sababi)
 async function api(path: string, method: string = "GET", body: any = null) {
   const headers: Record<string, string> = {
     "Accept": "application/json"
   };
-  // GET va DELETE uchun Content-Type kerak emas — ba'zi backendlar 500 qaytaradi
   if (method !== "GET" && method !== "DELETE") {
     headers["Content-Type"] = "application/json";
   }
@@ -506,7 +504,7 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
 .settings-row-label{font-size:14px;font-weight:600;color:var(--text)}
 .settings-row-desc{font-size:12px;color:var(--text3);margin-top:3px;line-height:1.4}
 .color-swatches{display:flex;gap:9px;flex-wrap:wrap;margin-top:4px}
-.color-swatch{width:28px;height:28px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all .15s;position:relative}
+.color-swatch{width:28px;height:28px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all .15px;position:relative}
 .color-swatch.active{border-color:var(--text);transform:scale(1.12)}
 .color-swatch.active::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700}
 .lang-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
@@ -549,6 +547,50 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
 .ph-l{flex:1;min-width:180px;max-width:100%}
 .ph-r{display:flex;gap:10px;align-items:center;flex-wrap:wrap;max-width:100%}
 .wdh-top{display:flex;align-items:flex-end;gap:18px;width:100%;position:relative;z-index:1;flex-wrap:wrap}
+
+/* ═══════════════════ BUYLIST INLINE ADD FORM - RESPONSIVE ═══════════════════ */
+.bl-add-wrapper {
+  padding: 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--blue-l);
+  min-width: 600px;
+}
+@media (max-width: 600px) {
+  .bl-add-wrapper { min-width: 100%; }
+}
+
+.bl-add-row{
+  display:grid;
+  grid-template-columns:1.5fr 90px 110px 90px 130px auto;
+  gap:10px;
+  align-items:flex-end;
+}
+@media(max-width:900px){
+  .bl-add-row{
+    grid-template-columns:1fr 1fr 1fr;
+    gap:8px;
+  }
+  .bl-add-row .bl-add-btn{
+    grid-column:1/-1;
+    justify-content:center;
+    width:100%;
+  }
+}
+@media(max-width:600px){
+  .bl-add-row{
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+  }
+  .bl-add-row .bl-add-item{
+    grid-column:1/-1;
+  }
+  .bl-add-row .bl-add-btn{
+    grid-column:1/-1;
+    justify-content:center;
+    width:100%;
+  }
+}
+
 @media (max-width:640px){
   .ph{flex-direction:column;align-items:stretch;gap:15px}
   .ph-r{flex-direction:column;align-items:stretch;gap:8px}
@@ -580,12 +622,18 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
   .sg{grid-template-columns:1fr 1fr;gap:10px}
   .sg3,.sg2{grid-template-columns:1fr;gap:10px}
   .detail-grid,.rep-grid{grid-template-columns:1fr;gap:12px}
-  .wdh-banner{height:auto;min-height:90px;padding:12px}
-  .wdh-icon{width:44px;height:44px}
-  .wdh-title{font-size:18px}
-  .wdh-body{grid-template-columns:1fr;padding:12px}
-  .wdh-stat{padding:10px}
+  
+  /* ✅ FIX 1: Safely stack banner and stats on mobile instead of overlapping */
+  .wdh-banner{height:auto;min-height:80px;padding:16px 16px 24px}
+  .wdh-icon{width:40px;height:40px}
+  .wdh-title{font-size:17px}
+  
+  /* ✅ FIX 2: Remove negative margin on mobile to prevent stack overlaps */
+  .wdh-body{grid-template-columns:1fr 1fr;padding:10px;margin:12px 8px 0!important;gap:8px}
+  .wdh-stat{padding:8px}
   .wdh-stat:not(:last-child){border-right:none;border-bottom:1px solid var(--border)}
+  .wdh-stat-v{font-size:18px}
+  
   .form-row{grid-template-columns:1fr;gap:10px}
   .mobile-toggle{display:flex!important;width:34px;height:34px;margin-right:8px}
   .mobile-toggle svg{width:18px;height:18px}
@@ -603,7 +651,7 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
 
 @media (max-width:480px){
   .sg{grid-template-columns:1fr}
-  .content{padding:12px}
+  .content{padding:10px}
   .tb-r .btn{padding:6px 10px;font-size:12px}
   .tb-r .btn span{display:none}
   .ph-l h1{font-size:18px!important}
@@ -613,6 +661,11 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
   .ti{font-size:11px}
   .pb{width:28px;height:28px;font-size:12px}
   .wg{grid-template-columns:1fr}
+  
+  /* ✅ FIX 3: wdh-body single column on very small screens */
+  .wdh-body{grid-template-columns:1fr!important;margin:10px 6px 0!important;padding:8px}
+  .wdh-banner{padding:12px 12px 20px}
+  .wdh-stat:not(:last-child){border-right:none;border-bottom:1px solid var(--border)}
 }
 
 .mobile-toggle{display:none;width:40px;height:40px;align-items:center;justify-content:center;color:var(--text);cursor:pointer;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;margin-right:8px;transition:all .2s cubic-bezier(0.4, 0, 0.2, 1);box-shadow:var(--sh);position:relative;z-index:20}
@@ -621,14 +674,13 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
 
 .sidebar-backdrop{position:fixed;inset:0;background:rgba(15,23,42,0.4);backdrop-filter:blur(8px);z-index:90;animation:fadeIn .3s ease;display:block}
 
-/* Fix for horizontal scroll on some devices */
 .app{overflow-x:hidden;width:100%}
 img,svg{max-width:100%}
 table{min-width:600px}
 @media (max-width:600px){
   table{min-width:100%}
-  th,td{padding:8px 12px;font-size:13px}
-  .itn{font-size:13px}
+  th,td{padding:8px 10px;font-size:12px}
+  .itn{font-size:12px}
   .sv{font-size:18px}
 }
 @media (min-width:1200px){
@@ -1452,7 +1504,6 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
         </div>
       </div>
 
-      {/* ✅ FIX 2: Stat cards — always 4 fixed columns, no dynamic overflow */}
       {(() => {
         const currMap: Record<string, number> = {};
         buylist.forEach((b: any) => {
@@ -1461,7 +1512,6 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
           currMap[cur] = (currMap[cur] || 0) + val;
         });
         const currEntries = Object.entries(currMap).filter(([, v]) => v > 0);
-        // Always 4 columns: Total WH | Total Items | Currency1 | Currency2 (or Low Stock)
         return (
           <div className="sg" style={{ marginBottom: 22 }}>
             <div className="sc">
@@ -1475,7 +1525,6 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
               <div className="sss">{T.acrossAll}</div>
             </div>
             {currEntries.length > 0 ? (
-              // Show first 2 currencies in the last 2 columns
               [0, 1].map(i => {
                 if (currEntries[i]) {
                   const [cur, total] = currEntries[i];
@@ -1489,7 +1538,6 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
                     </div>
                   );
                 }
-                // If only 1 currency, fill 4th with low stock
                 return (
                   <div key={`low-${i}`} className="sc">
                     <div className="slb">{T.lowStock}</div>
@@ -1516,7 +1564,6 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
         );
       })()}
 
-      {/* ✅ FIX 3: Warehouse cards use auto-fill responsive grid (defined in CSS .wg) */}
       {loading ? <Spinner /> : (
         <div className="wg">
           {filtered.map((w) => {
@@ -1757,7 +1804,7 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
           <div className="wdh-glow" style={{ width: 280, height: 280, top: -100, right: -60 }} />
           <div className="wdh-top">
             <div className="wdh-icon"><I n={wh.ic} s={26} c="#fff" /></div>
-            <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ flex: 1, minWidth: 160 }}>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "rgba(255,255,255,.65)", marginBottom: 4 }}>{wh.type}</div>
               <div className="wdh-title">{wh.name}</div>
               <div className="wdh-addr"><I n="lc" s={12} c="rgba(255,255,255,.7)" />{wh.addr}</div>
@@ -1832,16 +1879,18 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
               <span className="si-ico"><I n="sr" s={14} /></span>
               <input placeholder={T.search} value={search} onChange={e => { setSearch(e.target.value); setPg(1); }} />
             </div>
-            <button className="btn bp bs" onClick={() => { setForm(EMPTY_BL); setShowAdd(v => !v); }}>
-              <I n={showAdd ? "x" : "pl"} s={13} c="#fff" />{showAdd ? (T.cancel || "Cancel") : (T.addBtn || "+ Add")}
+            <button className={`btn ${showAdd ? "bd" : "bp"} bs`} onClick={() => { setForm(EMPTY_BL); setShowAdd(v => !v); }}>
+              <I n={showAdd ? "x" : "pl"} s={13} c={showAdd ? "currentColor" : "#fff"} />{showAdd ? (T.cancel || "Cancel") : (T.addBtn || "+ Add")}
             </button>
           </div>
         </div>
 
+        {/* ✅ FIX: Inline add form — fully responsive using .bl-add-row CSS class */}
         {showAdd && (
-          <div style={{ padding: "16px 18px", borderBottom: "1px solid var(--border)", background: "var(--blue-l)" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1.5fr 90px 100px 90px 120px auto", gap: 10, alignItems: "flex-end" }}>
-              <div>
+          <div className="bl-add-wrapper">
+            <div className="bl-add-row">
+              {/* Mahsulot — full width on small screens via .bl-add-item */}
+              <div className="bl-add-item">
                 <label className="form-label">Mahsulot *</label>
                 <input
                   className="form-input"
@@ -1862,10 +1911,12 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
                   {itemler.map((i: any) => <option key={i.id} value={i.name} />)}
                 </datalist>
               </div>
+
               <div>
                 <label className="form-label">{T.qty} *</label>
                 <input className="form-input" type="number" min="0" value={form.qty} onChange={sf("qty")} onKeyDown={e => e.key === "Enter" && addBl()} />
               </div>
+
               <div>
                 <label className="form-label">{T.unit}</label>
                 <select className="form-select" style={{ width: "100%" }} value={form.unit} onChange={sf("unit")}>
@@ -1873,10 +1924,12 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
                   {unitler.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               </div>
+
               <div>
                 <label className="form-label">{T.price}</label>
                 <input className="form-input" type="number" min="0" step="0.01" value={form.narx} onChange={sf("narx")} onKeyDown={e => e.key === "Enter" && addBl()} />
               </div>
+
               <div>
                 <label className="form-label">{T.currency}</label>
                 <select className="form-select" style={{ width: "100%" }} value={form.moneytype} onChange={sf("moneytype")}>
@@ -1884,8 +1937,10 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
                   {moneytypes.map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
               </div>
-              <button className="btn bp" style={{ padding: "9px 14px", alignSelf: "flex-end" }} onClick={addBl} disabled={saving}>
-                <I n="ck" s={14} c="#fff" />
+
+              {/* Confirm button — spans full width on mobile via .bl-add-btn */}
+              <button className="btn bp bl-add-btn" style={{ alignSelf: "flex-end", minWidth: 44, justifyContent: "center" }} onClick={addBl} disabled={saving}>
+                <I n="ck" s={14} c="#fff" />{saving ? "..." : "OK"}
               </button>
             </div>
           </div>
@@ -2594,7 +2649,6 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: an
     finally { setSaving(false); }
   }
 
-  // ✅ FIX 1 ta'siri: DELETE Content-Type yo'q → 500 yo'q
   async function delU(user: any) {
     if (!user.id) { addToast("Foydalanuvchi ID topilmadi", "error"); return; }
     setDeleting(true);
@@ -2604,7 +2658,6 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: an
       onRefresh();
     } catch (e: any) {
       const msg = (e as Error).message || "";
-      // Backend DB migration xatosi — usersettings jadvali yo'q
       if (msg.includes("usersettings") || msg.includes("does not exist") || msg.includes("500")) {
         addToast(`Server xatosi: Admin backendda "python manage.py migrate" buyrug'ini ishga tushirsin`, "error");
       } else {
