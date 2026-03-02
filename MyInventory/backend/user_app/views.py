@@ -56,8 +56,8 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         if user.role == 'superadmin':
             return CustomUser.objects.exclude(role='superadmin')
 
-        # Admin barcha foydalanuvchilarni ko'radi
-        if user.role == 'admin' and user.company:
+        # Agar foydalanuvchining kompaniyasi bo'lsa, xuddi shu kompaniyadagi barchani ko'rsin (Admin yoki User farqsiz)
+        if user.company:
             return CustomUser.objects.filter(
                 company=user.company
             ).exclude(role='superadmin')
