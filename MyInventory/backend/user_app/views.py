@@ -56,13 +56,13 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         if user.role == 'superadmin':
             return CustomUser.objects.exclude(role='superadmin')
 
-        # Eğer kullanıcının bir şirketi varsa, o şirketteki herkesi görsün (istek sahibi admin olmasa bile)
-        if user.company:
+        # Admin barcha foydalanuvchilarni ko'radi
+        if user.role == 'admin' and user.company:
             return CustomUser.objects.filter(
                 company=user.company
             ).exclude(role='superadmin')
 
-        # Şirketi yoksa sadece kendisini görsün
+        # Oddiy user faqat o'zini ko'radi
         return CustomUser.objects.filter(id=user.id)
 
     def perform_create(self, serializer):

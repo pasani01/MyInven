@@ -1228,11 +1228,15 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
             <I n="ch" s={15} />{T.analytics}
           </div>
           <div className="n-div" />
-          <div className="n-sec">{T.mgmtSec}</div>
-          <div className={`n-item${page === "users" ? " active" : ""}`} onClick={() => goto("users", fetchUsers)}>
-            <I n="usrs" s={15} />{T.users}
-          </div>
-          <div className="n-div" />
+          {(currentUser.role === "admin" || currentUser.role === "superadmin") && (
+            <>
+              <div className="n-sec">{T.mgmtSec}</div>
+              <div className={`n-item${page === "users" ? " active" : ""}`} onClick={() => goto("users", fetchUsers)}>
+                <I n="usrs" s={15} />{T.users}
+              </div>
+              <div className="n-div" />
+            </>
+          )}
           <div className="dm-row" onClick={() => setDarkMode(v => !v)}>
             <I n={darkMode ? "sun" : "moon"} s={15} />
             <span className="dm-label">{darkMode ? T.lightMode : T.darkMode}</span>
@@ -1315,7 +1319,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
           {page === "itemler" && <RefPage title={T.items} icon="pkg" data={itemler} setData={setItemler} api={itemlerAPI} normalize={normalizeItem} fields={[{ k: "name", l: "Name *", required: true }]} addToast={addToast} T={T} />}
           {page === "moneytypes" && <RefPage title={T.moneytypes} icon="dr" data={moneytypes} setData={setMoneytypes} api={moneytypesAPI} normalize={normalizeMoneytype} fields={[{ k: "name", l: "Name * (USD, UZS, EUR)", required: true }]} addToast={addToast} T={T} />}
           {page === "unitler" && <RefPage title={T.units} icon="tag" data={unitler} setData={setUnitler} api={unitlerAPI} normalize={normalizeUnit} fields={[{ k: "name", l: "Name *", required: true }]} addToast={addToast} T={T} />}
-          {page === "users" && <UsersPage users={users} companies={companies} onRefresh={fetchUsers} addToast={addToast} T={T} currentUser={currentUser} />}
+          {page === "users" && (currentUser.role === "admin" || currentUser.role === "superadmin") && <UsersPage users={users} companies={companies} onRefresh={fetchUsers} addToast={addToast} T={T} currentUser={currentUser} />}
           {page === "settings" && (
             <SettingsPage settings={settings} setSettings={setSettings}
               darkMode={darkMode} onDarkMode={setDarkMode}
