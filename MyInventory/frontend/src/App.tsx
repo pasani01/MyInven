@@ -1345,6 +1345,7 @@ const STRINGS: Record<string, any> = {
     you: "You",
     noResults: "No results found",
     addUserPrompt: "Add a new user to begin.",
+    newMessage: "New message received!",
   },
   uz: {
     warehouses: "Omborlar",
@@ -1363,7 +1364,7 @@ const STRINGS: Record<string, any> = {
     moneytypes: "Valyutalar",
     units: "Birliklar",
     deleteUser: "O'chirish",
-    deleteConfirmText: (name: string) => `"${name}" "ni ochirmoqchimisiz"?`,
+    deleteConfirmText: (name: string) => `"${name}" ni o'chirmoqchimisiz?`,
 deleteConfirmLabel: "Tasdiqlash uchun foydalanuvchi nomini yozing:",
   deleteBtn: "O'chirish",
     addUser: "Yangi foydalanuvchi",
@@ -1375,7 +1376,7 @@ deleteConfirmLabel: "Tasdiqlash uchun foydalanuvchi nomini yozing:",
                 signIn: "Kirish →",
                   signingIn: "Kirilmoqda...",
                     totalWhs: "Jami omborlar",
-                      inventoryVal: "Inventar qiymati",
+                      inventoryVal: "Invertar qiymati",
                         lowStock: "Kam qolganlar",
                           recentShipments: "So'nggi harakatlar",
                             viewAll: "Hammasi",
@@ -1428,6 +1429,7 @@ deleteConfirmLabel: "Tasdiqlash uchun foydalanuvchi nomini yozing:",
                                                                                                                           you: "Siz",
                                                                                                                             noResults: "Foydalanuvchilar topilmadi",
                                                                                                                               addUserPrompt: "Boshlash uchun yangi foydalanuvchi qo'shing.",
+                                                                                                                                newMessage: "Yangi xabar keldi!",
   },
 ru: {
   warehouses: "Склады",
@@ -1446,7 +1448,7 @@ ru: {
                             moneytypes: "Валюты",
                               units: "Единицы",
                                 deleteUser: "Удалить",
-                                  deleteConfirmText: (name: string) => `"Удалить" "${name}"?`,
+                                  deleteConfirmText: (name: string) => `Удалить "${name}"?`,
                                     deleteConfirmLabel: "Введите имя для подтверждения:",
                                       deleteBtn: "Удалить",
                                         addUser: "Новый пользователь",
@@ -1511,6 +1513,7 @@ ru: {
                                                                                                                                                               you: "Вы",
                                                                                                                                                                 noResults: "Не найдено",
                                                                                                                                                                   addUserPrompt: "Добавьте пользователя.",
+                                                                                                                                                                    newMessage: "Новое сообщение!",
   },
 tr: {
   warehouses: "Depolar",
@@ -1529,7 +1532,7 @@ tr: {
                             moneytypes: "Para Birimleri",
                               units: "Birimler",
                                 deleteUser: "Kullanıcıyı sil",
-                                  deleteConfirmText: (name: string) => `"${name}" "silinsin mi"?`,
+                                  deleteConfirmText: (name: string) => `"${name}" silinsin mi?`,
                                     deleteConfirmLabel: "Onay için kullanıcı adını girin:",
                                       deleteBtn: "Sil",
                                         addUser: "Yeni Kullanıcı",
@@ -1594,6 +1597,7 @@ tr: {
                                                                                                                                                               you: "Sen",
                                                                                                                                                                 noResults: "Bulunamadı",
                                                                                                                                                                   addUserPrompt: "Kullanıcı ekleyin.",
+                                                                                                                                                                    newMessage: "Yeni mesaj!",
   },
 };
 
@@ -1701,7 +1705,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
   const [selectedWh, setSelectedWh] = useState<any>(null);
   const [sbOpen, setSbOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
-    try { return localStorage.getItem(`rf_dark_${currentUser.username}`) === "true"; } catch { return false; }
+    try { return localStorage.getItem(`rf_dark_${currentUser.username} `) === "true"; } catch { return false; }
   });
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [buylist, setBuylist] = useState<any[]>([]);
@@ -1730,7 +1734,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", darkMode ? "dark" : "light");
-    try { localStorage.setItem(`rf_dark_${currentUser.username}`, String(darkMode)); } catch { }
+    try { localStorage.setItem(`rf_dark_${currentUser.username} `, String(darkMode)); } catch { }
   }, [darkMode]);
 
   const addToast = useCallback((msg: string, type = "success") => {
@@ -1759,13 +1763,21 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
   const fetchUnreadCount = useCallback(async () => {
     try {
       const res = await authAPI.getUnreadCount();
-      if (res && typeof res.count === "number") setNotifCount(res.count);
+      if (res && typeof res.count === "number") {
+        setNotifCount(prev => {
+          // Show toast if count increased and chat is not open
+          if (res.count > prev && !chatUser) {
+            addToast(T.newMessage || "New message received!", "info");
+          }
+          return res.count;
+        });
+      }
     } catch { }
-  }, []);
+  }, [chatUser, addToast, T.newMessage]);
 
   useEffect(() => {
     fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 8000);
+    const interval = setInterval(fetchUnreadCount, 4000); // 4s interval for better responsiveness
     return () => clearInterval(interval);
   }, [fetchUnreadCount]);
 
@@ -1789,7 +1801,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
         time: res.created_at ? new Date(res.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         is_read: false,
       }]);
-      setNotifCount(p => p + 1);
+      // setNotifCount(p => p + 1); // Removed: Notifications should only change when receiving messages
     } catch (err: any) { addToast(err?.data?.detail || err?.message || "Xabar yuborishda xato", "error"); }
   };
 
@@ -1799,7 +1811,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
       const data = await depolarAPI.list();
       const arr = Array.isArray(data) ? data : (data?.results ?? []);
       setWarehouses(arr.map((d: any, i: any) => normalizeDepolar(d, i)));
-    } catch (e: any) { setApiError(`Failed to load warehouses: ${(e as Error).message}`); }
+    } catch (e: any) { setApiError(`Failed to load warehouses: ${(e as Error).message} `); }
     finally { setLoadingWh(false); }
   }, []);
 
@@ -1838,7 +1850,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
         const blData = await buylistAPI.list().catch(() => []);
         const blArr = Array.isArray(blData) ? blData : (blData?.results ?? []);
         setBuylist(blArr.map((b: any) => normalizeBuylist(b, iArr, mArr, uArr)));
-      } catch (e: any) { setApiError(`Failed to load data: ${(e as Error).message}`); }
+      } catch (e: any) { setApiError(`Failed to load data: ${(e as Error).message} `); }
       finally { setLoadingWh(false); }
     };
     init(); fetchUsers(); fetchCompanies();
@@ -1869,7 +1881,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
       <ToastList toasts={toasts} removeToast={removeToast} />
 
       {sbOpen && <div className="sidebar-backdrop" onClick={() => setSbOpen(false)} />}
-      <aside className={`sidebar ${sbOpen ? "open" : ""}`}>
+      <aside className={`sidebar ${sbOpen ? "open" : ""} `}>
         <div className="s-logo">
           <div className="s-mark" style={{ position: "relative" }}>
             {BRAND.logoPath ? (
@@ -1887,25 +1899,25 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
         </div>
         <nav className="s-nav">
           <div className="n-sec">{T.mainSec}</div>
-          <div className={`n-item${whActive ? " active" : ""}`} onClick={() => goto("warehouses")}><I n="wh" s={15} />{T.warehouses}</div>
-          <div className={`n-item${page === "intake" ? " active" : ""}`} onClick={() => goto("intake")}><I n="sc" s={15} />{T.intake}</div>
+          <div className={`n - item${whActive ? " active" : ""} `} onClick={() => goto("warehouses")}><I n="wh" s={15} />{T.warehouses}</div>
+          <div className={`n - item${page === "intake" ? " active" : ""} `} onClick={() => goto("intake")}><I n="sc" s={15} />{T.intake}</div>
           <div className="n-div" />
           <div className="n-sec">{T.refSec}</div>
-          <div className={`n-item${page === "itemler" ? " active" : ""}`} onClick={() => goto("itemler", fetchItemler)}><I n="pkg" s={15} />{T.items}</div>
-          <div className={`n-item${page === "moneytypes" ? " active" : ""}`} onClick={() => goto("moneytypes", fetchMoneytypes)}><I n="dr" s={15} />{T.moneytypes}</div>
-          <div className={`n-item${page === "unitler" ? " active" : ""}`} onClick={() => goto("unitler", fetchUnitler)}><I n="tag" s={15} />{T.units}</div>
+          <div className={`n - item${page === "itemler" ? " active" : ""} `} onClick={() => goto("itemler", fetchItemler)}><I n="pkg" s={15} />{T.items}</div>
+          <div className={`n - item${page === "moneytypes" ? " active" : ""} `} onClick={() => goto("moneytypes", fetchMoneytypes)}><I n="dr" s={15} />{T.moneytypes}</div>
+          <div className={`n - item${page === "unitler" ? " active" : ""} `} onClick={() => goto("unitler", fetchUnitler)}><I n="tag" s={15} />{T.units}</div>
           <div className="n-div" />
           <div className="n-sec">{T.analytSec}</div>
-          <div className={`n-item${page === "reports" ? " active" : ""}`} onClick={() => goto("reports")}><I n="ch" s={15} />{T.analytics}</div>
+          <div className={`n - item${page === "reports" ? " active" : ""} `} onClick={() => goto("reports")}><I n="ch" s={15} />{T.analytics}</div>
           <div className="n-div" />
           <div className="n-sec">{T.mgmtSec}</div>
-          <div className={`n-item${page === "users" ? " active" : ""}`} onClick={() => goto("users", fetchUsers)}><I n="usrs" s={15} />{T.users}</div>
+          <div className={`n - item${page === "users" ? " active" : ""} `} onClick={() => goto("users", fetchUsers)}><I n="usrs" s={15} />{T.users}</div>
           <div className="n-div" />
           <div className="dm-row" onClick={() => setDarkMode(v => !v)}>
             <I n={darkMode ? "sun" : "moon"} s={15} /><span className="dm-label">{darkMode ? T.lightMode : T.darkMode}</span>
             <Toggle checked={darkMode} onChange={setDarkMode} />
           </div>
-          <div className={`n-item${page === "settings" ? " active" : ""}`} onClick={() => goto("settings")}><I n="cg" s={15} />{T.settings}</div>
+          <div className={`n - item${page === "settings" ? " active" : ""} `} onClick={() => goto("settings")}><I n="cg" s={15} />{T.settings}</div>
           <div style={{ flex: 1 }} />
         </nav>
         <div className="s-foot">
@@ -1972,7 +1984,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
           </div>
           <div className="fc">© 2026 RenoFlow Systems</div>
           <div className="fl">
-            <span className="fli" onClick={() => addToast(`Items: ${itemler.length}, Currencies: ${moneytypes.length}, Units: ${unitler.length}`, "info")}>References</span>
+            <span className="fli" onClick={() => addToast(`Items: ${itemler.length}, Currencies: ${moneytypes.length}, Units: ${unitler.length} `, "info")}>References</span>
           </div>
         </footer>
       </div>
@@ -2045,14 +2057,14 @@ function ChatWindow({ targetUser, currentUser, messages, onSendMessage, onClose 
           {messages.map((m: any, i: number) => {
             const isMe = m.sender === currentUser.username;
             return (
-              <div key={i} className={`msg-wrap ${isMe ? "msg-me" : "msg-them"}`}>
+              <div key={i} className={`msg - wrap ${isMe ? "msg-me" : "msg-them"} `}>
                 <div className="msg">
                   {m.text}
                   {m.attachment && (() => {
                     let url = m.attachment;
                     if (!url.startsWith("http")) {
-                      if (!url.startsWith("/")) url = `/${url}`;
-                      url = `${BASE}${url}`;
+                      if (!url.startsWith("/")) url = `/ ${url} `;
+                      url = `${BASE}${url} `;
                     }
                     return url.match(/\.(jpe?g|png|gif|bmp|webp)$/i)
                       ? <img src={url} style={{ maxWidth: 200, display: "block", marginTop: 8, borderRadius: 8 }} alt="attachment" />
@@ -2103,7 +2115,7 @@ function RefPage({ title, icon, data, setData, api, normalize, fields, addToast,
       setData((prev: any) => [...prev, normalize(created)]);
       addToast(`"${form[fields[0].k]}" added!`);
       setShowAdd(false); setForm({});
-    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
+    } catch (e: any) { addToast(`Xato: ${(e as Error).message} `, "error"); }
     finally { setSaving(false); }
   }
 
@@ -2112,13 +2124,13 @@ function RefPage({ title, icon, data, setData, api, normalize, fields, addToast,
       await api.delete(item.id);
       setData((prev: any) => prev.filter((x: any) => x.id !== item.id));
       addToast(`"${item.name}" deleted`, "error");
-    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
+    } catch (e: any) { addToast(`Xato: ${(e as Error).message} `, "error"); }
   }
 
   return (
     <div className="fu">
       {showAdd && (
-        <Modal title={`Add ${title}`} onClose={() => setShowAdd(false)}
+        <Modal title={`Add ${title} `} onClose={() => setShowAdd(false)}
           footer={<><button className="btn bo" onClick={() => setShowAdd(false)}>{T.cancel}</button><button className="btn bp" onClick={addItem} disabled={saving}>{saving ? "..." : T.save}</button></>}>
           {fields.map((f: any) => (
             <div className="form-group" key={f.k}>
@@ -2128,7 +2140,7 @@ function RefPage({ title, icon, data, setData, api, normalize, fields, addToast,
           ))}
         </Modal>
       )}
-      {delItem && <ConfirmModal title={`Delete ${title}`} desc={<>«<strong>{delItem.name}</strong>»?</>} onConfirm={() => delIt(delItem)} onClose={() => setDelItem(null)} />}
+      {delItem && <ConfirmModal title={`Delete ${title} `} desc={<>«<strong>{delItem.name}</strong>»?</>} onConfirm={() => delIt(delItem)} onClose={() => setDelItem(null)} />}
       <div className="ph">
         <div className="ph-l">
           <h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-.025em" }}>{title}</h1>
@@ -2189,7 +2201,7 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
     try {
       await depolarAPI.create(buildPayload(form));
       addToast(`"${form.name}" yaratildi!`); setShowAdd(false); setForm(EMPTY); onRefresh();
-    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
+    } catch (e: any) { addToast(`Xato: ${(e as Error).message} `, "error"); }
     finally { setSaving(false); }
   }
 
@@ -2199,7 +2211,7 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
     try {
       await depolarAPI.update(showEdit.id, buildPayload(form));
       addToast("Ombor yangilandi!"); setShowEdit(null); onRefresh();
-    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
+    } catch (e: any) { addToast(`Xato: ${(e as Error).message} `, "error"); }
     finally { setSaving(false); }
   }
 
@@ -2207,7 +2219,7 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
     try {
       await depolarAPI.delete(wh.id);
       addToast(`"${wh.name}" deleted`, "error"); onRefresh();
-    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
+    } catch (e: any) { addToast(`Xato: ${(e as Error).message} `, "error"); }
   }
 
   function openEdit(wh: any) { setForm({ name: wh.name }); setShowEdit(wh); setOpenMenu(null); }
@@ -2254,7 +2266,7 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
                 const [cur, total] = currEntries[i];
                 return <div key={cur} className="sc"><div className="slb">{T.all} · {cur}</div><div className="sv" style={{ color: "var(--green)", fontSize: 18 }}>{(total as number).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div><div className="sss">{cur}</div></div>;
               }
-              return <div key={`low-${i}`} className="sc"><div className="slb">{T.lowStock}</div><div className="sv rd">{buylist.filter((i: any) => i.low).length}</div><div className="sss">{T.viewAll}</div></div>;
+              return <div key={`low - ${i} `} className="sc"><div className="slb">{T.lowStock}</div><div className="sv rd">{buylist.filter((i: any) => i.low).length}</div><div className="sss">{T.viewAll}</div></div>;
             }) : (
               <>
                 <div className="sc"><div className="slb">{T.lowStock}</div><div className="sv rd">{buylist.filter((i: any) => i.low).length}</div><div className="sss">{T.viewAll}</div></div>
@@ -2282,7 +2294,7 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
               <div key={w.id} className="wc" onClick={() => onOpenWh(w)}>
                 <div className="wb">
                   <div className="whh">
-                    <div className={`wi wi-${w.wc}`}><I n={w.ic} s={20} c={icColor} /></div>
+                    <div className={`wi wi - ${w.wc} `}><I n={w.ic} s={20} c={icColor} /></div>
                     <div className="wh-menu" onClick={e => e.stopPropagation()}>
                       <button className="wh-menu-btn" onClick={() => setOpenMenu(isOpen ? null : w.id)}>···</button>
                       {isOpen && (
@@ -2300,7 +2312,7 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
                     <div style={{ fontSize: 12, color: "var(--text3)" }}><strong style={{ color: "var(--text)" }}>{whBl.length}</strong> {T.items.toLowerCase()}</div>
                     {curEntries.map(([cur, val]) => (
                       <div key={cur} style={{ fontSize: 12, color: "var(--text3)" }}>
-                        <strong style={{ color: cur === "USD" ? "var(--green)" : "var(--blue)" }}>{cur === "USD" ? "$" : ""}{(val as number).toLocaleString("en-US", { maximumFractionDigits: 0 })}</strong>{cur !== "USD" ? ` ${cur}` : ""}
+                        <strong style={{ color: cur === "USD" ? "var(--green)" : "var(--blue)" }}>{cur === "USD" ? "$" : ""}{(val as number).toLocaleString("en-US", { maximumFractionDigits: 0 })}</strong>{cur !== "USD" ? ` ${cur} ` : ""}
                       </div>
                     ))}
                     {curEntries.length === 0 && <div style={{ fontSize: 12, color: "var(--text4)" }}>Bo'sh</div>}
@@ -2367,7 +2379,7 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
       const created = await buylistAPI.create({ ...buildBlPayload({ ...form, item: itemId }), item: itemId });
       setBuylist((prev: any) => [...prev, normalizeBuylist(created, itemler, moneytypes, unitler)]);
       addToast("Item added to inventory!"); setShowAdd(false); setForm(EMPTY_BL);
-    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
+    } catch (e: any) { addToast(`Xato: ${(e as Error).message} `, "error"); }
     finally { setSaving(false); }
   }
 
@@ -2378,7 +2390,7 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
       const updated = await buylistAPI.update(editItem.id, buildBlPayload(form));
       setBuylist((prev: any) => prev.map((i: any) => i.id === editItem.id ? normalizeBuylist(updated, itemler, moneytypes, unitler) : i));
       addToast("Yangilandi!"); setEditItem(null);
-    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
+    } catch (e: any) { addToast(`Xato: ${(e as Error).message} `, "error"); }
     finally { setSaving(false); }
   }
 
@@ -2387,7 +2399,7 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
       await buylistAPI.delete(item.id);
       setBuylist((prev: any) => prev.filter((i: any) => i.id !== item.id));
       addToast(`"${item.name}" deleted`, "error");
-    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
+    } catch (e: any) { addToast(`Xato: ${(e as Error).message} `, "error"); }
   }
 
   async function saveWh() {
@@ -2398,7 +2410,7 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
       setWh((prev: any) => ({ ...prev, ...norm }));
       setWarehouses((ws: any) => ws.map((w2: any) => w2.id === wh.id ? { ...w2, ...norm } : w2));
       addToast("Ombor yangilandi!"); setShowEditWh(false);
-    } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
+    } catch (e: any) { addToast(`Xato: ${(e as Error).message} `, "error"); }
     finally { setSaving(false); }
   }
 
@@ -2464,7 +2476,7 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
               <button className="btn" style={{ background: "rgba(34,197,94,.25)", color: "#fff", border: "1px solid rgba(255,255,255,.35)", backdropFilter: "blur(8px)" }}
                 onClick={async () => {
                   const token = getToken();
-                  const url = `${BASE}/export-buylist-as-excel/${wh.id}/`;
+                  const url = `${BASE} /export-buylist-as-excel/${wh.id}/`;
                   try {
                     const r = await fetch(url, { headers: { Authorization: `Token ${token}` }, credentials: "include" as RequestCredentials });
                     if (!r.ok) { addToast(`Excel xatosi: ${r.status}`, "error"); return; }
@@ -2477,13 +2489,13 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
                   } catch (err: any) { addToast(`Excel xatosi: ${err.message}`, "error"); }
                 }}>
                 <I n="dl" s={14} c="#fff" />Excel
-              </button>
+              </button >
               <button className="btn" style={{ background: "rgba(255,255,255,.2)", color: "#fff", border: "1px solid rgba(255,255,255,.35)", backdropFilter: "blur(8px)" }} onClick={onBack}>
                 <I n="arr" s={14} c="#fff" />{T.back || "Back"}
               </button>
-            </div>
-          </div>
-        </div>
+            </div >
+          </div >
+        </div >
         <div className="wdh-body">
           {[
             { l: "Buylist", v: String(whBl.length), c: "var(--blue)", s: "items" },
@@ -2498,7 +2510,7 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
             </div>
           ))}
         </div>
-      </div>
+      </div >
 
       {(itemler.length === 0 || moneytypes.length === 0 || unitler.length === 0) && (
         <div className="api-err" style={{ marginBottom: 16 }}>
@@ -2594,7 +2606,7 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
         <button className="back-link" onClick={onBack}><I n="arr" s={14} />← {T.backBtn} ({T.warehouses})</button>
         <button className="btn bo" onClick={() => setShowEditWh(true)}><I n="ed" s={14} />{T.editBtn}</button>
       </div>
-    </div>
+    </div >
   );
 }
 
