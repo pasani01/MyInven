@@ -8,6 +8,8 @@ from rest_framework.exceptions import ValidationError
 from django.contrib.auth import authenticate
 from .models import CustomUser, Company, Conversation, Message
 from .serializers import CustomUserSerializer, CompanySerializer, UserLoginSerializer, ConversationSerializer, MessageSerializer
+from django.shortcuts import get_object_or_404
+from django.db.models import Count
 
 
 class CompanyViewSet(viewsets.ModelViewSet):
@@ -222,7 +224,11 @@ class ConversationViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Conversation.objects.filter(participants=self.request.user)
+        try:
+            return Conversation.objects.filter(participants=self.request.user).distinct()
+        except Exception as e:
+            # This will help us see the real error in the network tab
+            raise ValidationError({"detail": f"Conversation Query Error: {str(e)}"})
 
     def perform_create(self, serializer):
         participants_data = self.request.data.get('participants', [])
@@ -239,43 +245,63 @@ class MessageViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Message.objects.filter(conversation__participants=self.request.user)
+        try:
+            return Message.objects.filter(conversation__participants=self.request.user).distinct()
+        except Exception as e:
+            raise ValidationError({"detail": f"Message Query Error: {str(e)}"})
 
     def perform_create(self, serializer):
-        conversation_id = self.request.data.get('conversation')
-        conversation = Conversation.objects.get(id=conversation_id, participants=self.request.user)
-        serializer.save(sender=self.request.user, conversation=conversation)
+        try:
+            conversation_id = self.request.data.get('conversation')
+            if not conversation_id:
+                raise ValidationError({"detail": "Conversation ID is required"})
+            
+            conversation = get_object_or_404(Conversation, id=conversation_id, participants=self.request.user)
+            serializer.save(sender=self.request.user, conversation=conversation)
+        except Exception as e:
+            raise ValidationError({"detail": str(e)})
 
     @action(detail=False, methods=['post'], url_path='direct-message')
     def direct_message(self, request):
+        conversation_id = request.data.get('conversation')
         receiver_id = request.data.get('receiver_id')
         text = request.data.get('text')
         
-        if not receiver_id or not text:
-            return Response({"detail": "receiver_id and text are required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not text:
+            return Response({"detail": "text is required"}, status=status.HTTP_400_BAD_REQUEST)
         
+        conversation = None
+        if conversation_id:
+            try:
+                conversation = Conversation.objects.get(id=conversation_id, participants=request.user)
+            except Conversation.DoesNotExist:
+                return Response({"detail": "Conversation not found"}, status=status.HTTP_404_NOT_FOUND)
+        elif receiver_id:
+            try:
+                receiver = CustomUser.objects.get(id=receiver_id)
+            except CustomUser.DoesNotExist:
+                return Response({"detail": "Receiver not found"}, status=status.HTTP_404_NOT_FOUND)
+                
+            # Find DM conversation (exactly 2 participants)
+            conversation = Conversation.objects.annotate(num_p=Count('participants'))\
+                .filter(num_p=2)\
+                .filter(participants=request.user)\
+                .filter(participants=receiver)\
+                .first()
+            
+            if not conversation:
+                conversation = Conversation.objects.create()
+                conversation.participants.set([request.user, receiver])
+        else:
+            return Response({"detail": "Either receiver_id or conversation is required"}, status=status.HTTP_400_BAD_REQUEST)
+            
         try:
-            receiver = CustomUser.objects.get(id=receiver_id)
-        except CustomUser.DoesNotExist:
-            return Response({"detail": "Receiver not found"}, status=status.HTTP_404_NOT_FOUND)
-            
-        # Check for a DM conversation between these exactly two people
-        from django.db.models import Count
-        conversation = Conversation.objects.annotate(num_participants=Count('participants'))\
-            .filter(num_participants=2)\
-            .filter(participants=request.user)\
-            .filter(participants=receiver)\
-            .first()
-        
-        if not conversation:
-            conversation = Conversation.objects.create()
-            conversation.participants.set([request.user, receiver])
-            
-        message = Message.objects.create(
-            conversation=conversation,
-            sender=request.user,
-            text=text
-        )
-        
-        serializer = self.get_serializer(message)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+            message = Message.objects.create(
+                conversation=conversation,
+                sender=request.user,
+                text=text
+            )
+            serializer = self.get_serializer(message)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({"detail": f"Message Creation Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

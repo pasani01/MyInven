@@ -689,15 +689,15 @@ table{min-width:600px}
 @media (min-width:1200px){
   .toast-close{background:none;border:none;color:inherit;opacity:.6;cursor:pointer;font-size:18px;line-height:1;margin-left:10px}
   .toast-close:hover{opacity:1}
-  .notif-badge{position:absolute;top:-5px;right:-5px;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 5px;border-radius:10px;border:2px solid var(--surface);min-width:18px;text-align:center}
+  .notif-badge{position:absolute;top:-5px;right:-5px;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 5px;border-radius:10px;border:2px solid var(--surface);min-width:18px;text-align:center;z-index:2}
   
   /* ═══════════════════ CHAT STYLES ═══════════════════ */
   .chat-panel {
     position: fixed;
     bottom: 0;
     right: 320px;
-    width: 360px;
-    height: 480px;
+    width: 380px;
+    height: 520px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px 12px 0 0;
@@ -707,7 +707,7 @@ table{min-width:600px}
     flex-direction: column;
     animation: chatSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  @keyframes chatSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  @keyframes chatSlideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
   .chat-header {
     padding: 12px 16px;
     background: #1e293b;
@@ -718,14 +718,6 @@ table{min-width:600px}
     justify-content: space-between;
     border-bottom: 1px solid rgba(255,255,255,0.1);
   }
-  .typing-indicator {
-    font-size: 11px;
-    color: #4ade80;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
   .chat-body {
     flex: 1;
     overflow-y: auto;
@@ -735,29 +727,71 @@ table{min-width:600px}
     flex-direction: column;
     gap: 12px;
   }
-  .msg-wrap { display: flex; flex-direction: column; gap: 4px; max-width: 80%; }
+  .msg-wrap { display: flex; flex-direction: column; gap: 4px; max-width: 85%; }
   .msg-me { align-self: flex-end; }
+  .msg-them { align-self: flex-start; }
   .msg {
-    padding: 8px 12px;
-    border-radius: 12px;
-    font-size: 13.5px;
-    line-height: 1.4;
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.5;
     position: relative;
     box-shadow: 0 1px 2px rgba(0,0,0,.05);
   }
-  .msg-me .msg { background: var(--blue); color: #fff; border-bottom-right-radius: 2px; }
-  .msg-them .msg { background: var(--surface); color: var(--text); border-bottom-left-radius: 2px; border: 1px solid var(--border); }
+  .msg-me .msg { background: #7c3aed; color: #fff; border-bottom-right-radius: 4px; }
+  .msg-them .msg { background: var(--surface); color: var(--text); border-bottom-left-radius: 4px; border: 1px solid var(--border); }
   .msg-time { font-size: 10px; color: var(--text4); margin-top: 2px; display: block; }
   .msg-me .msg-time { color: rgba(255,255,255,0.7); text-align: right; }
-  .chat-footer { padding: 12px; border-top: 1px solid var(--border); display: flex; gap: 8px; background: var(--surface); }
-  .chat-input { flex: 1; border: 1.5px solid var(--border2); border-radius: 20px; padding: 6px 14px; font-family: inherit; font-size: 13.5px; outline: none; transition: all .15s; background: var(--bg); color: var(--text); }
-  .chat-input:focus { border-color: var(--blue); background: var(--surface); color: var(--blue); font-weight: 600; }
-  .chat-send { width: 34px; height: 34px; border-radius: 50%; background: var(--blue); border: none; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform .15s; }
-  .chat-send:hover { transform: scale(1.05); }
-  .chat-send:active { transform: scale(0.95); }
+  
+  .chat-footer { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 10px; background: var(--surface); align-items: center; }
+  .chat-input { 
+    flex: 1; 
+    border: 1.5px solid var(--border2); 
+    border-radius: 24px; 
+    padding: 10px 18px; 
+    font-family: inherit; 
+    font-size: 14px; 
+    outline: none; 
+    transition: all .2s; 
+    background: var(--bg2); 
+    color: var(--text);
+  }
+  .chat-input:focus { 
+    border-color: #7c3aed; 
+    background: var(--surface); 
+    color: #7c3aed; 
+    font-weight: 600;
+    box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.15);
+  }
+  .chat-send { 
+    width: 40px; 
+    height: 40px; 
+    border-radius: 50%; 
+    background: #1e293b; 
+    border: none; 
+    color: #fff; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    cursor: pointer; 
+    transition: all .2s; 
+    flex-shrink: 0;
+  }
+  .chat-send:hover { background: #334155; transform: scale(1.08) rotate(-10deg); }
+  .chat-send:active { transform: scale(0.92); }
 
   @media (max-width: 768px) {
-    .chat-panel { right: 10px; left: 10px; width: auto; height: 80vh; max-height: 600px; }
+    .chat-panel { 
+      right: 0; 
+      left: 0; 
+      width: 100vw; 
+      height: 100dvh; 
+      max-height: 100dvh; 
+      border-radius: 0; 
+      z-index: 3000; 
+    }
+    .chat-header { border-radius: 0; height: 64px; padding: 0 20px; }
+    .chat-footer { padding: 16px 20px 30px; } /* Bottom safe area for mobile */
   }
 `;
 
@@ -1171,9 +1205,6 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
 
   const fetchMessages = useCallback(async (targetId: number) => {
     try {
-      // Find or create conversation by sending a dummy DM or using specific endpoint
-      // For now, let's use direct-message as it returns message with conversation info
-      // but simpler is to fetch all messages filter in frontend or better backend filtered
       const res = await authAPI.getConversations();
       const conversations = Array.isArray(res) ? res : (res.results || []);
       const conv = conversations.find((c: any) => c.participants.some((p: any) => p.id === targetId));
@@ -1185,7 +1216,8 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
         })));
       }
     } catch (err) {
-      console.error("Chat error:", err);
+      // Quietly handle errors to avoid 500 alerts during polling
+      console.warn("Retrying messages...");
     }
   }, []);
 
