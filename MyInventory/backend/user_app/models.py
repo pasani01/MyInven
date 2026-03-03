@@ -49,6 +49,9 @@ class UserSettings(models.Model):
 
 
 # message model
+
+from encrypted_model_fields.fields import EncryptedTextField
+
 class Conversation(models.Model):
     participants = models.ManyToManyField(CustomUser, related_name='conversations')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -59,11 +62,15 @@ class Conversation(models.Model):
 class Message(models.Model):
     conversation = models.ForeignKey(Conversation, related_name='messages', on_delete=models.CASCADE)
     sender = models.ForeignKey(CustomUser, related_name='sent_messages', on_delete=models.CASCADE)
-    text = models.TextField(blank=True, null=True)
+
+    # 👇 Tek değişiklik: TextField → EncryptedTextField
+    # DB'de şifreli tutulur, Python'da otomatik çözülür. API değişmez.
+    text = EncryptedTextField(blank=True, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)    
     is_read = models.BooleanField(default=False)
     
-    # opsiyonel: dosya veya resim desteği
+    # Opsiyonel: dosya veya resim desteği
     attachment = models.FileField(upload_to='attachments/', blank=True, null=True)
 
     def __str__(self):

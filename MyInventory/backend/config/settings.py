@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'encrypted_model_fields',
     'app',
     'user_app',
     'rest_framework',
@@ -70,7 +71,7 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
 }
-
+FIELD_ENCRYPTION_KEY = os.environ.get('FIELD_ENCRYPTION_KEY')
 # ─── DATABASE ─────────────────────────────────────────────────────────────────
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
