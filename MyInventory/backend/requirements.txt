@@ -3,6 +3,11 @@ cffi==2.0.0
 cryptography==46.0.5
 Django==5.2.11
 django-encrypted-model-fields==0.6.5
+djangorestframework==3.16.0
+dj-database-url==2.3.0
+psycopg2-binary==2.9.10
+gunicorn==23.0.0
+whitenoise==6.9.0
 pycparser==3.0
 sqlparse==0.5.5
 typing_extensions==4.15.0
