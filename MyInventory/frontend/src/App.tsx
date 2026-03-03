@@ -35,7 +35,9 @@ async function api(path: string, method: string = "GET", body: any = null) {
   const headers: Record<string, string> = {
     "Accept": "application/json"
   };
-  if (method !== "GET" && method !== "DELETE") {
+  if (body instanceof FormData) {
+    // browser will set multipart/form-data with boundary
+  } else if (method !== "GET" && method !== "DELETE") {
     headers["Content-Type"] = "application/json";
   }
 
@@ -49,14 +51,14 @@ async function api(path: string, method: string = "GET", body: any = null) {
     headers["X-CSRFToken"] = csrfToken;
   }
 
-  const opts: { method: string; headers: Record<string, string>; credentials: RequestCredentials; body?: string } = {
+  const opts: { method: string; headers: Record<string, string>; credentials: RequestCredentials; body?: any } = {
     method,
     headers,
     credentials: "include" as RequestCredentials,
   };
 
   if (body && (method === "POST" || method === "PUT" || method === "PATCH")) {
-    opts.body = JSON.stringify(body);
+    opts.body = (body instanceof FormData) ? body : JSON.stringify(body);
   }
 
   try {

@@ -314,9 +314,10 @@ class MessageViewSet(viewsets.ModelViewSet):
             conversation_id = request.data.get('conversation')
             receiver_id = request.data.get('receiver_id')
             text = request.data.get('text')
+            attachment = request.FILES.get('attachment')
             
-            if not text:
-                return Response({"detail": "text is required"}, status=status.HTTP_400_BAD_REQUEST)
+            if not text and not attachment:
+                return Response({"detail": "text or attachment is required"}, status=status.HTTP_400_BAD_REQUEST)
             
             conversation = None
             if conversation_id:
@@ -346,7 +347,8 @@ class MessageViewSet(viewsets.ModelViewSet):
             message = Message.objects.create(
                 conversation=conversation,
                 sender=request.user,
-                text=text
+                text=text,
+                attachment=attachment
             )
             serializer = self.get_serializer(message)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
