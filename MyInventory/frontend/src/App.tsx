@@ -750,8 +750,8 @@ table{min-width:600px}
   .msg-time { font-size: 10px; color: var(--text4); margin-top: 2px; display: block; }
   .msg-me .msg-time { color: rgba(255,255,255,0.7); text-align: right; }
   .chat-footer { padding: 12px; border-top: 1px solid var(--border); display: flex; gap: 8px; background: var(--surface); }
-  .chat-input { flex: 1; border: 1.5px solid var(--border2); border-radius: 20px; padding: 6px 14px; font-family: inherit; font-size: 13.5px; outline: none; transition: border-color .15s; background: var(--bg); }
-  .chat-input:focus { border-color: var(--blue); background: var(--surface); }
+  .chat-input { flex: 1; border: 1.5px solid var(--border2); border-radius: 20px; padding: 6px 14px; font-family: inherit; font-size: 13.5px; outline: none; transition: all .15s; background: var(--bg); color: var(--text); }
+  .chat-input:focus { border-color: var(--blue); background: var(--surface); color: var(--blue); font-weight: 600; }
   .chat-send { width: 34px; height: 34px; border-radius: 50%; background: var(--blue); border: none; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform .15s; }
   .chat-send:hover { transform: scale(1.05); }
   .chat-send:active { transform: scale(0.95); }

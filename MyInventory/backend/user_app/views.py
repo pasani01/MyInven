@@ -6,7 +6,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from django.contrib.auth import authenticate
-from .models import CustomUser, Company
+from .models import CustomUser, Company, Conversation, Message
 from .serializers import CustomUserSerializer, CompanySerializer, UserLoginSerializer, ConversationSerializer, MessageSerializer
 
 
@@ -259,8 +259,13 @@ class MessageViewSet(viewsets.ModelViewSet):
         except CustomUser.DoesNotExist:
             return Response({"detail": "Receiver not found"}, status=status.HTTP_404_NOT_FOUND)
             
-        # Check if conversation already exists between these two
-        conversation = Conversation.objects.filter(participants=request.user).filter(participants=receiver).first()
+        # Check for a DM conversation between these exactly two people
+        from django.db.models import Count
+        conversation = Conversation.objects.annotate(num_participants=Count('participants'))\
+            .filter(num_participants=2)\
+            .filter(participants=request.user)\
+            .filter(participants=receiver)\
+            .first()
         
         if not conversation:
             conversation = Conversation.objects.create()
