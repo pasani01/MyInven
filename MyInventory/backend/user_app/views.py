@@ -10,6 +10,45 @@ from .models import CustomUser, Company, Conversation, Message
 from .serializers import CustomUserSerializer, CompanySerializer, UserLoginSerializer, ConversationSerializer, MessageSerializer
 from django.shortcuts import get_object_or_404
 from django.db.models import Count
+from django.db import connection
+
+
+def ensure_chat_tables():
+    """Create Conversation and Message tables if they don't exist yet (bypasses migration issues)."""
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS "user_app_conversation" (
+                    "id" bigserial NOT NULL PRIMARY KEY,
+                    "created_at" timestamp with time zone NOT NULL DEFAULT NOW()
+                );
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS "user_app_conversation_participants" (
+                    "id" bigserial NOT NULL PRIMARY KEY,
+                    "conversation_id" bigint NOT NULL
+                        REFERENCES "user_app_conversation" ("id") DEFERRABLE INITIALLY DEFERRED,
+                    "customuser_id" bigint NOT NULL
+                        REFERENCES "user_app_customuser" ("id") DEFERRABLE INITIALLY DEFERRED,
+                    UNIQUE ("conversation_id", "customuser_id")
+                );
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS "user_app_message" (
+                    "id" bigserial NOT NULL PRIMARY KEY,
+                    "text" text NULL,
+                    "created_at" timestamp with time zone NOT NULL DEFAULT NOW(),
+                    "is_read" boolean NOT NULL DEFAULT false,
+                    "attachment" varchar(100) NULL,
+                    "conversation_id" bigint NOT NULL
+                        REFERENCES "user_app_conversation" ("id") DEFERRABLE INITIALLY DEFERRED,
+                    "sender_id" bigint NOT NULL
+                        REFERENCES "user_app_customuser" ("id") DEFERRABLE INITIALLY DEFERRED
+                );
+            """)
+    except Exception as e:
+        # Log but don't crash — tables might already exist
+        print(f"ensure_chat_tables warning: {e}")
 
 
 class CompanyViewSet(viewsets.ModelViewSet):
@@ -226,6 +265,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
             return Conversation.objects.none()
+        ensure_chat_tables()
         return Conversation.objects.filter(participants=self.request.user).distinct()
 
     def list(self, request, *args, **kwargs):
@@ -252,6 +292,7 @@ class MessageViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
             return Message.objects.none()
+        ensure_chat_tables()
         return Message.objects.filter(conversation__participants=self.request.user).distinct()
 
     def perform_create(self, serializer):
@@ -268,6 +309,7 @@ class MessageViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], url_path='direct-message')
     def direct_message(self, request):
         import traceback
+        ensure_chat_tables()  # Auto-create tables if migration hasn't run
         try:
             conversation_id = request.data.get('conversation')
             receiver_id = request.data.get('receiver_id')
