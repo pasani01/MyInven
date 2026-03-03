@@ -684,8 +684,69 @@ table{min-width:600px}
   .sv{font-size:18px}
 }
 @media (min-width:1200px){
-  .sg{grid-template-columns:repeat(4,1fr)}
-}
+  .toast-close{background:none;border:none;color:inherit;opacity:.6;cursor:pointer;font-size:18px;line-height:1;margin-left:10px}
+  .toast-close:hover{opacity:1}
+  .notif-badge{position:absolute;top:-5px;right:-5px;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 5px;border-radius:10px;border:2px solid var(--surface);min-width:18px;text-align:center}
+  
+  /* ═══════════════════ CHAT STYLES ═══════════════════ */
+  .chat-panel {
+    position: fixed;
+    bottom: 0;
+    right: 320px;
+    width: 360px;
+    height: 480px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px 12px 0 0;
+    box-shadow: var(--sh3);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    animation: chatSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  @keyframes chatSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .chat-header {
+    padding: 12px 16px;
+    background: var(--blue);
+    color: #fff;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .chat-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .msg-wrap { display: flex; flex-direction: column; gap: 4px; max-width: 80%; }
+  .msg-me { align-self: flex-end; }
+  .msg {
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 13.5px;
+    line-height: 1.4;
+    position: relative;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05);
+  }
+  .msg-me .msg { background: var(--blue); color: #fff; border-bottom-right-radius: 2px; }
+  .msg-them .msg { background: var(--surface); color: var(--text); border-bottom-left-radius: 2px; border: 1px solid var(--border); }
+  .msg-time { font-size: 10px; color: var(--text4); margin-top: 2px; display: block; }
+  .msg-me .msg-time { color: rgba(255,255,255,0.7); text-align: right; }
+  .chat-footer { padding: 12px; border-top: 1px solid var(--border); display: flex; gap: 8px; background: var(--surface); }
+  .chat-input { flex: 1; border: 1.5px solid var(--border2); border-radius: 20px; padding: 6px 14px; font-family: inherit; font-size: 13.5px; outline: none; transition: border-color .15s; background: var(--bg); }
+  .chat-input:focus { border-color: var(--blue); background: var(--surface); }
+  .chat-send { width: 34px; height: 34px; border-radius: 50%; background: var(--blue); border: none; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform .15s; }
+  .chat-send:hover { transform: scale(1.05); }
+  .chat-send:active { transform: scale(0.95); }
+
+  @media (max-width: 768px) {
+    .chat-panel { right: 10px; left: 10px; width: auto; height: 80vh; max-height: 600px; }
+  }
 `;
 
 /* ═══════════════════ ICONS ═══════════════════ */
@@ -754,15 +815,18 @@ function Toggle({ checked, onChange }: any) {
   );
 }
 
-function ToastList({ toasts }: any) {
+function ToastList({ toasts, removeToast }: any) {
   return (
     <div className="toast-stack">
       {toasts.map((t: any) => (
         <div key={t.id} className={`toast ${t.type || ""}`}>
-          {t.type === "success" && <I n="ck" s={15} c="#4ade80" />}
-          {t.type === "error" && <I n="x" s={15} c="#f87171" />}
-          {t.type === "info" && <I n="info" s={15} c="#60a5fa" />}
-          {t.msg}
+          <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+            {t.type === "success" && <I n="ck" s={15} c="#4ade80" />}
+            {t.type === "error" && <I n="x" s={15} c="#f87171" />}
+            {t.type === "info" && <I n="info" s={15} c="#60a5fa" />}
+            <span>{t.msg}</span>
+          </div>
+          <button className="toast-close" onClick={() => removeToast(t.id)}>×</button>
         </div>
       ))}
     </div>
@@ -1082,8 +1146,29 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
   const addToast = useCallback((msg, type = "success") => {
     const id = Date.now();
     setToasts((t: any[]) => [...t, { id, msg, type }]);
-    setTimeout(() => setToasts((t: any[]) => t.filter((x: any) => x.id !== id)), 3500);
+    setTimeout(() => setToasts((t: any[]) => t.filter((x: any) => x.id !== id)), 6000);
   }, []);
+
+  const removeToast = useCallback((id: number) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  const [chatUser, setChatUser] = useState<any>(null);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [notifCount, setNotifCount] = useState(0);
+
+  const sendMessage = (text: string) => {
+    const newMsg = { sender: currentUser.username, text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+    setMessages(prev => [...prev, newMsg]);
+
+    // Simulate auto-reply for demo
+    setTimeout(() => {
+      const reply = { sender: chatUser.username, text: "Xabar qabul qilindi! 👋", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+      setMessages(prev => [...prev, reply]);
+      setNotifCount(prev => prev + 1);
+      addToast(`${chatUser.username}: ${reply.text}`, "info");
+    }, 1500);
+  };
 
   const fetchWarehouses = useCallback(async () => {
     setLoadingWh(true); setApiError(null);
@@ -1195,7 +1280,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
   return (
     <div className="app">
       <style>{makeCSS(accent)}</style>
-      <ToastList toasts={toasts} />
+      <ToastList toasts={toasts} removeToast={removeToast} />
 
       {sbOpen && <div className="sidebar-backdrop" onClick={() => setSbOpen(false)} />}
       <aside className={`sidebar ${sbOpen ? "open" : ""}`}>
@@ -1278,9 +1363,10 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
             <button className="ib" title="Refresh" onClick={() => { fetchWarehouses(); refreshBuylist(); fetchItemler(); fetchMoneytypes(); fetchUnitler(); }}>
               <I n="refresh" s={15} />
             </button>
-            <div className="notif">
+            <div className="notif" onClick={() => setNotifCount(0)}>
               <button className="ib"><I n="bl" s={16} /></button>
-              {lowItems > 0 && <div className="notif-dot" />}
+              {(lowItems > 0 || notifCount > 0) && <div className="notif-dot" />}
+              {notifCount > 0 && <div className="notif-badge">{notifCount}</div>}
             </div>
             <div className="av" style={{ width: 34, height: 34, fontSize: 12, cursor: "pointer" }} onClick={() => setPage("settings")}>
               {currentUser.username?.slice(0, 2).toUpperCase()}
@@ -1315,7 +1401,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
           {page === "itemler" && <RefPage title={T.items} icon="pkg" data={itemler} setData={setItemler} api={itemlerAPI} normalize={normalizeItem} fields={[{ k: "name", l: "Name *", required: true }]} addToast={addToast} T={T} />}
           {page === "moneytypes" && <RefPage title={T.moneytypes} icon="dr" data={moneytypes} setData={setMoneytypes} api={moneytypesAPI} normalize={normalizeMoneytype} fields={[{ k: "name", l: "Name * (USD, UZS, EUR)", required: true }]} addToast={addToast} T={T} />}
           {page === "unitler" && <RefPage title={T.units} icon="tag" data={unitler} setData={setUnitler} api={unitlerAPI} normalize={normalizeUnit} fields={[{ k: "name", l: "Name *", required: true }]} addToast={addToast} T={T} />}
-          {page === "users" && <UsersPage users={users} companies={companies} onRefresh={fetchUsers} addToast={addToast} T={T} currentUser={currentUser} />}
+          {page === "users" && <UsersPage users={users} companies={companies} onRefresh={fetchUsers} addToast={addToast} T={T} currentUser={currentUser} onChatOpen={setChatUser} />}
           {page === "settings" && (
             <SettingsPage settings={settings} setSettings={setSettings}
               darkMode={darkMode} onDarkMode={setDarkMode}
@@ -1330,12 +1416,21 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
             <div className="ht">RENOFLOW</div>
             <div className="hs"><span className="od" />&nbsp;<span style={{ color: "var(--green)", fontWeight: 700 }}>{warehouses.length} warehouses · {buylist.length} items</span></div>
           </div>
-          <div className="fc">© 2024 RenoFlow Systems</div>
+          <div className="fc">© 2026 RenoFlow Systems</div>
           <div className="fl">
             <span className="fli" onClick={() => addToast(`Items: ${itemler.length}, Currencies: ${moneytypes.length}, Units: ${unitler.length}`, "info")}>References</span>
           </div>
         </footer>
       </div>
+      {chatUser && (
+        <ChatWindow
+          targetUser={chatUser}
+          currentUser={currentUser}
+          messages={messages.filter(m => m.sender === chatUser.username || m.sender === currentUser.username)}
+          onSendMessage={sendMessage}
+          onClose={() => setChatUser(null)}
+        />
+      )}
     </div>
   );
 }
@@ -2610,7 +2705,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
 }
 
 /* ═══════════════════ USERS PAGE ═══════════════════ */
-function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: any) {
+function UsersPage({ users, companies, onRefresh, addToast, T, currentUser, onChatOpen }: any) {
   const [showAdd, setShowAdd] = useState(false);
   const [delUser, setDelUser] = useState<any>(null);
   const [delConfirmName, setDelConfirmName] = useState("");
@@ -2774,25 +2869,31 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser }: an
                 const isSelf = user.username === currentUser.username || user.id === currentUser.id;
                 return (
                   <tr key={user.id} style={isSelf ? { background: "var(--blue-l)" } : {}}>
-                    <td><div className="ir">
+                    <td><div className="ir" style={{ cursor: "pointer" }} onClick={() => !isSelf && onChatOpen(user)}>
                       <div className="av" style={{ width: 32, height: 32, fontSize: 11, flexShrink: 0, background: isSelf ? "var(--blue)" : undefined }}>
                         {user.username?.slice(0, 2).toUpperCase()}
                       </div>
                       <div>
                         <div className="itn">{user.username}{isSelf && <span style={{ marginLeft: 7, fontSize: 10, fontWeight: 700, color: "var(--blue)", background: "var(--blue-l)", border: "1px solid var(--blue-m)", borderRadius: 10, padding: "1px 7px" }}>{T.you || "Sen"}</span>}</div>
+                        {!isSelf && <div style={{ fontSize: 10, color: "var(--blue)", fontWeight: 700 }}>Chat uchun bosing</div>}
                       </div>
                     </div></td>
                     <td className="dv">{user.email || "—"}</td>
                     <td>{rolePill(user.role)}</td>
-                    {isAdmin && (
-                      <td>
+                    <td>
+                      <div style={{ display: "flex", gap: 8 }}>
                         {!isSelf && (
+                          <button className="ib" title="Chat" onClick={() => onChatOpen(user)}>
+                            <I n="bl" s={13} c="var(--blue)" />
+                          </button>
+                        )}
+                        {isAdmin && !isSelf && (
                           <button className="ib red" onClick={() => { setDelUser(user); setDelConfirmName(""); }}>
                             <I n="td" s={13} />
                           </button>
                         )}
-                      </td>
-                    )}
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
@@ -2993,11 +3094,72 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
   );
 }
 
+/* ═══════════════════ CHAT WINDOW ═══════════════════ */
+function ChatWindow({ targetUser, currentUser, messages, onSendMessage, onClose }: any) {
+  const [text, setText] = useState("");
+  const scrollRef = useEffect(() => {
+    const el = document.getElementById("chat-body");
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages]);
+
+  const handleSend = () => {
+    if (!text.trim()) return;
+    onSendMessage(text);
+    setText("");
+  };
+
+  return (
+    <div className="chat-panel">
+      <div className="chat-header">
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div className="av" style={{ width: 30, height: 30, fontSize: 10, background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.3)" }}>
+            {targetUser.username?.slice(0, 2).toUpperCase()}
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700 }}>{targetUser.username}</div>
+            <div style={{ fontSize: 10, opacity: 0.8 }}>Online</div>
+          </div>
+        </div>
+        <button className="ib" style={{ background: "none", border: "none", color: "#fff", padding: 0, width: "auto", height: "auto" }} onClick={onClose}>
+          <I n="x" s={20} />
+        </button>
+      </div>
+      <div className="chat-body" id="chat-body">
+        {messages.map((m: any, i: number) => {
+          const isMe = m.sender === currentUser.username;
+          return (
+            <div key={i} className={`msg-wrap ${isMe ? "msg-me" : "msg-them"}`}>
+              <div className="msg">{m.text}</div>
+              <span className="msg-time">{m.time}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="chat-footer">
+        <button className="ib" style={{ width: 34, height: 34, borderRadius: "50%", border: "none" }}>
+          <I n="pl" s={16} />
+        </button>
+        <input
+          className="chat-input"
+          placeholder="Yozing..."
+          value={text}
+          onChange={e => setText(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && handleSend()}
+          autoFocus
+        />
+        <button className="chat-send" onClick={handleSend}>
+          <I n="ck" s={16} c="#fff" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ═══════════════════ ROOT ═══════════════════ */
 export default function App() {
   const [user, setUser] = useState<any>(null);
   const [lang, setLang] = useState(() => {
-    try { return localStorage.getItem("rf_lang_global") || "en"; } catch { return "en"; }
+    try { return localStorage.getItem("rf_lang_global") || "uz"; } catch { return "uz"; }
   });
   const [accent, setAccent] = useState(() => {
     try { return localStorage.getItem("rf_accent_global") || "#2563eb"; } catch { return "#2563eb"; }
