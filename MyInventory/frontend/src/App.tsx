@@ -1,7 +1,15 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 /* ═══════════════════ BASE URL ═══════════════════ */
+// base API/host URL (used also for building absolute URLs for media)
 const BASE = "https://myinven-production.up.railway.app";
+
+// branding constants
+const BRAND = {
+  name: "My<span>Inventory</span>",
+  subtitle: "Warehouse Management",
+  logoPath: "/logo.png" // put your custom logo in public/logo.png
+};
 
 
 /* ═══════════════════ AUTH TOKEN ═══════════════════ */
@@ -100,6 +108,8 @@ const authAPI = {
   // Chat API - using /messages/ endpoints per Swagger schema
   getMessages: () => api("/user_app/messages/"),
   sendDirectMessage: (receiver_id: number, text: string) => api("/user_app/messages/direct-message/", "POST", { receiver_id, text }),
+  // send a single file (image/video/any) along with optional text; body should be FormData
+  sendDirectMessageForm: (formData: FormData) => api("/user_app/messages/direct-message/", "POST", formData),
   deleteMessage: (id: number) => api(`/user_app/messages/${id}/`, "DELETE"),
 };
 
@@ -262,6 +272,10 @@ html,body{font-family:'DM Sans',-apple-system,sans-serif;background:var(--bg);co
 .auth-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px;position:relative;overflow:hidden}
 .auth-bg-blob{position:fixed;border-radius:50%;filter:blur(80px);opacity:.35;pointer-events:none;z-index:0}
 .auth-card{position:relative;z-index:1;display:grid;grid-template-columns:1fr 1fr;width:100%;max-width:900px;min-height:560px;background:var(--surface);border:1px solid var(--border);border-radius:22px;box-shadow:0 32px 100px rgba(37,99,235,.13),0 4px 24px rgba(0,0,0,.07);overflow:hidden}
+  @media (max-width: 800px) {
+    .auth-card { grid-template-columns:1fr; max-width: 100%; min-height: auto; }
+    .auth-hero { display: none; }
+  }
 .auth-panel{padding:44px 48px;display:flex;flex-direction:column;justify-content:center}
 .auth-hero{position:relative;background:linear-gradient(135deg,${accent} 0%,#7c3aed 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:44px;overflow:hidden}
 .auth-hero-glow{position:absolute;border-radius:50%;background:rgba(255,255,255,.12);pointer-events:none}
@@ -798,6 +812,7 @@ table{min-width:600px}
   }
 `;
 
+
 /* ═══════════════════ ICONS ═══════════════════ */
 const P = {
   wh: "M2 20h20 M4 20V10l8-6 8 6v10 M10 20v-6h4v6",
@@ -1101,8 +1116,28 @@ function AuthPage({ onLogin, lang, onLang, accent }: any) {
       <div className="auth-card">
         <div className="auth-panel">
           <div className="auth-logo-row">
-            <div className="auth-logo-mark"><I n="wh" s={16} c="#fff" /></div>
-            <div className="auth-logo-name">Reno<span>Flow</span></div>
+            <div className="auth-logo-mark" style={{ position: 'relative' }}>
+              {/* custom logo with fallback icon */}
+              {BRAND.logoPath ? (
+                <>
+                  <img
+                    src={BRAND.logoPath}
+                    alt="logo"
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    onError={e => {
+                      const img = e.currentTarget;
+                      img.style.display = 'none';
+                      const icon = img.nextElementSibling as HTMLElement | null;
+                      if (icon) icon.style.display = 'flex';
+                    }}
+                  />
+                  <I n="wh" s={16} c="#fff" style={{ display: 'none', position: 'absolute', top:0, left:0, right:0, bottom:0, alignItems:'center', justifyContent:'center' }} />
+                </>
+              ) : (
+                <I n="wh" s={16} c="#fff" />
+              )}
+            </div>
+            <div className="auth-logo-name" dangerouslySetInnerHTML={{ __html: BRAND.name }} />
           </div>
           <h2>{T.loginTitle}</h2>
           <p className="auth-sub">{T.loginSub}</p>
@@ -1223,6 +1258,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
         text: m.text,
         time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         is_read: m.is_read,
+        attachment: m.attachment || null,
       })));
     } catch (err) {
       console.warn("Chat fetch error:", err);
@@ -1238,17 +1274,25 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
     }
   }, [chatUser, fetchMessages]);
 
-  const sendMessage = async (text: string) => {
+  // payload can be a string (plain text) or a FormData object containing attachment and other fields
+  const sendMessage = async (payload: string | FormData) => {
     try {
-      const res = await authAPI.sendDirectMessage(chatUser.id, text);
-      const newMsg = {
+      let res: any;
+      if (payload instanceof FormData) {
+        // assume caller already appended receiver_id & text if any
+        res = await authAPI.sendDirectMessageForm(payload);
+      } else {
+        res = await authAPI.sendDirectMessage(chatUser.id, payload);
+      }
+      const newMsg: any = {
         id: res.id,
         sender: currentUser.username,
-        text: res.text || text,
+        text: res.text || (typeof payload === 'string' ? payload : ""),
         time: res.created_at
           ? new Date(res.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         is_read: false,
+        attachment: res.attachment || null,
       };
       setMessages(prev => [...prev, newMsg]);
       setNotifCount(prev => prev + 1);
@@ -1373,8 +1417,30 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
       {sbOpen && <div className="sidebar-backdrop" onClick={() => setSbOpen(false)} />}
       <aside className={`sidebar ${sbOpen ? "open" : ""}`}>
         <div className="s-logo">
-          <div className="s-mark"><I n="wh" s={18} c="#fff" /></div>
-          <div><div className="s-name">Reno<span>Flow</span></div><div className="s-sub">Warehouse Management</div></div>
+          <div className="s-mark" style={{ position: 'relative' }}>
+            {BRAND.logoPath ? (
+              <>
+                <img
+                  src={BRAND.logoPath}
+                  alt="logo"
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  onError={e => {
+                    const img = e.currentTarget;
+                    img.style.display = 'none';
+                    const icon = img.nextElementSibling as HTMLElement | null;
+                    if (icon) icon.style.display = 'flex';
+                  }}
+                />
+                <I n="wh" s={18} c="#fff" style={{ display: 'none', position: 'absolute', top:0, left:0, right:0, bottom:0, alignItems:'center', justifyContent:'center' }} />
+              </>
+            ) : (
+              <I n="wh" s={18} c="#fff" />
+            )}
+          </div>
+          <div>
+            <div className="s-name" dangerouslySetInnerHTML={{ __html: BRAND.name }} />
+            <div className="s-sub">{BRAND.subtitle}</div>
+          </div>
         </div>
         <nav className="s-nav">
           <div className="n-sec">{T.mainSec}</div>
@@ -3185,6 +3251,7 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
 /* ═══════════════════ CHAT WINDOW ═══════════════════ */
 function ChatWindow({ targetUser, currentUser, messages, onSendMessage, onClose }: any) {
   const [text, setText] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useEffect(() => {
     const el = document.getElementById("chat-body");
     if (el) el.scrollTop = el.scrollHeight;
@@ -3194,6 +3261,25 @@ function ChatWindow({ targetUser, currentUser, messages, onSendMessage, onClose 
     if (!text.trim()) return;
     onSendMessage(text);
     setText("");
+  };
+
+  const handlePlusClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length) {
+      Array.from(files).forEach(file => {
+        const form = new FormData();
+        form.append('receiver_id', targetUser.id.toString());
+        if (text.trim()) form.append('text', text.trim());
+        form.append('attachment', file);
+        onSendMessage(form);
+      });
+      setText("");
+    }
+    e.target.value = '';
   };
 
   return (
@@ -3217,16 +3303,46 @@ function ChatWindow({ targetUser, currentUser, messages, onSendMessage, onClose 
           const isMe = m.sender === currentUser.username;
           return (
             <div key={i} className={`msg-wrap ${isMe ? "msg-me" : "msg-them"}`}>
-              <div className="msg">{m.text}</div>
+              <div className="msg">
+                {m.text}
+                {m.attachment && (() => {
+                  // ensure URL is absolute
+                  let url = m.attachment;
+                  if (!url.startsWith('http')) {
+                    // prefix leading slash if missing
+                    if (!url.startsWith('/')) url = `/${url}`;
+                    url = `${BASE}${url}`;
+                  }
+                  return (
+                    <>
+                      {url.match(/\.(jpe?g|png|gif|bmp|webp)$/i) ? (
+                        <img src={url} style={{ maxWidth: 200, display: 'block', marginTop: 8 }} />
+                      ) : (
+                        <a href={url} target="_blank" rel="noreferrer">
+                          {url.split('/').pop()}
+                        </a>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
               <span className="msg-time">{m.time}</span>
             </div>
           );
         })}
       </div>
       <div className="chat-footer">
-        <button className="ib" style={{ width: 34, height: 34, borderRadius: "50%", border: "none" }}>
+        <button className="ib" style={{ width: 34, height: 34, borderRadius: "50%", border: "none" }} onClick={handlePlusClick}>
           <I n="pl" s={16} />
         </button>
+        <input
+          type="file"
+          ref={fileInputRef}
+          style={{ display: 'none' }}
+          accept="image/*,video/*,*/*"
+          multiple
+          onChange={handleFileChange}
+        />
         <input
           className="chat-input"
           placeholder="Yozing..."
