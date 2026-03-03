@@ -355,6 +355,30 @@ class MessageViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({"detail": str(e), "trace": traceback.format_exc()}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    @action(detail=False, methods=['get'], url_path='unread-count')
+    def unread_count(self, request):
+        ensure_chat_tables()
+        count = Message.objects.filter(conversation__participants=request.user, is_read=False).exclude(sender=request.user).count()
+        return Response({"count": count})
+
+    @action(detail=False, methods=['post'], url_path='mark-as-read')
+    def mark_as_read(self, request):
+        ensure_chat_tables()
+        conversation_id = request.data.get('conversation_id')
+        receiver_id = request.data.get('receiver_id')
+        
+        if conversation_id:
+            messages = Message.objects.filter(conversation_id=conversation_id, is_read=False).exclude(sender=request.user)
+            messages.update(is_read=True)
+        elif receiver_id:
+            # Mark messages from this specific user as read
+            messages = Message.objects.filter(conversation__participants=request.user, sender_id=receiver_id, is_read=False)
+            messages.update(is_read=True)
+        else:
+            return Response({"detail": "Either conversation_id or receiver_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        return Response({"detail": "Messages marked as read"})
+
 
 class ChatDebugView(APIView):
     """Temporary debug view to diagnose 500 errors"""

@@ -75,6 +75,9 @@ const authAPI = {
   deleteCompany: (id: number | string) => api(`/user_app/companies/${id}/`, "DELETE"),
   changePassword: (data: any) => api("/user_app/users/change-password/", "POST", data),
   getMessages: () => api("/user_app/messages/"),
+  getUnreadCount: () => api("/user_app/messages/unread-count/"),
+  markMessagesAsRead: (data: { conversation_id?: number; receiver_id?: number }) =>
+    api("/user_app/messages/mark-as-read/", "POST", data),
   sendDirectMessage: (receiver_id: number, text: string) =>
     api("/user_app/messages/direct-message/", "POST", { receiver_id, text }),
   sendDirectMessageForm: (formData: FormData) =>
@@ -1289,7 +1292,7 @@ const STRINGS: Record<string, any> = {
     warehouses: "Omborlar", analytics: "Tahlil", intake: "Aqlli Skan", settings: "Sozlamalar", users: "Foydalanuvchilar",
     darkMode: "Tungi rejim", lightMode: "Kunduzgi", logout: "Chiqish", createWh: "Ombor yaratish", save: "Saqlash",
     cancel: "Bekor qilish", search: "Qidirish...", items: "Mahsulotlar", moneytypes: "Valyutalar", units: "Birliklar",
-    deleteUser: "O'chirish", deleteConfirmText: (name: string) => `"${name}" ni o'chirmoqchimisiz?`,
+    deleteUser: "O'chirish", deleteConfirmText: (name: any) => `"${name}" ni o'chirmoqchimisiz?`,
 deleteConfirmLabel: "Tasdiqlash uchun foydalanuvchi nomini yozing:", deleteBtn: "O'chirish", addUser: "Yangi foydalanuvchi",
   loginTitle: "Xush kelibsiz", loginSub: "RenoFlow tizimiga kiring", username: "Nickname", password: "Parol",
     enterUsername: "Nickname kiriting", signIn: "Kirish →", signingIn: "Kirilmoqda...",
@@ -1315,7 +1318,7 @@ ru: {
   warehouses: "Склады", analytics: "Аналитика", intake: "Скан-приход", settings: "Настройки", users: "Пользователи",
     darkMode: "Темная тема", lightMode: "Светлая", logout: "Выйти", createWh: "Создать склад", save: "Сохранить",
       cancel: "Отмена", search: "Поиск...", items: "Товары", moneytypes: "Валюты", units: "Единицы",
-        deleteUser: "Удалить", deleteConfirmText: (name: string) => `Удалить "${name}"?`,
+        deleteUser: "Удалить", deleteConfirmText: (name: any) => `Удалить "${name}"?`,
           deleteConfirmLabel: "Введите имя для подтверждения:", deleteBtn: "Удалить", addUser: "Новый пользователь",
             loginTitle: "С возвращением", loginSub: "Войти в RenoFlow", username: "Никнейм", password: "Пароль",
               enterUsername: "Введите никнейм", signIn: "Войти →", signingIn: "Вход...",
@@ -1356,7 +1359,7 @@ tr: {
                                 view: "Görüntüle", details: "Detaylar", value: "Değer", itemsInStock: "Stokta", low: "az",
                                   addWhDesc: "Yeni depo oluşturun.",
                                     mainSec: "Ana Menü", refSec: "Referanslar", analytSec: "Analizler", mgmtSec: "Yönetim",
-                                      profileAcc: "Profil ve Hesap", designColor: "Tasarım ayarları",
+                                      profileAcc: "Profil ve Hesap", designColor: "Tasarım ayarlar",
                                         notifSettings: "Bildirimler", secPrivacy: "Güvenlik ve Gizlilik",
                                           regionalSett: "Bölgesel Ayarlar", dangerZone: "Tehlikeli Bölge", config: "Konfigürasyon",
                                             qty: "Miktar", price: "Fiyat", currency: "Para Birimi", unit: "Birim",
@@ -1524,14 +1527,30 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
     } catch (err) { console.warn("Chat fetch error:", err); }
   }, [currentUser.username]);
 
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const res = await authAPI.getUnreadCount();
+      if (res && typeof res.count === "number") setNotifCount(res.count);
+    } catch { }
+  }, []);
+
+  useEffect(() => {
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 8000);
+    return () => clearInterval(interval);
+  }, [fetchUnreadCount]);
+
   useEffect(() => {
     if (chatUser) {
       setMessages([]);
       fetchMessages(chatUser.id, chatUser.username);
+      // Mark as read when opening chat
+      authAPI.markMessagesAsRead({ receiver_id: chatUser.id }).then(() => fetchUnreadCount());
+
       const interval = setInterval(() => fetchMessages(chatUser.id, chatUser.username), 4000);
       return () => clearInterval(interval);
     }
-  }, [chatUser, fetchMessages]);
+  }, [chatUser, fetchMessages, fetchUnreadCount]);
 
   const sendMessage = async (text: string) => {
     try {
@@ -3058,4 +3077,3 @@ export default function App() {
     />
   );
 }
-bx: "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0-4 1.73l7 4a2 2 0 0 0 2 0l7-4A
