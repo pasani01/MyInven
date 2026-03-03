@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 /* ═══════════════════ BASE URL ═══════════════════ */
 const BASE = "https://myinven-production.up.railway.app";
@@ -100,6 +100,8 @@ const authAPI = {
   // Chat API - using /messages/ endpoints per Swagger schema
   getMessages: () => api("/user_app/messages/"),
   sendDirectMessage: (receiver_id: number, text: string) => api("/user_app/messages/direct-message/", "POST", { receiver_id, text }),
+  // send a single file (image/video/any) along with optional text; body should be FormData
+  sendDirectMessageForm: (formData: FormData) => api("/user_app/messages/direct-message/", "POST", formData),
   deleteMessage: (id: number) => api(`/user_app/messages/${id}/`, "DELETE"),
 };
 
@@ -1223,6 +1225,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
         text: m.text,
         time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         is_read: m.is_read,
+        attachment: m.attachment || null,
       })));
     } catch (err) {
       console.warn("Chat fetch error:", err);
@@ -1238,17 +1241,25 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
     }
   }, [chatUser, fetchMessages]);
 
-  const sendMessage = async (text: string) => {
+  // payload can be a string (plain text) or a FormData object containing attachment and other fields
+  const sendMessage = async (payload: string | FormData) => {
     try {
-      const res = await authAPI.sendDirectMessage(chatUser.id, text);
-      const newMsg = {
+      let res: any;
+      if (payload instanceof FormData) {
+        // assume caller already appended receiver_id & text if any
+        res = await authAPI.sendDirectMessageForm(payload);
+      } else {
+        res = await authAPI.sendDirectMessage(chatUser.id, payload);
+      }
+      const newMsg: any = {
         id: res.id,
         sender: currentUser.username,
-        text: res.text || text,
+        text: res.text || (typeof payload === 'string' ? payload : ""),
         time: res.created_at
           ? new Date(res.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         is_read: false,
+        attachment: res.attachment || null,
       };
       setMessages(prev => [...prev, newMsg]);
       setNotifCount(prev => prev + 1);
@@ -3185,6 +3196,7 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
 /* ═══════════════════ CHAT WINDOW ═══════════════════ */
 function ChatWindow({ targetUser, currentUser, messages, onSendMessage, onClose }: any) {
   const [text, setText] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useEffect(() => {
     const el = document.getElementById("chat-body");
     if (el) el.scrollTop = el.scrollHeight;
@@ -3194,6 +3206,25 @@ function ChatWindow({ targetUser, currentUser, messages, onSendMessage, onClose 
     if (!text.trim()) return;
     onSendMessage(text);
     setText("");
+  };
+
+  const handlePlusClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length) {
+      Array.from(files).forEach(file => {
+        const form = new FormData();
+        form.append('receiver_id', targetUser.id.toString());
+        if (text.trim()) form.append('text', text.trim());
+        form.append('attachment', file);
+        onSendMessage(form);
+      });
+      setText("");
+    }
+    e.target.value = '';
   };
 
   return (
@@ -3217,16 +3248,37 @@ function ChatWindow({ targetUser, currentUser, messages, onSendMessage, onClose 
           const isMe = m.sender === currentUser.username;
           return (
             <div key={i} className={`msg-wrap ${isMe ? "msg-me" : "msg-them"}`}>
-              <div className="msg">{m.text}</div>
+              <div className="msg">
+                {m.text}
+                {m.attachment && (
+                  <>
+                    {m.attachment.match(/\.(jpe?g|png|gif|bmp|webp)$/i) ? (
+                      <img src={m.attachment} style={{ maxWidth: 200, display: 'block', marginTop: 8 }} />
+                    ) : (
+                      <a href={m.attachment} target="_blank" rel="noreferrer">
+                        {m.attachment.split('/').pop()}
+                      </a>
+                    )}
+                  </>
+                )}
+              </div>
               <span className="msg-time">{m.time}</span>
             </div>
           );
         })}
       </div>
       <div className="chat-footer">
-        <button className="ib" style={{ width: 34, height: 34, borderRadius: "50%", border: "none" }}>
+        <button className="ib" style={{ width: 34, height: 34, borderRadius: "50%", border: "none" }} onClick={handlePlusClick}>
           <I n="pl" s={16} />
         </button>
+        <input
+          type="file"
+          ref={fileInputRef}
+          style={{ display: 'none' }}
+          accept="image/*,video/*,*/*"
+          multiple
+          onChange={handleFileChange}
+        />
         <input
           className="chat-input"
           placeholder="Yozing..."
