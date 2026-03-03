@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 /* ═══════════════════ BASE URL ═══════════════════ */
 // base API/host URL (used also for building absolute URLs for media)
@@ -703,7 +703,7 @@ table{min-width:600px}
   .itn{font-size:12px}
   .sv{font-size:18px}
 }
-@media (min-width:1200px){
+@media (min-width:769px){
   .toast-close{background:none;border:none;color:inherit;opacity:.6;cursor:pointer;font-size:18px;line-height:1;margin-left:10px}
   .toast-close:hover{opacity:1}
   .notif-badge{position:absolute;top:-5px;right:-5px;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 5px;border-radius:10px;border:2px solid var(--surface);min-width:18px;text-align:center;z-index:2}
@@ -802,8 +802,8 @@ table{min-width:600px}
       right: 0; 
       left: 0; 
       width: 100vw; 
-      height: 100dvh; 
-      max-height: 100dvh; 
+      height: 50vh; 
+      max-height: 50vh; 
       border-radius: 0; 
       z-index: 3000; 
     }
@@ -1274,25 +1274,17 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
     }
   }, [chatUser, fetchMessages]);
 
-  // payload can be a string (plain text) or a FormData object containing attachment and other fields
-  const sendMessage = async (payload: string | FormData) => {
+  const sendMessage = async (text: string) => {
     try {
-      let res: any;
-      if (payload instanceof FormData) {
-        // assume caller already appended receiver_id & text if any
-        res = await authAPI.sendDirectMessageForm(payload);
-      } else {
-        res = await authAPI.sendDirectMessage(chatUser.id, payload);
-      }
-      const newMsg: any = {
+      const res = await authAPI.sendDirectMessage(chatUser.id, text);
+      const newMsg = {
         id: res.id,
         sender: currentUser.username,
-        text: res.text || (typeof payload === 'string' ? payload : ""),
+        text: res.text || text,
         time: res.created_at
           ? new Date(res.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         is_read: false,
-        attachment: res.attachment || null,
       };
       setMessages(prev => [...prev, newMsg]);
       setNotifCount(prev => prev + 1);
@@ -3251,7 +3243,6 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
 /* ═══════════════════ CHAT WINDOW ═══════════════════ */
 function ChatWindow({ targetUser, currentUser, messages, onSendMessage, onClose }: any) {
   const [text, setText] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useEffect(() => {
     const el = document.getElementById("chat-body");
     if (el) el.scrollTop = el.scrollHeight;
@@ -3261,25 +3252,6 @@ function ChatWindow({ targetUser, currentUser, messages, onSendMessage, onClose 
     if (!text.trim()) return;
     onSendMessage(text);
     setText("");
-  };
-
-  const handlePlusClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length) {
-      Array.from(files).forEach(file => {
-        const form = new FormData();
-        form.append('receiver_id', targetUser.id.toString());
-        if (text.trim()) form.append('text', text.trim());
-        form.append('attachment', file);
-        onSendMessage(form);
-      });
-      setText("");
-    }
-    e.target.value = '';
   };
 
   return (
@@ -3332,17 +3304,6 @@ function ChatWindow({ targetUser, currentUser, messages, onSendMessage, onClose 
         })}
       </div>
       <div className="chat-footer">
-        <button className="ib" style={{ width: 34, height: 34, borderRadius: "50%", border: "none" }} onClick={handlePlusClick}>
-          <I n="pl" s={16} />
-        </button>
-        <input
-          type="file"
-          ref={fileInputRef}
-          style={{ display: 'none' }}
-          accept="image/*,video/*,*/*"
-          multiple
-          onChange={handleFileChange}
-        />
         <input
           className="chat-input"
           placeholder="Yozing..."
