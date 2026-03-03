@@ -5,15 +5,20 @@ Django settings for config project.
 from pathlib import Path
 import os
 import dj_database_url
-from dotenv import load_dotenv
 
-load_dotenv()
+# Local geliştirmede .env dosyasını yükler, Railway'de gerek yok (Variables otomatik inject edilir)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ─── SECURITY ─────────────────────────────────────────────────────────────────
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-xzu263x@(fli#sl^_b7(lqz^k!=s8g4fx@#(!53z29=b^u9hh&')
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+FIELD_ENCRYPTION_KEY = os.environ.get('FIELD_ENCRYPTION_KEY')
 ALLOWED_HOSTS = ['*']
 
 # ─── APPS ─────────────────────────────────────────────────────────────────────
@@ -71,7 +76,7 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
 }
-FIELD_ENCRYPTION_KEY = os.environ.get('FIELD_ENCRYPTION_KEY')
+
 # ─── DATABASE ─────────────────────────────────────────────────────────────────
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
@@ -150,6 +155,6 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'nasirdin520@gmail.com'
-EMAIL_HOST_PASSWORD = 'jqyybsuujwbufnue'  # Gmail App Password
+EMAIL_HOST_PASSWORD = 'dsadasdasdasdasdsadsa'  # Gmail App Password
 DEFAULT_FROM_EMAIL = 'nasirdin520@gmail.com'
-FRONTEND_URL = 'http://localhost:3000'  
+FRONTEND_URL = 'http://localhost:3000'
