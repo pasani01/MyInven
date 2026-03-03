@@ -1,29 +1,21 @@
 import { useState, useEffect, useCallback } from "react";
 
 /* ═══════════════════ BASE URL ═══════════════════ */
-// base API/host URL (used also for building absolute URLs for media)
 const BASE = "https://myinven-production.up.railway.app";
 
-// branding constants
 const BRAND = {
   name: "My<span>Inventory</span>",
   subtitle: "Warehouse Management",
-  logoPath: "/logo.png" // put your custom logo in public/logo.png
+  logoPath: "/logo.png"
 };
-
 
 /* ═══════════════════ AUTH TOKEN ═══════════════════ */
 function setToken(token: string | null) {
-  if (token) {
-    localStorage.setItem("token", token);
-  } else {
-    localStorage.removeItem("token");
-  }
+  if (token) localStorage.setItem("token", token);
+  else localStorage.removeItem("token");
 }
+function getToken() { return localStorage.getItem("token"); }
 
-function getToken() {
-  return localStorage.getItem("token");
-}
 function getCookie(name: string): string | null {
   let cookieValue = null;
   if (document.cookie && document.cookie !== "") {
@@ -40,60 +32,37 @@ function getCookie(name: string): string | null {
 }
 
 async function api(path: string, method: string = "GET", body: any = null) {
-  const headers: Record<string, string> = {
-    "Accept": "application/json"
-  };
-  if (body instanceof FormData) {
-    // browser will set multipart/form-data with boundary
-  } else if (method !== "GET" && method !== "DELETE") {
+  const headers: Record<string, string> = { "Accept": "application/json" };
+  if (!(body instanceof FormData) && method !== "GET" && method !== "DELETE") {
     headers["Content-Type"] = "application/json";
   }
-
   const token = getToken();
-  if (token) {
-    headers["Authorization"] = `Token ${token}`;
-  }
-
+  if (token) headers["Authorization"] = `Token ${token}`;
   const csrfToken = getCookie("csrftoken");
-  if (csrfToken) {
-    headers["X-CSRFToken"] = csrfToken;
-  }
+  if (csrfToken) headers["X-CSRFToken"] = csrfToken;
 
   const opts: { method: string; headers: Record<string, string>; credentials: RequestCredentials; body?: any } = {
-    method,
-    headers,
-    credentials: "include" as RequestCredentials,
+    method, headers, credentials: "include" as RequestCredentials,
   };
-
   if (body && (method === "POST" || method === "PUT" || method === "PATCH")) {
     opts.body = (body instanceof FormData) ? body : JSON.stringify(body);
   }
-
   try {
     const res = await fetch(`${BASE}${path}`, opts);
-
-    if (res.status === 401) {
-      console.warn("Oturum geçersiz, token temizlendi.");
-      setToken(null);
-    }
-
+    if (res.status === 401) { console.warn("Token invalid"); setToken(null); }
     const data = await res.json().catch(() => ({}));
-
     if (!res.ok) {
       const msg = data?.detail || data?.non_field_errors?.[0]
         || Object.values(data).flat().join(", ") || `Hata: ${res.status}`;
       throw Object.assign(new Error(msg), { data, status: res.status });
     }
-
     return data;
-  } catch (err) {
-    console.error("API Hatası:", err);
-    throw err;
-  }
+  } catch (err) { console.error("API Error:", err); throw err; }
 }
 
 const authAPI = {
-  login: (companyToken: string, username: string, password: string) => api(`/user_app/${companyToken}/login/`, "POST", { username, password }),
+  login: (companyToken: string, username: string, password: string) =>
+    api(`/user_app/${companyToken}/login/`, "POST", { username, password }),
   logout: () => api("/user_app/logout/", "POST"),
   users: () => api("/user_app/users/"),
   getUser: (id: number | string) => api(`/user_app/users/${id}/`),
@@ -105,11 +74,11 @@ const authAPI = {
   updateCompany: (id: number | string, data: any) => api(`/user_app/companies/${id}/`, "PUT", data),
   deleteCompany: (id: number | string) => api(`/user_app/companies/${id}/`, "DELETE"),
   changePassword: (data: any) => api("/user_app/users/change-password/", "POST", data),
-  // Chat API - using /messages/ endpoints per Swagger schema
   getMessages: () => api("/user_app/messages/"),
-  sendDirectMessage: (receiver_id: number, text: string) => api("/user_app/messages/direct-message/", "POST", { receiver_id, text }),
-  // send a single file (image/video/any) along with optional text; body should be FormData
-  sendDirectMessageForm: (formData: FormData) => api("/user_app/messages/direct-message/", "POST", formData),
+  sendDirectMessage: (receiver_id: number, text: string) =>
+    api("/user_app/messages/direct-message/", "POST", { receiver_id, text }),
+  sendDirectMessageForm: (formData: FormData) =>
+    api("/user_app/messages/direct-message/", "POST", formData),
   deleteMessage: (id: number) => api(`/user_app/messages/${id}/`, "DELETE"),
 };
 
@@ -120,7 +89,6 @@ const depolarAPI = {
   patch: (id: number | string, data: any) => api(`/depolar/${id}/`, "PATCH", data),
   delete: (id: number | string) => api(`/depolar/${id}/`, "DELETE"),
 };
-
 const buylistAPI = {
   list: () => api("/buylist/"),
   create: (data: any) => api("/buylist/", "POST", data),
@@ -129,20 +97,17 @@ const buylistAPI = {
   delete: (id: number | string) => api(`/buylist/${id}/`, "DELETE"),
   totalPrice: () => api("/buylist/total_price/"),
 };
-
 const itemlerAPI = {
   list: () => api("/itemler/"),
   create: (data: any) => api("/itemler/", "POST", data),
   update: (id: number | string, data: any) => api(`/itemler/${id}/`, "PUT", data),
   delete: (id: number | string) => api(`/itemler/${id}/`, "DELETE"),
 };
-
 const moneytypesAPI = {
   list: () => api("/moneytypes/"),
   create: (data: any) => api("/moneytypes/", "POST", data),
   delete: (id: number | string) => api(`/moneytypes/${id}/`, "DELETE"),
 };
-
 const unitlerAPI = {
   list: () => api("/unitler/"),
   create: (data: any) => api("/unitler/", "POST", data),
@@ -154,85 +119,50 @@ function normalizeDepolar(d: any, idx: number = 0) {
   const WC = ["bl", "or", "pu"];
   const IC = ["wh", "bx", "tr"];
   return {
-    id: d.id,
-    name: d.name ?? d.nomi ?? "Warehouse",
+    id: d.id, name: d.name ?? d.nomi ?? "Warehouse",
     addr: d.address ?? d.manzil ?? d.addr ?? "—",
     manager: d.manager ?? d.menejer ?? "—",
     phone: d.phone ?? d.telefon ?? "—",
-    capacity: d.capacity ?? "—",
-    type: d.type ?? d.turi ?? "General",
+    capacity: d.capacity ?? "—", type: d.type ?? d.turi ?? "General",
     since: d.since ?? d.created_at?.slice(0, 10) ?? "—",
     items: d.items_count ?? d.items ?? 0,
     usd: d.usd_value ? `$${d.usd_value}` : (d.usd ?? "$0"),
-    som: d.som_value ?? d.som ?? "0",
-    used: d.used_percent ?? d.used ?? 0,
+    som: d.som_value ?? d.som ?? "0", used: d.used_percent ?? d.used ?? 0,
     wc: WC[idx % 3], ic: IC[idx % 3], _raw: d,
   };
 }
-
 function normalizeItem(item: any) {
-  return {
-    id: item.id,
-    name: item.name ?? item.nomi ?? item.mahsulot ?? `Item #${item.id}`,
-    _raw: item,
-  };
+  return { id: item.id, name: item.name ?? item.nomi ?? item.mahsulot ?? `Item #${item.id}`, _raw: item };
 }
-
 function normalizeMoneytype(m: any) {
   const name = m.name ?? m.type ?? m.nomi ?? m.valyuta ?? `MT #${m.id}`;
-  return {
-    id: m.id,
-    name,
-    code: m.code ?? m.kod ?? name ?? "USD",
-    _raw: m,
-  };
+  return { id: m.id, name, code: m.code ?? m.kod ?? name ?? "USD", _raw: m };
 }
-
 function normalizeUnit(u: any) {
-  return {
-    id: u.id,
-    name: u.name ?? u.unit ?? u.nomi ?? u.birlik ?? `Unit #${u.id}`,
-    _raw: u,
-  };
+  return { id: u.id, name: u.name ?? u.unit ?? u.nomi ?? u.birlik ?? `Unit #${u.id}`, _raw: u };
 }
-
 function normalizeBuylist(b: any, itemler: any[] = [], moneytypes: any[] = [], unitler: any[] = []) {
   const itemId = typeof b.item === "object" ? b.item?.id : (b.item ?? null);
   const itemName = typeof b.item === "object"
     ? (b.item?.name ?? b.item?.nomi)
     : (itemler.find((i: any) => i.id === itemId)?.name ?? `Item #${itemId}`);
-
   const moneytypeId = typeof b.moneytype === "object" ? b.moneytype?.id : (b.moneytype ?? null);
   const moneytypeName = typeof b.moneytype === "object"
     ? (b.moneytype?.name ?? b.moneytype?.type)
     : (moneytypes.find((m: any) => m.id === moneytypeId)?.name ?? "USD");
-
   const unitId = typeof b.unit === "object" ? b.unit?.id : (b.unit ?? null);
   const unitName = typeof b.unit === "object"
     ? (b.unit?.name ?? b.unit?.unit)
     : (unitler.find((u: any) => u.id === unitId)?.name ?? "pcs");
-
   const depolarId = typeof b.depolar === "object" ? b.depolar?.id : (b.depolar ?? null);
-
   const qty = Number(b.qty ?? b.item_count ?? 0);
   const price = String(b.narx ?? b.item_price ?? "0");
   const total = String((qty * parseFloat(price.replace(/,/g, "") || "0")).toFixed(2));
-
   return {
-    id: b.id,
-    name: itemName,
-    itemId,
-    moneytypeId,
-    moneytypeName,
-    unitId,
-    unitName,
-    depolarId,
-    qty,
-    price,
-    total,
+    id: b.id, name: itemName, itemId, moneytypeId, moneytypeName,
+    unitId, unitName, depolarId, qty, price, total,
     date: b.date ?? b.created_at?.slice(0, 10) ?? new Date().toLocaleDateString(),
-    low: b.low_stock ?? b.low ?? qty < 20,
-    _raw: b,
+    low: b.low_stock ?? b.low ?? qty < 20, _raw: b,
   };
 }
 
@@ -272,10 +202,7 @@ html,body{font-family:'DM Sans',-apple-system,sans-serif;background:var(--bg);co
 .auth-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px;position:relative;overflow:hidden}
 .auth-bg-blob{position:fixed;border-radius:50%;filter:blur(80px);opacity:.35;pointer-events:none;z-index:0}
 .auth-card{position:relative;z-index:1;display:grid;grid-template-columns:1fr 1fr;width:100%;max-width:900px;min-height:560px;background:var(--surface);border:1px solid var(--border);border-radius:22px;box-shadow:0 32px 100px rgba(37,99,235,.13),0 4px 24px rgba(0,0,0,.07);overflow:hidden}
-  @media (max-width: 800px) {
-    .auth-card { grid-template-columns:1fr; max-width: 100%; min-height: auto; }
-    .auth-hero { display: none; }
-  }
+@media(max-width:800px){.auth-card{grid-template-columns:1fr;max-width:100%;min-height:auto}.auth-hero{display:none}}
 .auth-panel{padding:44px 48px;display:flex;flex-direction:column;justify-content:center}
 .auth-hero{position:relative;background:linear-gradient(135deg,${accent} 0%,#7c3aed 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:44px;overflow:hidden}
 .auth-hero-glow{position:absolute;border-radius:50%;background:rgba(255,255,255,.12);pointer-events:none}
@@ -459,7 +386,7 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
 .intake-layout{display:grid;grid-template-columns:420px 1fr;gap:20px;align-items:start}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
 .card-h{background:var(--surface2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between}
-@media (max-width:1024px){.intake-layout{grid-template-columns:1fr}}
+@media(max-width:1024px){.intake-layout{grid-template-columns:1fr}}
 @keyframes slideUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
 .modal-header{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .modal-title{font-size:16px;font-weight:800;color:var(--text)}
@@ -568,403 +495,283 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
 .ph-r{display:flex;gap:10px;align-items:center;flex-wrap:wrap;max-width:100%}
 .wdh-top{display:flex;align-items:flex-end;gap:18px;width:100%;position:relative;z-index:1;flex-wrap:wrap}
 
-/* ═══════════════════ BUYLIST INLINE ADD FORM - RESPONSIVE ═══════════════════ */
-.bl-add-wrapper {
-  padding: 14px;
-  border-bottom: 1px solid var(--border);
-  background: var(--blue-l);
-  min-width: 600px;
-}
-@media (max-width: 600px) {
-  .bl-add-wrapper { min-width: 100%; }
-}
+/* ═══ BUYLIST INLINE ADD FORM ═══ */
+.bl-add-wrapper{padding:14px;border-bottom:1px solid var(--border);background:var(--blue-l);min-width:600px}
+@media(max-width:600px){.bl-add-wrapper{min-width:100%}}
+.bl-add-row{display:grid;grid-template-columns:1.5fr 90px 110px 90px 130px auto;gap:10px;align-items:flex-end}
+@media(max-width:900px){.bl-add-row{grid-template-columns:1fr 1fr 1fr;gap:8px}.bl-add-row .bl-add-btn{grid-column:1/-1;justify-content:center;width:100%}}
+@media(max-width:600px){.bl-add-row{grid-template-columns:1fr 1fr;gap:8px}.bl-add-row .bl-add-item{grid-column:1/-1}.bl-add-row .bl-add-btn{grid-column:1/-1;justify-content:center;width:100%}}
 
-.bl-add-row{
-  display:grid;
-  grid-template-columns:1.5fr 90px 110px 90px 130px auto;
-  gap:10px;
-  align-items:flex-end;
-}
-@media(max-width:900px){
-  .bl-add-row{
-    grid-template-columns:1fr 1fr 1fr;
-    gap:8px;
-  }
-  .bl-add-row .bl-add-btn{
-    grid-column:1/-1;
-    justify-content:center;
-    width:100%;
-  }
-}
-@media(max-width:600px){
-  .bl-add-row{
-    grid-template-columns:1fr 1fr;
-    gap:8px;
-  }
-  .bl-add-row .bl-add-item{
-    grid-column:1/-1;
-  }
-  .bl-add-row .bl-add-btn{
-    grid-column:1/-1;
-    justify-content:center;
-    width:100%;
-  }
-}
+@media(max-width:640px){.ph{flex-direction:column;align-items:stretch;gap:15px}.ph-r{flex-direction:column;align-items:stretch;gap:8px}.ph-r .sw-wrap{width:100%!important}.ph-r .btn{width:100%;justify-content:center}.wdh-top{flex-direction:column;align-items:stretch;gap:12px}.wdh-top .btn{width:100%;justify-content:center}}
 
-@media (max-width:640px){
-  .ph{flex-direction:column;align-items:stretch;gap:15px}
-  .ph-r{flex-direction:column;align-items:stretch;gap:8px}
-  .ph-r .sw-wrap{width:100%!important}
-  .ph-r .btn{width:100%;justify-content:center}
-  .wdh-top{flex-direction:column;align-items:stretch;gap:12px}
-  .wdh-top .btn{width:100%;justify-content:center}
-}
-
-/* ═══════════════════ RESPONSIVE ═══════════════════ */
-@media (max-width:920px){
-  .settings-layout{grid-template-columns:1fr}
-  .settings-nav{position:static;display:flex;overflow-x:auto;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border)}
-  .settings-nav-item{border-left:none;border-bottom:3px solid transparent;white-space:nowrap}
-  .settings-nav-item.active{border-bottom-color:var(--blue)}
-  .wdh-body{grid-template-columns:1fr 1fr;gap:12px}
-  .wdh-stat{border:none;padding:10px}
-}
-
-@media (max-width:768px){
-  :root{--sw:0px}
-  .sidebar{transform:translateX(-100%);transition:transform .3s cubic-bezier(0.4, 0, 0.2, 1);width:260px;box-shadow:20px 0 50px rgba(0,0,0,.15)}
-  .sidebar.open{transform:translateX(0)}
-  .main{margin-left:0}
-  .topbar{padding:0 12px;height:52px}
-  .content{padding:14px}
-  .auth-card{grid-template-columns:1fr;min-height:auto}
-  .auth-hero{display:none}
-  .sg{grid-template-columns:1fr 1fr;gap:10px}
-  .sg3,.sg2{grid-template-columns:1fr;gap:10px}
-  .detail-grid,.rep-grid{grid-template-columns:1fr;gap:12px}
-  
-  /* ✅ FIX 1: Safely stack banner and stats on mobile instead of overlapping */
-  .wdh-banner{height:auto;min-height:80px;padding:16px 16px 24px}
-  .wdh-icon{width:40px;height:40px}
-  .wdh-title{font-size:17px}
-  
-  /* ✅ FIX 2: Remove negative margin on mobile to prevent stack overlaps */
-  .wdh-body{grid-template-columns:1fr 1fr;padding:10px;margin:12px 8px 0!important;gap:8px}
-  .wdh-stat{padding:8px}
-  .wdh-stat:not(:last-child){border-right:none;border-bottom:1px solid var(--border)}
-  .wdh-stat-v{font-size:18px}
-  
-  .form-row{grid-template-columns:1fr;gap:10px}
-  .mobile-toggle{display:flex!important;width:34px;height:34px;margin-right:8px}
-  .mobile-toggle svg{width:18px;height:18px}
-  
-  .modal{max-width:100%;margin:0;width:100%;border-radius:20px 20px 0 0;position:fixed;bottom:0}
-  .modal-backdrop{align-items:flex-end;padding:0}
-  .modal-header{padding:14px 18px}
-  .modal-body{padding:18px}
-  .modal-footer{padding:12px 18px}
-  
-  .footer{flex-direction:column;gap:10px;padding:12px 16px;text-align:center}
-  .fh,.fl{justify-content:center}
-  .ht{font-size:10px;padding:3px 6px}
-}
-
-@media (max-width:480px){
-  .sg{grid-template-columns:1fr}
-  .content{padding:10px}
-  .tb-r .btn{padding:6px 10px;font-size:12px}
-  .tb-r .btn span{display:none}
-  .ph-l h1{font-size:18px!important}
-  .ph-l p{font-size:11px!important}
-  .sv{font-size:18px}
-  .sc{padding:12px 14px}
-  .ti{font-size:11px}
-  .pb{width:28px;height:28px;font-size:12px}
-  .wg{grid-template-columns:1fr}
-  
-  /* ✅ FIX 3: wdh-body single column on very small screens */
-  .wdh-body{grid-template-columns:1fr!important;margin:10px 6px 0!important;padding:8px}
-  .wdh-banner{padding:12px 12px 20px}
-  .wdh-stat:not(:last-child){border-right:none;border-bottom:1px solid var(--border)}
-}
-
-.mobile-toggle{display:none;width:40px;height:40px;align-items:center;justify-content:center;color:var(--text);cursor:pointer;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;margin-right:8px;transition:all .2s cubic-bezier(0.4, 0, 0.2, 1);box-shadow:var(--sh);position:relative;z-index:20}
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:920px){.settings-layout{grid-template-columns:1fr}.settings-nav{position:static;display:flex;overflow-x:auto;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border)}.settings-nav-item{border-left:none;border-bottom:3px solid transparent;white-space:nowrap}.settings-nav-item.active{border-bottom-color:var(--blue)}.wdh-body{grid-template-columns:1fr 1fr;gap:12px}.wdh-stat{border:none;padding:10px}}
+@media(max-width:768px){:root{--sw:0px}.sidebar{transform:translateX(-100%);transition:transform .3s cubic-bezier(0.4,0,0.2,1);width:260px;box-shadow:20px 0 50px rgba(0,0,0,.15)}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.topbar{padding:0 12px;height:52px}.content{padding:14px}.auth-card{grid-template-columns:1fr;min-height:auto}.auth-hero{display:none}.sg{grid-template-columns:1fr 1fr;gap:10px}.sg3,.sg2{grid-template-columns:1fr;gap:10px}.detail-grid,.rep-grid{grid-template-columns:1fr;gap:12px}.wdh-banner{height:auto;min-height:80px;padding:16px 16px 24px}.wdh-icon{width:40px;height:40px}.wdh-title{font-size:17px}.wdh-body{grid-template-columns:1fr 1fr;padding:10px;margin:12px 8px 0!important;gap:8px}.wdh-stat{padding:8px}.wdh-stat:not(:last-child){border-right:none;border-bottom:1px solid var(--border)}.wdh-stat-v{font-size:18px}.form-row{grid-template-columns:1fr;gap:10px}.mobile-toggle{display:flex!important;width:34px;height:34px;margin-right:8px}.mobile-toggle svg{width:18px;height:18px}.modal{max-width:100%;margin:0;width:100%;border-radius:20px 20px 0 0;position:fixed;bottom:0}.modal-backdrop{align-items:flex-end;padding:0}.modal-header{padding:14px 18px}.modal-body{padding:18px}.modal-footer{padding:12px 18px}.footer{flex-direction:column;gap:10px;padding:12px 16px;text-align:center}.fh,.fl{justify-content:center}.ht{font-size:10px;padding:3px 6px}}
+@media(max-width:480px){.sg{grid-template-columns:1fr}.content{padding:10px}.tb-r .btn{padding:6px 10px;font-size:12px}.tb-r .btn span{display:none}.ph-l h1{font-size:18px!important}.ph-l p{font-size:11px!important}.sv{font-size:18px}.sc{padding:12px 14px}.ti{font-size:11px}.pb{width:28px;height:28px;font-size:12px}.wg{grid-template-columns:1fr}.wdh-body{grid-template-columns:1fr!important;margin:10px 6px 0!important;padding:8px}.wdh-banner{padding:12px 12px 20px}.wdh-stat:not(:last-child){border-right:none;border-bottom:1px solid var(--border)}}
+.mobile-toggle{display:none;width:40px;height:40px;align-items:center;justify-content:center;color:var(--text);cursor:pointer;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;margin-right:8px;transition:all .2s cubic-bezier(0.4,0,0.2,1);box-shadow:var(--sh);position:relative;z-index:20}
 .mobile-toggle:hover{border-color:var(--blue);color:var(--blue);transform:scale(1.05);background:var(--blue-l)}
 .mobile-toggle:active{transform:scale(0.95)}
-
 .sidebar-backdrop{position:fixed;inset:0;background:rgba(15,23,42,0.4);backdrop-filter:blur(8px);z-index:90;animation:fadeIn .3s ease;display:block}
-
 .app{overflow-x:hidden;width:100%}
 img,svg{max-width:100%}
 table{min-width:600px}
-@media (max-width:600px){
-  table{min-width:100%}
-  th,td{padding:8px 10px;font-size:12px}
-  .itn{font-size:12px}
-  .sv{font-size:18px}
+@media(max-width:600px){table{min-width:100%}th,td{padding:8px 10px;font-size:12px}.itn{font-size:12px}.sv{font-size:18px}}
+
+/* ═══════════════════ CHAT STYLES ═══════════════════ */
+.chat-mobile-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2999;
+  animation: fadeIn .22s ease;
 }
-@media (min-width:769px){
-  .toast-close{background:none;border:none;color:inherit;opacity:.6;cursor:pointer;font-size:18px;line-height:1;margin-left:10px}
-  .toast-close:hover{opacity:1}
-  .notif-badge{position:absolute;top:-5px;right:-5px;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 5px;border-radius:10px;border:2px solid var(--surface);min-width:18px;text-align:center;z-index:2}
-  
-  /* ═══════════════════ CHAT STYLES ═══════════════════ */
-  .chat-panel {
-    position: fixed;
-    bottom: 0;
-    right: 320px;
-    width: 380px;
-    height: 520px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px 12px 0 0;
-    box-shadow: var(--sh3);
-    z-index: 2000;
-    display: flex;
-    flex-direction: column;
-    animation: chatSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  @keyframes chatSlideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-  .chat-header {
-    padding: 12px 16px;
-    background: #1e293b;
-    color: #fff;
-    border-radius: 12px 12px 0 0;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-  }
-  .chat-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 16px;
-    background: var(--bg);
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .msg-wrap { display: flex; flex-direction: column; gap: 4px; max-width: 85%; }
-  .msg-me { align-self: flex-end; }
-  .msg-them { align-self: flex-start; }
-  .msg {
-    padding: 10px 14px;
-    border-radius: 16px;
-    font-size: 14px;
-    line-height: 1.5;
-    position: relative;
-    box-shadow: 0 1px 2px rgba(0,0,0,.05);
-  }
-  .msg-me .msg { background: #7c3aed; color: #fff; border-bottom-right-radius: 4px; }
-  .msg-them .msg { background: var(--surface); color: var(--text); border-bottom-left-radius: 4px; border: 1px solid var(--border); }
-  .msg-time { font-size: 10px; color: var(--text4); margin-top: 2px; display: block; }
-  .msg-me .msg-time { color: rgba(255,255,255,0.7); text-align: right; }
-  
-  .chat-footer { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 10px; background: var(--surface); align-items: center; }
-  .chat-input { 
-    flex: 1; 
-    border: 1.5px solid var(--border2); 
-    border-radius: 24px; 
-    padding: 10px 18px; 
-    font-family: inherit; 
-    font-size: 14px; 
-    outline: none; 
-    transition: all .2s; 
-    background: var(--bg2); 
-    color: var(--text);
-  }
-  .chat-input:focus { 
-    border-color: #7c3aed; 
-    background: var(--surface); 
-    color: #7c3aed; 
-    font-weight: 600;
-    box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.15);
-  }
-  .chat-send { 
-    width: 40px; 
-    height: 40px; 
-    border-radius: 50%; 
-    background: #1e293b; 
-    border: none; 
-    color: #fff; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    cursor: pointer; 
-    transition: all .2s; 
-    flex-shrink: 0;
-  }
-  .chat-send:hover { background: #334155; transform: scale(1.08) rotate(-10deg); }
-  .chat-send:active { transform: scale(0.92); }
-
-  @media (max-width: 768px) {
-    .chat-panel { 
-      right: 0; 
-      left: 0; 
-      width: 100vw; 
-      height: 50vh; 
-      max-height: 50vh; 
-      border-radius: 0; 
-      z-index: 3000; 
-    }
-    .chat-header { border-radius: 0; height: 64px; padding: 0 20px; }
-    .chat-footer { padding: 16px 20px 30px; } /* Bottom safe area for mobile */
-  }
-
-  /* ═══════════════════ CHAT STYLES ═══════════════════ */
 .chat-panel {
   position: fixed;
   bottom: 0;
-  right: 24px;
-  width: 360px;
-  height: 500px;
+  right: 28px;
+  width: 368px;
+  height: 520px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px 14px 0 0;
-  box-shadow: var(--sh3);
-  z-index: 2000;
+  border-bottom: none;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -4px 40px rgba(0,0,0,0.18), 0 0 0 1px rgba(124,58,237,0.08);
+  z-index: 3000;
   display: flex;
   flex-direction: column;
-  animation: chatSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  animation: chatSlideUp .28s cubic-bezier(0.34,1.56,0.64,1);
 }
-@keyframes chatSlideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-
+@keyframes chatSlideUp {
+  from { opacity:0; transform:translateY(40px) scale(0.97); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
 .chat-header {
-  padding: 12px 16px;
-  background: #1e293b;
-  color: #fff;
-  border-radius: 14px 14px 0 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding: 0 14px;
+  height: 54px;
+  min-height: 54px;
+  background: linear-gradient(135deg,#1e293b 0%,#2d1b69 100%);
+  color: #fff;
   flex-shrink: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
 }
+.chat-header-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+}
+.chat-header-avatar {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.18);
+  border: 1.5px solid rgba(255,255,255,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800;
+  flex-shrink: 0;
+  letter-spacing: .02em;
+}
+.chat-header-name {
+  font-size: 13px; font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.chat-header-status {
+  font-size: 10px; opacity: 0.7; margin-top: 1px;
+  display: flex; align-items: center; gap: 4px;
+}
+.chat-online-dot {
+  width: 6px; height: 6px;
+  background: #4ade80; border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 4px #4ade80;
+}
+.chat-close-btn {
+  width: 30px; height: 30px;
+  border: none;
+  background: rgba(255,255,255,0.12);
+  border-radius: 8px;
+  color: rgba(255,255,255,0.85);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all .15s;
+}
+.chat-close-btn:hover { background: rgba(255,255,255,0.22); color:#fff; }
 .chat-body {
   flex: 1;
   overflow-y: auto;
-  padding: 14px;
+  overflow-x: hidden;
+  padding: 12px;
   background: var(--bg);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  -webkit-overflow-scrolling: touch;
 }
-.msg-wrap { display: flex; flex-direction: column; gap: 3px; max-width: 80%; }
-.msg-me { align-self: flex-end; }
+.chat-body::-webkit-scrollbar { width: 3px; }
+.chat-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+.chat-empty-state {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  color: var(--text4); gap: 10px;
+  padding: 30px 20px; text-align: center;
+  margin: auto;
+}
+.chat-empty-icon {
+  width: 48px; height: 48px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.chat-empty-text { font-size: 12px; font-weight: 600; color: var(--text3); }
+.chat-empty-sub  { font-size: 11px; color: var(--text4); margin-top: 2px; }
+.msg-wrap {
+  display: flex; flex-direction: column;
+  gap: 2px; max-width: 78%;
+}
+.msg-me   { align-self: flex-end; }
 .msg-them { align-self: flex-start; }
 .msg {
   padding: 9px 13px;
   border-radius: 14px;
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 13px; line-height: 1.55;
   word-break: break-word;
 }
-.msg-me .msg { background: #7c3aed; color: #fff; border-bottom-right-radius: 4px; }
-.msg-them .msg { background: var(--surface); color: var(--text); border-bottom-left-radius: 4px; border: 1px solid var(--border); }
-.msg-time { font-size: 10px; color: var(--text4); margin-top: 2px; display: block; }
-.msg-me .msg-time { text-align: right; }
-
-.chat-footer {
-  padding: 10px 12px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  gap: 8px;
+.msg-me .msg {
+  background: linear-gradient(135deg,#7c3aed,#6d28d9);
+  color: #fff;
+  border-bottom-right-radius: 3px;
+  box-shadow: 0 2px 8px rgba(124,58,237,0.28);
+}
+.msg-them .msg {
   background: var(--surface);
-  align-items: center;
+  color: var(--text);
+  border-bottom-left-radius: 3px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.msg-time {
+  font-size: 10px; color: var(--text4);
+  margin-top: 3px; display: block; padding: 0 2px;
+}
+.msg-me .msg-time { text-align: right; }
+.chat-footer {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px 14px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
   flex-shrink: 0;
 }
 .chat-input {
-  flex: 1;
+  flex: 1; min-width: 0;
   border: 1.5px solid var(--border2);
   border-radius: 22px;
   padding: 9px 16px;
-  font-family: inherit;
-  font-size: 13px;
+  font-family: inherit; font-size: 13px;
   outline: none;
-  transition: all .2s;
-  background: var(--bg2);
-  color: var(--text);
-  min-width: 0;
+  transition: border-color .2s, box-shadow .2s;
+  background: var(--bg); color: var(--text);
 }
 .chat-input:focus {
   border-color: #7c3aed;
   background: var(--surface);
-  box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
 }
+.chat-input::placeholder { color: var(--text4); }
 .chat-send {
-  width: 36px;
-  height: 36px;
+  width: 36px; height: 36px;
   border-radius: 50%;
-  background: #7c3aed;
-  border: none;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: linear-gradient(135deg,#7c3aed,#6d28d9);
+  border: none; color: #fff;
+  display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   transition: all .2s;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(124,58,237,0.35);
 }
-.chat-send:hover { background: #6d28d9; transform: scale(1.08); }
-.chat-send:active { transform: scale(0.93); }
-
-/* Tablet */
-@media (max-width: 1024px) {
-  .chat-panel {
-    right: 12px;
-    width: 320px;
-    height: 460px;
-  }
-}
-
-/* Mobile */
-@media (max-width: 768px) {
-  .chat-panel {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    height: 55vh;
-    max-height: 55vh;
-    border-radius: 18px 18px 0 0;
-    z-index: 3000;
-  }
-  .chat-header {
-    border-radius: 18px 18px 0 0;
-    padding: 14px 18px;
-    min-height: 56px;
-  }
-  .chat-body {
-    padding: 12px;
-    -webkit-overflow-scrolling: touch;
-  }
-  .chat-footer {
-    padding: 10px 14px 22px;
-  }
-  .chat-input {
-    font-size: 16px; /* iOS zoom oldini olish */
-  }
-  .msg-wrap { max-width: 85%; }
-}
-
-/* Kichik mobile */
-@media (max-width: 480px) {
-  .chat-panel {
-    height: 60vh;
-    max-height: 60vh;
-  }
-  .msg { font-size: 13px; padding: 8px 12px; }
-}
+.chat-send:hover  { transform: scale(1.1);  box-shadow: 0 4px 14px rgba(124,58,237,0.5); }
+.chat-send:active { transform: scale(0.92); }
 
 .toast-close{background:none;border:none;color:inherit;opacity:.6;cursor:pointer;font-size:18px;line-height:1;margin-left:10px}
 .toast-close:hover{opacity:1}
 .notif-badge{position:absolute;top:-5px;right:-5px;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 5px;border-radius:10px;border:2px solid var(--surface);min-width:18px;text-align:center;z-index:2}
+
+/* ── Tablet (≤1024px) ── */
+@media (max-width:1024px) {
+  .chat-panel { right:12px; width:320px; height:480px; }
+}
+
+/* ── Mobile (≤768px) ── */
+@media (max-width:768px) {
+  .chat-mobile-backdrop { display:block; }
+  .chat-panel {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    width: 100%; height: 70vh; max-height: 70vh;
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -8px 48px rgba(0,0,0,0.3);
+    z-index: 3000;
+    animation: chatMobileUp .3s cubic-bezier(0.34,1.1,0.64,1);
+  }
+  @keyframes chatMobileUp {
+    from { transform:translateY(100%); opacity:.7; }
+    to   { transform:translateY(0);    opacity:1; }
+  }
+  .chat-header {
+    border-radius: 22px 22px 0 0;
+    height: 60px; min-height: 60px;
+    padding: 0 18px;
+    position: relative;
+  }
+  .chat-header::before {
+    content: '';
+    position: absolute;
+    top: 8px; left: 50%;
+    transform: translateX(-50%);
+    width: 36px; height: 4px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .chat-header-avatar { width:38px; height:38px; font-size:13px; }
+  .chat-header-name   { font-size:14px; }
+  .chat-header-status { font-size:11px; }
+  .chat-close-btn     { width:34px; height:34px; border-radius:10px; }
+  .chat-body  { padding:14px; gap:10px; }
+  .msg        { font-size:14px; padding:10px 14px; }
+  .msg-time   { font-size:11px; }
+  .msg-wrap   { max-width:84%; }
+  .chat-footer {
+    padding: 10px 16px 30px;
+    gap: 10px;
+  }
+  .chat-input {
+    font-size: 16px; /* iOS auto-zoom fix */
+    padding: 11px 18px;
+    border-radius: 26px;
+  }
+  .chat-send { width:42px; height:42px; }
+}
+
+/* ── Small mobile (≤400px) ── */
+@media (max-width:400px) {
+  .chat-panel  { height:76vh; max-height:76vh; }
+  .msg-wrap    { max-width:90%; }
+  .chat-footer { padding-bottom:36px; }
+}
 `;
 
-
 /* ═══════════════════ ICONS ═══════════════════ */
-const P = {
+const P: Record<string, string> = {
   wh: "M2 20h20 M4 20V10l8-6 8 6v10 M10 20v-6h4v6",
   bx: "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z M3.27 6.96 12 12.01l8.73-5.05 M12 22.08V12",
   tr: "M1 3h15v13H1z M16 8h4l3 3v5h-7V8z M5.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z M18.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
@@ -1008,19 +815,22 @@ const P = {
   tag: "M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z M7 7h.01",
   pkg: "M16.5 9.4l-9-5.19 M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z M3.27 6.96 12 12.01l8.73-5.05 M12 22.08V12",
   menu: "M3 12h18 M3 6h18 M3 18h18",
+  send: "M22 2L11 13 M22 2L15 22 9 13 2 9z",
 };
 
-function I({ n, s = 16, c = "currentColor" }: any) {
+function I({ n, s = 16, c = "currentColor" }: { n: string; s?: number; c?: string }) {
   return (
     <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c}
       strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"
       style={{ display: "block", flexShrink: 0 }}>
-      {P[n]?.split(" M").map((d: any, i: any) => <path key={i} d={i === 0 ? d : "M" + d} />)}
+      {P[n]?.split(" M").map((d: string, i: number) => (
+        <path key={i} d={i === 0 ? d : "M" + d} />
+      ))}
     </svg>
   );
 }
 
-function Toggle({ checked, onChange }: any) {
+function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <label className="toggle" onClick={e => e.stopPropagation()}>
       <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} />
@@ -1053,7 +863,7 @@ function Spinner() {
 
 function Modal({ title, onClose, children, footer, wide }: any) {
   useEffect(() => {
-    const h = e => { if (e.key === "Escape") onClose(); };
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, []);
@@ -1074,7 +884,12 @@ function Modal({ title, onClose, children, footer, wide }: any) {
 function ConfirmModal({ title, desc, onConfirm, onClose }: any) {
   return (
     <Modal title={title} onClose={onClose}
-      footer={<><button className="btn bo" onClick={onClose}>Cancel</button><button className="btn bd" onClick={() => { onConfirm(); onClose(); }}>Delete</button></>}>
+      footer={
+        <>
+          <button className="btn bo" onClick={onClose}>Cancel</button>
+          <button className="btn bd" onClick={() => { onConfirm(); onClose(); }}>Delete</button>
+        </>
+      }>
       <div className="confirm-icon"><I n="warn" s={24} c="var(--red)" /></div>
       <div className="confirm-text">{desc}</div>
     </Modal>
@@ -1082,8 +897,8 @@ function ConfirmModal({ title, desc, onConfirm, onClose }: any) {
 }
 
 /* ═══════════════════ CONSTANTS ═══════════════════ */
-const WC_ICON_COLOR = { bl: "var(--blue)", or: "var(--orange)", pu: "var(--purple)" };
-const WC_GRADIENT = {
+const WC_ICON_COLOR: Record<string, string> = { bl: "var(--blue)", or: "var(--orange)", pu: "var(--purple)" };
+const WC_GRADIENT: Record<string, string> = {
   bl: "linear-gradient(135deg,#2563eb 0%,#7c3aed 100%)",
   or: "linear-gradient(135deg,#d97706 0%,#dc2626 100%)",
   pu: "linear-gradient(135deg,#7c3aed 0%,#0d9488 100%)",
@@ -1099,7 +914,7 @@ const LANGUAGES = [
   { code: "ru", flag: "🇷🇺", name: "Russian", local: "Русский" },
   { code: "tr", flag: "🇹🇷", name: "Turkish", local: "Türkçe" },
 ];
-const STRINGS = {
+const STRINGS: Record<string, any> = {
   en: {
     warehouses: "Warehouses", analytics: "Analytics", intake: "Smart Intake", settings: "Settings", users: "Users",
     darkMode: "Dark Mode", lightMode: "Light Mode", logout: "Logout", createWh: "Create Warehouse", save: "Save",
@@ -1121,8 +936,7 @@ const STRINGS = {
     mainSec: "Main", refSec: "References", analytSec: "Analytics", mgmtSec: "Management",
     profileAcc: "Profile & Account", designColor: "Design and color settings",
     notifSettings: "Notifications", secPrivacy: "Security & Privacy",
-    regionalSett: "Regional Settings", dangerZone: "Danger Zone",
-    config: "Configuration",
+    regionalSett: "Regional Settings", dangerZone: "Danger Zone", config: "Configuration",
     qty: "Qty", price: "Price", currency: "Currency", unit: "Unit",
     total: "Total", date: "Date", product: "Product", backBtn: "Back",
     you: "You", noResults: "No results found", addUserPrompt: "Add a new user to begin.",
@@ -1148,8 +962,7 @@ const STRINGS = {
     mainSec: "Asosiy", refSec: "Ma'lumotnomalar", analytSec: "Tahlillar", mgmtSec: "Boshqaruv",
     profileAcc: "Profil va Hisob", designColor: "Dizayn va rang sozlamalari",
     notifSettings: "Bildirishnomalar", secPrivacy: "Xavfsizlik va Maxfiylik",
-    regionalSett: "Mintaqaviy sozlamalar", dangerZone: "Xavfli hudud",
-    config: "Konfiguratsiya",
+    regionalSett: "Mintaqaviy sozlamalar", dangerZone: "Xavfli hudud", config: "Konfiguratsiya",
     qty: "Miqdor", price: "Narx", currency: "Valyuta", unit: "Birlik",
     total: "Jami", date: "Sana", product: "Mahsulot", backBtn: "Orqaga",
     you: "Siz", noResults: "Foydalanuvchilar topilmadi", addUserPrompt: "Boshlash uchun yangi foydalanuvchi qo'shing.",
@@ -1175,10 +988,10 @@ const STRINGS = {
     mainSec: "Главное", refSec: "Справочники", analytSec: "Аналитика", mgmtSec: "Управление",
     profileAcc: "Профиль и Аккаунт", designColor: "Настройки дизайна",
     notifSettings: "Уведомления", secPrivacy: "Безопасность",
-    regionalSett: "Региональные настройки", dangerZone: "Опасная зона",
-    config: "Конфигурация",
+    regionalSett: "Региональные настройки", dangerZone: "Опасная зона", config: "Конфигурация",
     qty: "Кол-во", price: "Цена", currency: "Валюта", unit: "Ед.",
     total: "Итого", date: "Дата", product: "Товар", backBtn: "Назад",
+    you: "Вы", noResults: "Не найдено", addUserPrompt: "Добавьте пользователя.",
   },
   tr: {
     warehouses: "Depolar", analytics: "Analiz", intake: "Akıllı Giriş", settings: "Ayarlar", users: "Kullanıcılar",
@@ -1201,14 +1014,14 @@ const STRINGS = {
     mainSec: "Ana Menü", refSec: "Referanslar", analytSec: "Analizler", mgmtSec: "Yönetim",
     profileAcc: "Profil ve Hesap", designColor: "Tasarım ayarları",
     notifSettings: "Bildirimler", secPrivacy: "Güvenlik ve Gizlilik",
-    regionalSett: "Bölgesel Ayarlar", dangerZone: "Tehlikeli Bölge",
-    config: "Konfigürasyon",
+    regionalSett: "Bölgesel Ayarlar", dangerZone: "Tehlikeli Bölge", config: "Konfigürasyon",
     qty: "Miktar", price: "Fiyat", currency: "Para Birimi", unit: "Birim",
     total: "Toplam", date: "Tarih", product: "Ürün", backBtn: "Geri",
+    you: "Sen", noResults: "Bulunamadı", addUserPrompt: "Kullanıcı ekleyin.",
   },
 };
 
-const SHIP_ST = {
+const SHIP_ST: Record<string, any> = {
   Delivered: { cls: "txr", ic: "ck", c: "var(--green)" },
   "In Transit": { cls: "txw", ic: "tr", c: "var(--orange)" },
   Pending: { cls: "bdb", ic: "bl", c: "var(--blue)" },
@@ -1217,18 +1030,15 @@ const SHIP_ST = {
 /* ═══════════════════ AUTH PAGE ═══════════════════ */
 function AuthPage({ onLogin, lang, onLang, accent }: any) {
   const [username, setUsername] = useState("");
-  const [companyToken] = useState(() => {
-    return window.location.pathname.replace(/\//g, "").trim();
-  });
+  const [companyToken] = useState(() => window.location.pathname.replace(/\//g, "").trim());
   const [pass, setPass] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
-
   const T = STRINGS[lang] || STRINGS.en;
 
   async function handleLogin() {
-    if (!companyToken) { setErr(T.noCompany || "Invalid company link."); return; }
+    if (!companyToken) { setErr("Invalid company link."); return; }
     if (!username.trim()) { setErr(T.enterUsername); return; }
     setLoading(true); setErr("");
     try {
@@ -1237,9 +1047,8 @@ function AuthPage({ onLogin, lang, onLang, accent }: any) {
       else if (data.key) setToken(data.key);
       const userData = data.user ?? { username, role: data.role ?? "staff", email: data.email ?? "", company: data.company ?? null, id: data.id ?? null };
       onLogin(userData);
-    } catch (e: any) {
-      setErr((e as Error).message || T.loginErr);
-    } finally { setLoading(false); }
+    } catch (e: any) { setErr((e as Error).message); }
+    finally { setLoading(false); }
   }
 
   return (
@@ -1247,45 +1056,24 @@ function AuthPage({ onLogin, lang, onLang, accent }: any) {
       <div style={{ position: "absolute", top: 20, right: 20, zIndex: 10, display: "flex", gap: 8 }}>
         {LANGUAGES.map(l => (
           <button key={l.code} onClick={() => onLang(l.code)}
-            style={{
-              background: lang === l.code ? "var(--surface)" : "transparent",
-              border: "1px solid var(--border)",
-              borderRadius: 8, padding: "6px 10px", cursor: "pointer",
-              fontSize: 14, display: "flex", alignItems: "center", gap: 6,
-              boxShadow: lang === l.code ? "var(--sh)" : "none",
-              color: "var(--text)"
-            }}>
-            <span>{l.flag}</span>
-            <span style={{ fontWeight: 600 }}>{l.code.toUpperCase()}</span>
+            style={{ background: lang === l.code ? "var(--surface)" : "transparent", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", gap: 6, boxShadow: lang === l.code ? "var(--sh)" : "none", color: "var(--text)" }}>
+            <span>{l.flag}</span><span style={{ fontWeight: 600 }}>{l.code.toUpperCase()}</span>
           </button>
         ))}
       </div>
-
       <div className="auth-bg-blob" style={{ width: 500, height: 500, background: accent, top: -150, right: -100 }} />
       <div className="auth-bg-blob" style={{ width: 400, height: 400, background: "#7c3aed", bottom: -100, left: -80 }} />
       <div className="auth-card">
         <div className="auth-panel">
           <div className="auth-logo-row">
-            <div className="auth-logo-mark" style={{ position: 'relative' }}>
-              {/* custom logo with fallback icon */}
+            <div className="auth-logo-mark" style={{ position: "relative" }}>
               {BRAND.logoPath ? (
                 <>
-                  <img
-                    src={BRAND.logoPath}
-                    alt="logo"
-                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                    onError={e => {
-                      const img = e.currentTarget;
-                      img.style.display = 'none';
-                      const icon = img.nextElementSibling as HTMLElement | null;
-                      if (icon) icon.style.display = 'flex';
-                    }}
-                  />
-                  <I n="wh" s={16} c="#fff" style={{ display: 'none', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }} />
+                  <img src={BRAND.logoPath} alt="logo" style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                    onError={e => { const img = e.currentTarget; img.style.display = "none"; const icon = img.nextElementSibling as HTMLElement | null; if (icon) icon.style.display = "flex"; }} />
+                  <I n="wh" s={16} c="#fff" />
                 </>
-              ) : (
-                <I n="wh" s={16} c="#fff" />
-              )}
+              ) : <I n="wh" s={16} c="#fff" />}
             </div>
             <div className="auth-logo-name" dangerouslySetInnerHTML={{ __html: BRAND.name }} />
           </div>
@@ -1296,17 +1084,15 @@ function AuthPage({ onLogin, lang, onLang, accent }: any) {
             <label className="fld-label">{T.username}</label>
             <div className="fld-wrap">
               <input type="text" placeholder={T.enterUsername} value={username}
-                onChange={e => setUsername(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleLogin()} />
+                onChange={e => setUsername(e.target.value)} onKeyDown={e => e.key === "Enter" && handleLogin()} />
               <span className="fic"><I n="usr" s={15} /></span>
             </div>
           </div>
           <div className="fld">
             <label className="fld-label">{T.password}</label>
             <div className="fld-wrap">
-              <input type={showPw ? "text" : "password"} placeholder="••••••••"
-                value={pass} onChange={e => setPass(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleLogin()} />
+              <input type={showPw ? "text" : "password"} placeholder="••••••••" value={pass}
+                onChange={e => setPass(e.target.value)} onKeyDown={e => e.key === "Enter" && handleLogin()} />
               <span className="fic" style={{ pointerEvents: "auto", cursor: "pointer" }} onClick={() => setShowPw(v => !v)}>
                 <I n={showPw ? "eyeoff" : "eye2"} s={15} />
               </span>
@@ -1321,7 +1107,7 @@ function AuthPage({ onLogin, lang, onLang, accent }: any) {
           <div className="auth-hero-glow" style={{ width: 200, height: 200, bottom: -60, left: -60 }} />
           <div className="auth-hero-icon"><I n="wh" s={32} c="#fff" /></div>
           <h2>RenoFlow Warehouse MGT</h2>
-          <p>{T.heroSubtitle || "Manage warehouses, inventory and users with ease."}</p>
+          <p>Manage warehouses, inventory and users with ease.</p>
           <div style={{ marginTop: 32, display: "flex", gap: 10, flexWrap: "wrap", position: "relative", zIndex: 1 }}>
             {[T.warehouses, T.items, "Shipments", "Reports", T.users].map((f: any) => (
               <span key={f} style={{ background: "rgba(255,255,255,.18)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 20, backdropFilter: "blur(4px)", border: "1px solid rgba(255,255,255,.25)" }}>{f}</span>
@@ -1341,7 +1127,6 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
   const [darkMode, setDarkMode] = useState(() => {
     try { return localStorage.getItem(`rf_dark_${currentUser.username}`) === "true"; } catch { return false; }
   });
-
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [buylist, setBuylist] = useState<any[]>([]);
   const [itemler, setItemler] = useState<any[]>([]);
@@ -1349,7 +1134,6 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
   const [unitler, setUnitler] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
-
   const [toasts, setToasts] = useState<any[]>([]);
   const [loadingWh, setLoadingWh] = useState(false);
   const [apiError, setApiError] = useState<any>(null);
@@ -1358,13 +1142,9 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
     compactView: false, animationsEnabled: true, autoSave: true,
     twoFactor: false, sessionTimeout: "30min", currency: "USD", timezone: "UTC+5",
   });
-
-  const goto = (p: string, cb?: any) => {
-    setPage(p);
-    setSelectedWh(null);
-    setSbOpen(false);
-    if (cb) cb();
-  };
+  const [chatUser, setChatUser] = useState<any>(null);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [notifCount, setNotifCount] = useState(0);
   const [shipments, setShipments] = useState([
     { id: 20, item: "Premium Wall Latex Paint", batch: "#902-X", from: "Warehouse 1", to: "Construction", date: "2024-10-24", status: "Delivered", val: "+$1,200", pos: true },
     { id: 21, item: "Oak Flooring Planks", batch: "#122-O", from: "Warehouse 2", to: "Base", date: "2024-10-23", status: "In Transit", val: "-$4,500", pos: false },
@@ -1377,47 +1157,32 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
     try { localStorage.setItem(`rf_dark_${currentUser.username}`, String(darkMode)); } catch { }
   }, [darkMode]);
 
-  const addToast = useCallback((msg, type = "success") => {
+  const addToast = useCallback((msg: string, type = "success") => {
     const id = Date.now();
-    setToasts((t: any[]) => [...t, { id, msg, type }]);
-    setTimeout(() => setToasts((t: any[]) => t.filter((x: any) => x.id !== id)), 6000);
+    setToasts(t => [...t, { id, msg, type }]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 6000);
   }, []);
+  const removeToast = useCallback((id: number) => setToasts(p => p.filter(t => t.id !== id)), []);
 
-  const removeToast = useCallback((id: number) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
-  }, []);
-
-  const [chatUser, setChatUser] = useState<any>(null);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [notifCount, setNotifCount] = useState(0);
+  const goto = (p: string, cb?: any) => { setPage(p); setSelectedWh(null); setSbOpen(false); if (cb) cb(); };
 
   const fetchMessages = useCallback(async (targetId: number, targetUsername: string) => {
     try {
-      // Use GET /user_app/messages/ - returns all messages for current user
       const res = await authAPI.getMessages();
-      const allMessages = Array.isArray(res) ? res : (res.results || []);
-      // Filter messages between current user and target user
-      const filtered = allMessages.filter((m: any) =>
-        m.sender_username === targetUsername || m.sender_username === currentUser.username
-      );
-      // Sort by creation time
+      const all = Array.isArray(res) ? res : (res.results || []);
+      const filtered = all.filter((m: any) => m.sender_username === targetUsername || m.sender_username === currentUser.username);
       filtered.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
       setMessages(filtered.map((m: any) => ({
-        id: m.id,
-        sender: m.sender_username,
-        text: m.text,
-        time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        is_read: m.is_read,
-        attachment: m.attachment || null,
+        id: m.id, sender: m.sender_username, text: m.text,
+        time: new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        is_read: m.is_read, attachment: m.attachment || null,
       })));
-    } catch (err) {
-      console.warn("Chat fetch error:", err);
-    }
+    } catch (err) { console.warn("Chat fetch error:", err); }
   }, [currentUser.username]);
 
   useEffect(() => {
     if (chatUser) {
-      setMessages([]); // Clear on new chat open
+      setMessages([]);
       fetchMessages(chatUser.id, chatUser.username);
       const interval = setInterval(() => fetchMessages(chatUser.id, chatUser.username), 4000);
       return () => clearInterval(interval);
@@ -1427,21 +1192,13 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
   const sendMessage = async (text: string) => {
     try {
       const res = await authAPI.sendDirectMessage(chatUser.id, text);
-      const newMsg = {
-        id: res.id,
-        sender: currentUser.username,
-        text: res.text || text,
-        time: res.created_at
-          ? new Date(res.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      setMessages(prev => [...prev, {
+        id: res.id, sender: currentUser.username, text: res.text || text,
+        time: res.created_at ? new Date(res.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         is_read: false,
-      };
-      setMessages(prev => [...prev, newMsg]);
-      setNotifCount(prev => prev + 1);
-    } catch (err: any) {
-      const detail = err?.data?.detail || err?.message || "Xabar yuborishda xato";
-      addToast(detail, "error");
-    }
+      }]);
+      setNotifCount(p => p + 1);
+    } catch (err: any) { addToast(err?.data?.detail || err?.message || "Xabar yuborishda xato", "error"); }
   };
 
   const fetchWarehouses = useCallback(async () => {
@@ -1455,51 +1212,19 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
   }, []);
 
   const fetchItemler = useCallback(async () => {
-    try {
-      const data = await itemlerAPI.list();
-      const arr = Array.isArray(data) ? data : (data?.results ?? []);
-      setItemler(arr.map(normalizeItem));
-    } catch { }
+    try { const d = await itemlerAPI.list(); setItemler((Array.isArray(d) ? d : (d?.results ?? [])).map(normalizeItem)); } catch { }
   }, []);
-
   const fetchMoneytypes = useCallback(async () => {
-    try {
-      const data = await moneytypesAPI.list();
-      const arr = Array.isArray(data) ? data : (data?.results ?? []);
-      setMoneytypes(arr.map(normalizeMoneytype));
-    } catch { }
+    try { const d = await moneytypesAPI.list(); setMoneytypes((Array.isArray(d) ? d : (d?.results ?? [])).map(normalizeMoneytype)); } catch { }
   }, []);
-
   const fetchUnitler = useCallback(async () => {
-    try {
-      const data = await unitlerAPI.list();
-      const arr = Array.isArray(data) ? data : (data?.results ?? []);
-      setUnitler(arr.map(normalizeUnit));
-    } catch { }
+    try { const d = await unitlerAPI.list(); setUnitler((Array.isArray(d) ? d : (d?.results ?? [])).map(normalizeUnit)); } catch { }
   }, []);
-
-  const fetchBuylist = useCallback(async (im = itemler, mm = moneytypes, um = unitler) => {
-    try {
-      const data = await buylistAPI.list();
-      const arr = Array.isArray(data) ? data : (data?.results ?? []);
-      setBuylist(arr.map((b: any) => normalizeBuylist(b, im, mm, um)));
-    } catch { }
-  }, []);
-
   const fetchUsers = useCallback(async () => {
-    try {
-      const data = await authAPI.users();
-      const arr = Array.isArray(data) ? data : (data?.results ?? []);
-      setUsers(arr);
-    } catch { }
+    try { const d = await authAPI.users(); setUsers(Array.isArray(d) ? d : (d?.results ?? [])); } catch { }
   }, []);
-
   const fetchCompanies = useCallback(async () => {
-    try {
-      const data = await authAPI.companies();
-      const arr = Array.isArray(data) ? data : (data?.results ?? []);
-      setCompanies(arr);
-    } catch { }
+    try { const d = await authAPI.companies(); setCompanies(Array.isArray(d) ? d : (d?.results ?? [])); } catch { }
   }, []);
 
   useEffect(() => {
@@ -1517,19 +1242,14 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
         const mArr = (Array.isArray(mData) ? mData : (mData?.results ?? [])).map(normalizeMoneytype);
         const uArr = (Array.isArray(uData) ? uData : (uData?.results ?? [])).map(normalizeUnit);
         setWarehouses(wArr.map((d: any, i: any) => normalizeDepolar(d, i)));
-        setItemler(iArr);
-        setMoneytypes(mArr);
-        setUnitler(uArr);
-
+        setItemler(iArr); setMoneytypes(mArr); setUnitler(uArr);
         const blData = await buylistAPI.list().catch(() => []);
         const blArr = Array.isArray(blData) ? blData : (blData?.results ?? []);
         setBuylist(blArr.map((b: any) => normalizeBuylist(b, iArr, mArr, uArr)));
       } catch (e: any) { setApiError(`Failed to load data: ${(e as Error).message}`); }
       finally { setLoadingWh(false); }
     };
-    init();
-    fetchUsers();
-    fetchCompanies();
+    init(); fetchUsers(); fetchCompanies();
   }, []);
 
   async function refreshBuylist() {
@@ -1545,7 +1265,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
     setToken(""); onLogout();
   }
 
-  function goToWh(wh) { setSelectedWh(wh); setPage("whdetail"); }
+  function goToWh(wh: any) { setSelectedWh(wh); setPage("whdetail"); }
   function backToWarehouses() { setSelectedWh(null); setPage("warehouses"); fetchWarehouses(); refreshBuylist(); }
 
   const whActive = page === "warehouses" || page === "whdetail";
@@ -1559,25 +1279,14 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
       {sbOpen && <div className="sidebar-backdrop" onClick={() => setSbOpen(false)} />}
       <aside className={`sidebar ${sbOpen ? "open" : ""}`}>
         <div className="s-logo">
-          <div className="s-mark" style={{ position: 'relative' }}>
+          <div className="s-mark" style={{ position: "relative" }}>
             {BRAND.logoPath ? (
               <>
-                <img
-                  src={BRAND.logoPath}
-                  alt="logo"
-                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                  onError={e => {
-                    const img = e.currentTarget;
-                    img.style.display = 'none';
-                    const icon = img.nextElementSibling as HTMLElement | null;
-                    if (icon) icon.style.display = 'flex';
-                  }}
-                />
-                <I n="wh" s={18} c="#fff" style={{ display: 'none', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }} />
+                <img src={BRAND.logoPath} alt="logo" style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                  onError={e => { const img = e.currentTarget; img.style.display = "none"; const icon = img.nextElementSibling as HTMLElement | null; if (icon) icon.style.display = "flex"; }} />
+                <I n="wh" s={18} c="#fff" />
               </>
-            ) : (
-              <I n="wh" s={18} c="#fff" />
-            )}
+            ) : <I n="wh" s={18} c="#fff" />}
           </div>
           <div>
             <div className="s-name" dangerouslySetInnerHTML={{ __html: BRAND.name }} />
@@ -1586,63 +1295,40 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
         </div>
         <nav className="s-nav">
           <div className="n-sec">{T.mainSec}</div>
-          <div className={`n-item${whActive ? " active" : ""}`} onClick={() => goto("warehouses")}>
-            <I n="wh" s={15} />{T.warehouses}
-          </div>
-          <div className={`n-item${page === "intake" ? " active" : ""}`} onClick={() => goto("intake")}>
-            <I n="sc" s={15} />{T.intake}
-          </div>
+          <div className={`n-item${whActive ? " active" : ""}`} onClick={() => goto("warehouses")}><I n="wh" s={15} />{T.warehouses}</div>
+          <div className={`n-item${page === "intake" ? " active" : ""}`} onClick={() => goto("intake")}><I n="sc" s={15} />{T.intake}</div>
           <div className="n-div" />
           <div className="n-sec">{T.refSec}</div>
-          <div className={`n-item${page === "itemler" ? " active" : ""}`} onClick={() => goto("itemler", fetchItemler)}>
-            <I n="pkg" s={15} />{T.items}
-          </div>
-          <div className={`n-item${page === "moneytypes" ? " active" : ""}`} onClick={() => goto("moneytypes", fetchMoneytypes)}>
-            <I n="dr" s={15} />{T.moneytypes}
-          </div>
-          <div className={`n-item${page === "unitler" ? " active" : ""}`} onClick={() => goto("unitler", fetchUnitler)}>
-            <I n="tag" s={15} />{T.units}
-          </div>
+          <div className={`n-item${page === "itemler" ? " active" : ""}`} onClick={() => goto("itemler", fetchItemler)}><I n="pkg" s={15} />{T.items}</div>
+          <div className={`n-item${page === "moneytypes" ? " active" : ""}`} onClick={() => goto("moneytypes", fetchMoneytypes)}><I n="dr" s={15} />{T.moneytypes}</div>
+          <div className={`n-item${page === "unitler" ? " active" : ""}`} onClick={() => goto("unitler", fetchUnitler)}><I n="tag" s={15} />{T.units}</div>
           <div className="n-div" />
           <div className="n-sec">{T.analytSec}</div>
-          <div className={`n-item${page === "reports" ? " active" : ""}`} onClick={() => goto("reports")}>
-            <I n="ch" s={15} />{T.analytics}
-          </div>
+          <div className={`n-item${page === "reports" ? " active" : ""}`} onClick={() => goto("reports")}><I n="ch" s={15} />{T.analytics}</div>
           <div className="n-div" />
           <div className="n-sec">{T.mgmtSec}</div>
-          <div className={`n-item${page === "users" ? " active" : ""}`} onClick={() => goto("users", fetchUsers)}>
-            <I n="usrs" s={15} />{T.users}
-          </div>
+          <div className={`n-item${page === "users" ? " active" : ""}`} onClick={() => goto("users", fetchUsers)}><I n="usrs" s={15} />{T.users}</div>
           <div className="n-div" />
           <div className="dm-row" onClick={() => setDarkMode(v => !v)}>
-            <I n={darkMode ? "sun" : "moon"} s={15} />
-            <span className="dm-label">{darkMode ? T.lightMode : T.darkMode}</span>
+            <I n={darkMode ? "sun" : "moon"} s={15} /><span className="dm-label">{darkMode ? T.lightMode : T.darkMode}</span>
             <Toggle checked={darkMode} onChange={setDarkMode} />
           </div>
-          <div className={`n-item${page === "settings" ? " active" : ""}`} onClick={() => goto("settings")}>
-            <I n="cg" s={15} />{T.settings}
-          </div>
+          <div className={`n-item${page === "settings" ? " active" : ""}`} onClick={() => goto("settings")}><I n="cg" s={15} />{T.settings}</div>
           <div style={{ flex: 1 }} />
         </nav>
         <div className="s-foot">
           <div style={{ padding: "4px 10px 6px", fontSize: 11, color: "var(--text4)" }}>
             <span style={{ color: "var(--green)" }}>●</span>&nbsp;{currentUser.username} · {currentUser.role || "staff"}
           </div>
-          <div className="n-item danger" onClick={handleLogout}>
-            <I n="logout" s={15} />{T.logout}
-          </div>
+          <div className="n-item danger" onClick={handleLogout}><I n="logout" s={15} />{T.logout}</div>
         </div>
       </aside>
 
       <div className="main">
         <header className="topbar">
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div className="mobile-toggle" onClick={() => setSbOpen(true)}>
-              <I n="menu" s={22} />
-            </div>
-            {page === "whdetail" && (
-              <button className="ib" onClick={backToWarehouses}><I n="arr" s={15} /></button>
-            )}
+            <div className="mobile-toggle" onClick={() => setSbOpen(true)}><I n="menu" s={22} /></div>
+            {page === "whdetail" && <button className="ib" onClick={backToWarehouses}><I n="arr" s={15} /></button>}
             <div>
               {page === "whdetail" ? (
                 <div className="breadcrumb">
@@ -1650,9 +1336,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
                   <span className="breadcrumb-sep">›</span>
                   <span className="breadcrumb-active">{selectedWh?.name}</span>
                 </div>
-              ) : (
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{T[page] ?? page}</div>
-              )}
+              ) : <div style={{ fontWeight: 700, fontSize: 14 }}>{T[page] ?? page}</div>}
             </div>
           </div>
           <div className="tb-r">
@@ -1674,23 +1358,11 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
           {apiError && (
             <div className="api-err">
               <I n="warn" s={16} c="var(--red)" />{apiError}
-              <button className="btn bo bs" style={{ marginLeft: "auto" }} onClick={fetchWarehouses}>
-                <I n="refresh" s={13} />Retry
-              </button>
+              <button className="btn bo bs" style={{ marginLeft: "auto" }} onClick={fetchWarehouses}><I n="refresh" s={13} />Retry</button>
             </div>
           )}
-          {page === "warehouses" && (
-            <WarehousePage warehouses={warehouses} setWarehouses={setWarehouses}
-              buylist={buylist} loading={loadingWh}
-              onRefresh={fetchWarehouses} addToast={addToast} T={T} onOpenWh={goToWh} />
-          )}
-          {page === "whdetail" && selectedWh && (
-            <WarehouseDetail wh={selectedWh} setWh={setSelectedWh}
-              warehouses={warehouses} setWarehouses={setWarehouses}
-              buylist={buylist} setBuylist={setBuylist}
-              itemler={itemler} moneytypes={moneytypes} unitler={unitler}
-              addToast={addToast} T={T} onBack={backToWarehouses} />
-          )}
+          {page === "warehouses" && <WarehousePage warehouses={warehouses} setWarehouses={setWarehouses} buylist={buylist} loading={loadingWh} onRefresh={fetchWarehouses} addToast={addToast} T={T} onOpenWh={goToWh} />}
+          {page === "whdetail" && selectedWh && <WarehouseDetail wh={selectedWh} setWh={setSelectedWh} warehouses={warehouses} setWarehouses={setWarehouses} buylist={buylist} setBuylist={setBuylist} itemler={itemler} moneytypes={moneytypes} unitler={unitler} addToast={addToast} T={T} onBack={backToWarehouses} />}
           {page === "shipments" && <ShipmentsPage shipments={shipments} setShipments={setShipments} addToast={addToast} T={T} />}
           {page === "intake" && <IntakePage buylist={buylist} setBuylist={setBuylist} warehouses={warehouses} itemler={itemler} moneytypes={moneytypes} unitler={unitler} addToast={addToast} T={T} />}
           {page === "reports" && <ReportsPage warehouses={warehouses} buylist={buylist} addToast={addToast} T={T} />}
@@ -1698,13 +1370,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
           {page === "moneytypes" && <RefPage title={T.moneytypes} icon="dr" data={moneytypes} setData={setMoneytypes} api={moneytypesAPI} normalize={normalizeMoneytype} fields={[{ k: "name", l: "Name * (USD, UZS, EUR)", required: true }]} addToast={addToast} T={T} />}
           {page === "unitler" && <RefPage title={T.units} icon="tag" data={unitler} setData={setUnitler} api={unitlerAPI} normalize={normalizeUnit} fields={[{ k: "name", l: "Name *", required: true }]} addToast={addToast} T={T} />}
           {page === "users" && <UsersPage users={users} companies={companies} onRefresh={fetchUsers} addToast={addToast} T={T} currentUser={currentUser} onChatOpen={setChatUser} />}
-          {page === "settings" && (
-            <SettingsPage settings={settings} setSettings={setSettings}
-              darkMode={darkMode} onDarkMode={setDarkMode}
-              accent={accent} onAccent={onAccent}
-              lang={lang} onLang={onLang}
-              currentUser={currentUser} onUserUpdate={onUserUpdate} addToast={addToast} onLogout={handleLogout} T={T} />
-          )}
+          {page === "settings" && <SettingsPage settings={settings} setSettings={setSettings} darkMode={darkMode} onDarkMode={setDarkMode} accent={accent} onAccent={onAccent} lang={lang} onLang={onLang} currentUser={currentUser} onUserUpdate={onUserUpdate} addToast={addToast} onLogout={handleLogout} T={T} />}
         </main>
 
         <footer className="footer">
@@ -1718,6 +1384,8 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
           </div>
         </footer>
       </div>
+
+      {/* ═══ CHAT WINDOW ═══ */}
       {chatUser && (
         <ChatWindow
           targetUser={chatUser}
@@ -1731,11 +1399,107 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
   );
 }
 
+/* ═══════════════════ CHAT WINDOW ═══════════════════ */
+function ChatWindow({ targetUser, currentUser, messages, onSendMessage, onClose }: any) {
+  const [text, setText] = useState("");
+
+  useEffect(() => {
+    const el = document.getElementById("chat-body");
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages]);
+
+  const handleSend = () => {
+    if (!text.trim()) return;
+    onSendMessage(text);
+    setText("");
+  };
+
+  return (
+    <>
+      {/* Mobile backdrop — click to close */}
+      <div className="chat-mobile-backdrop" onClick={onClose} />
+
+      <div className="chat-panel">
+        {/* Header */}
+        <div className="chat-header">
+          <div className="chat-header-info">
+            <div className="chat-header-avatar">
+              {targetUser.username?.slice(0, 2).toUpperCase()}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div className="chat-header-name">{targetUser.username}</div>
+              <div className="chat-header-status">
+                <span className="chat-online-dot" />
+                Online
+              </div>
+            </div>
+          </div>
+          <button className="chat-close-btn" onClick={onClose}>
+            <I n="x" s={16} c="rgba(255,255,255,0.9)" />
+          </button>
+        </div>
+
+        {/* Messages */}
+        <div className="chat-body" id="chat-body">
+          {messages.length === 0 && (
+            <div className="chat-empty-state">
+              <div className="chat-empty-icon">
+                <I n="bl" s={22} c="var(--text4)" />
+              </div>
+              <div className="chat-empty-text">{targetUser.username} bilan suhbat</div>
+              <div className="chat-empty-sub">Birinchi xabarni yuboring 👋</div>
+            </div>
+          )}
+          {messages.map((m: any, i: number) => {
+            const isMe = m.sender === currentUser.username;
+            return (
+              <div key={i} className={`msg-wrap ${isMe ? "msg-me" : "msg-them"}`}>
+                <div className="msg">
+                  {m.text}
+                  {m.attachment && (() => {
+                    let url = m.attachment;
+                    if (!url.startsWith("http")) {
+                      if (!url.startsWith("/")) url = `/${url}`;
+                      url = `${BASE}${url}`;
+                    }
+                    return url.match(/\.(jpe?g|png|gif|bmp|webp)$/i)
+                      ? <img src={url} style={{ maxWidth: 200, display: "block", marginTop: 8, borderRadius: 8 }} alt="attachment" />
+                      : <a href={url} target="_blank" rel="noreferrer"
+                        style={{ color: isMe ? "rgba(255,255,255,0.85)" : "var(--blue)", fontSize: 12, marginTop: 6, display: "block" }}>
+                        {url.split("/").pop()}
+                      </a>;
+                  })()}
+                </div>
+                <span className="msg-time">{m.time}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer input */}
+        <div className="chat-footer">
+          <input
+            className="chat-input"
+            placeholder="Xabar yozing..."
+            value={text}
+            onChange={e => setText(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleSend()}
+            autoFocus
+          />
+          <button className="chat-send" onClick={handleSend}>
+            <I n="ck" s={15} c="#fff" />
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 /* ═══════════════════ REFERENCE PAGE ═══════════════════ */
 function RefPage({ title, icon, data, setData, api, normalize, fields, addToast, T }: any) {
   const [showAdd, setShowAdd] = useState(false);
   const [delItem, setDelItem] = useState<any>(null);
-  const [form, setForm] = useState({});
+  const [form, setForm] = useState<any>({});
   const [saving, setSaving] = useState(false);
 
   async function addItem() {
@@ -1744,17 +1508,17 @@ function RefPage({ title, icon, data, setData, api, normalize, fields, addToast,
     setSaving(true);
     try {
       const created = await api.create(form);
-      setData(prev => [...prev, normalize(created)]);
+      setData((prev: any) => [...prev, normalize(created)]);
       addToast(`"${form[fields[0].k]}" added!`);
       setShowAdd(false); setForm({});
     } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
     finally { setSaving(false); }
   }
 
-  async function delIt(item) {
+  async function delIt(item: any) {
     try {
       await api.delete(item.id);
-      setData(prev => prev.filter((x: any) => x.id !== item.id));
+      setData((prev: any) => prev.filter((x: any) => x.id !== item.id));
       addToast(`"${item.name}" deleted`, "error");
     } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
   }
@@ -1767,13 +1531,12 @@ function RefPage({ title, icon, data, setData, api, normalize, fields, addToast,
           {fields.map((f: any) => (
             <div className="form-group" key={f.k}>
               <label className="form-label">{f.l}</label>
-              <input className="form-input" value={form[f.k] || ""} onChange={e => setForm(p => ({ ...p, [f.k]: e.target.value }))} />
+              <input className="form-input" value={form[f.k] || ""} onChange={e => setForm((p: any) => ({ ...p, [f.k]: e.target.value }))} />
             </div>
           ))}
         </Modal>
       )}
       {delItem && <ConfirmModal title={`Delete ${title}`} desc={<>«<strong>{delItem.name}</strong>»?</>} onConfirm={() => delIt(delItem)} onClose={() => setDelItem(null)} />}
-
       <div className="ph">
         <div className="ph-l">
           <h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-.025em" }}>{title}</h1>
@@ -1783,22 +1546,19 @@ function RefPage({ title, icon, data, setData, api, normalize, fields, addToast,
           <button className="btn bp" onClick={() => { setForm({}); setShowAdd(true); }}><I n="pl" s={14} c="#fff" />Add {title}</button>
         </div>
       </div>
-
       <div className="tc">
         {data.length === 0 ? (
           <div className="empty-state"><I n={icon} s={38} c="var(--border2)" /><h3>{title} is empty</h3><p>Add your first record.</p></div>
         ) : (
           <table>
             <thead><tr><th>ID</th>{fields.map((f: any) => <th key={f.k}>{f.l.replace(" *", "")}</th>)}<th></th></tr></thead>
-            <tbody>
-              {data.map(item => (
-                <tr key={item.id}>
-                  <td className="dv">#{item.id}</td>
-                  {fields.map((f: any) => <td key={f.k} className="itn">{item[f.k] ?? item.name ?? "—"}</td>)}
-                  <td><button className="ib red" onClick={() => setDelItem(item)}><I n="td" s={13} /></button></td>
-                </tr>
-              ))}
-            </tbody>
+            <tbody>{data.map((item: any) => (
+              <tr key={item.id}>
+                <td className="dv">#{item.id}</td>
+                {fields.map((f: any) => <td key={f.k} className="itn">{item[f.k] ?? item.name ?? "—"}</td>)}
+                <td><button className="ib red" onClick={() => setDelItem(item)}><I n="td" s={13} /></button></td>
+              </tr>
+            ))}</tbody>
           </table>
         )}
       </div>
@@ -1824,16 +1584,11 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
   }, []);
 
   const filtered = warehouses.filter((w: any) =>
-    w.name.toLowerCase().includes(search.toLowerCase()) ||
-    w.addr.toLowerCase().includes(search.toLowerCase())
+    w.name.toLowerCase().includes(search.toLowerCase()) || w.addr.toLowerCase().includes(search.toLowerCase())
   );
 
-  function buildPayload(f) {
-    return {
-      name: f.name,
-      address: "", manager: "", phone: "", type: "General",
-      usd_value: "0", som_value: "0",
-    };
+  function buildPayload(f: any) {
+    return { name: f.name, address: "", manager: "", phone: "", type: "General", usd_value: "0", som_value: "0" };
   }
 
   async function addWH() {
@@ -1841,8 +1596,7 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
     setSaving(true);
     try {
       await depolarAPI.create(buildPayload(form));
-      addToast(`"${form.name}" yaratildi!`);
-      setShowAdd(false); setForm(EMPTY); onRefresh();
+      addToast(`"${form.name}" yaratildi!`); setShowAdd(false); setForm(EMPTY); onRefresh();
     } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
     finally { setSaving(false); }
   }
@@ -1857,19 +1611,15 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
     finally { setSaving(false); }
   }
 
-  async function delWH(wh) {
+  async function delWH(wh: any) {
     try {
       await depolarAPI.delete(wh.id);
       addToast(`"${wh.name}" deleted`, "error"); onRefresh();
     } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
   }
 
-  function openEdit(wh) {
-    setForm({ name: wh.name });
-    setShowEdit(wh); setOpenMenu(null);
-  }
-
-  const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+  function openEdit(wh: any) { setForm({ name: wh.name }); setShowEdit(wh); setOpenMenu(null); }
+  const sf = (k: string) => (e: any) => setForm((f: any) => ({ ...f, [k]: e.target.value }));
 
   const formBody = (
     <div className="form-group"><label className="form-label">Nomi *</label><input className="form-input" value={form.name} onChange={sf("name")} /></div>
@@ -1905,50 +1655,18 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
         const currEntries = Object.entries(currMap).filter(([, v]) => v > 0);
         return (
           <div className="sg" style={{ marginBottom: 22 }}>
-            <div className="sc">
-              <div className="slb">{T.totalWhs}</div>
-              <div className="sv">{warehouses.length}</div>
-              <div style={{ marginTop: 7 }}><span className="badge bdg">{T.statusActive}</span></div>
-            </div>
-            <div className="sc">
-              <div className="slb">{T.totalItems}</div>
-              <div className="sv bl">{buylist.length}</div>
-              <div className="sss">{T.acrossAll}</div>
-            </div>
-            {currEntries.length > 0 ? (
-              [0, 1].map(i => {
-                if (currEntries[i]) {
-                  const [cur, total] = currEntries[i];
-                  return (
-                    <div key={cur} className="sc">
-                      <div className="slb">{T.all} · {cur}</div>
-                      <div className="sv" style={{ color: "var(--green)", fontSize: 18 }}>
-                        {(total as number).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </div>
-                      <div className="sss">{cur}</div>
-                    </div>
-                  );
-                }
-                return (
-                  <div key={`low-${i}`} className="sc">
-                    <div className="slb">{T.lowStock}</div>
-                    <div className="sv rd">{buylist.filter((i: any) => i.low).length}</div>
-                    <div className="sss">{T.viewAll}</div>
-                  </div>
-                );
-              })
-            ) : (
+            <div className="sc"><div className="slb">{T.totalWhs}</div><div className="sv">{warehouses.length}</div><div style={{ marginTop: 7 }}><span className="badge bdg">{T.statusActive}</span></div></div>
+            <div className="sc"><div className="slb">{T.totalItems}</div><div className="sv bl">{buylist.length}</div><div className="sss">{T.acrossAll}</div></div>
+            {currEntries.length > 0 ? [0, 1].map(i => {
+              if (currEntries[i]) {
+                const [cur, total] = currEntries[i];
+                return <div key={cur} className="sc"><div className="slb">{T.all} · {cur}</div><div className="sv" style={{ color: "var(--green)", fontSize: 18 }}>{(total as number).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div><div className="sss">{cur}</div></div>;
+              }
+              return <div key={`low-${i}`} className="sc"><div className="slb">{T.lowStock}</div><div className="sv rd">{buylist.filter((i: any) => i.low).length}</div><div className="sss">{T.viewAll}</div></div>;
+            }) : (
               <>
-                <div className="sc">
-                  <div className="slb">{T.lowStock}</div>
-                  <div className="sv rd">{buylist.filter((i: any) => i.low).length}</div>
-                  <div className="sss">{T.viewAll}</div>
-                </div>
-                <div className="sc">
-                  <div className="slb">{T.inventoryVal}</div>
-                  <div className="sv" style={{ fontSize: 18 }}>—</div>
-                  <div className="sss">No data yet</div>
-                </div>
+                <div className="sc"><div className="slb">{T.lowStock}</div><div className="sv rd">{buylist.filter((i: any) => i.low).length}</div><div className="sss">{T.viewAll}</div></div>
+                <div className="sc"><div className="slb">{T.inventoryVal}</div><div className="sv" style={{ fontSize: 18 }}>—</div><div className="sss">No data yet</div></div>
               </>
             )}
           </div>
@@ -1957,7 +1675,7 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
 
       {loading ? <Spinner /> : (
         <div className="wg">
-          {filtered.map((w) => {
+          {filtered.map((w: any) => {
             const icColor = WC_ICON_COLOR[w.wc];
             const whBl = buylist.filter((b: any) => String(b.depolarId) === String(w.id));
             const isOpen = openMenu === w.id;
@@ -1968,7 +1686,6 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
               totalsByCur[cur] = (totalsByCur[cur] || 0) + val;
             });
             const curEntries = Object.entries(totalsByCur).filter(([, v]) => v > 0);
-
             return (
               <div key={w.id} className="wc" onClick={() => onOpenWh(w)}>
                 <div className="wb">
@@ -1988,19 +1705,14 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
                   </div>
                   <div className="wn">{w.name}</div>
                   <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: "6px 12px", borderTop: "1px solid var(--border)", paddingTop: 10 }}>
-                    <div style={{ fontSize: 12, color: "var(--text3)" }}>
-                      <strong style={{ color: "var(--text)" }}>{whBl.length}</strong> {T.items.toLowerCase()}
-                    </div>
+                    <div style={{ fontSize: 12, color: "var(--text3)" }}><strong style={{ color: "var(--text)" }}>{whBl.length}</strong> {T.items.toLowerCase()}</div>
                     {curEntries.map(([cur, val]) => (
                       <div key={cur} style={{ fontSize: 12, color: "var(--text3)" }}>
-                        <strong style={{ color: cur === "USD" ? "var(--green)" : "var(--blue)" }}>
-                          {cur === "USD" ? "$" : ""}{val.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-                        </strong> {cur !== "USD" ? cur : ""}
+                        <strong style={{ color: cur === "USD" ? "var(--green)" : "var(--blue)" }}>{cur === "USD" ? "$" : ""}{(val as number).toLocaleString("en-US", { maximumFractionDigits: 0 })}</strong>{cur !== "USD" ? ` ${cur}` : ""}
                       </div>
                     ))}
                     {curEntries.length === 0 && <div style={{ fontSize: 12, color: "var(--text4)" }}>Bo'sh</div>}
                   </div>
-                  <div style={{ height: 4 }}></div>
                 </div>
                 <div className="wf" onClick={e => e.stopPropagation()}>
                   <button className="btn bo" style={{ flex: 1, justifyContent: "center" }} onClick={() => onOpenWh(w)}>{T.details} →</button>
@@ -2011,7 +1723,7 @@ function WarehousePage({ warehouses, setWarehouses, buylist, loading, onRefresh,
             );
           })}
           {filtered.length === 0 && warehouses.length > 0 && (
-            <div style={{ gridColumn: "span 3" }}><div className="empty-state"><h3>{T.noResults || "No results found"}</h3><p>"{search}" — {T.noResults || "no warehouses found"}</p></div></div>
+            <div style={{ gridColumn: "span 3" }}><div className="empty-state"><h3>{T.noResults || "No results found"}</h3><p>"{search}"</p></div></div>
           )}
           <div className="aw" onClick={() => { setForm(EMPTY); setShowAdd(true); }}>
             <div className="awc"><I n="pl" s={20} /></div>
@@ -2030,7 +1742,6 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
   const [editItem, setEditItem] = useState<any>(null);
   const [delItem, setDelItem] = useState<any>(null);
   const [showEditWh, setShowEditWh] = useState(false);
-
   const EMPTY_BL = { item: "", _itemName: "", moneytype: "", unit: "", qty: "", narx: "" };
   const [form, setForm] = useState(EMPTY_BL);
   const [whForm, setWhForm] = useState({ name: wh.name });
@@ -2045,25 +1756,13 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
   const grad = WC_GRADIENT[wh.wc] || WC_GRADIENT.bl;
 
   const currencyTotals = moneytypes.map((m: any) => {
-    const total = whBl
-      .filter((b: any) => String(b.moneytypeId) === String(m.id))
-      .reduce((acc: number, b: any) => {
-        const qty = Number(b.qty) || 0;
-        const price = parseFloat(String(b._raw?.narx ?? b.price ?? "0").replace(/,/g, "")) || 0;
-        return acc + qty * price;
-      }, 0);
+    const total = whBl.filter((b: any) => String(b.moneytypeId) === String(m.id))
+      .reduce((acc: number, b: any) => acc + (Number(b.qty) || 0) * (parseFloat(String(b._raw?.narx ?? b.price ?? "0").replace(/,/g, "")) || 0), 0);
     return { id: m.id, name: m.name, total };
   }).filter((c: any) => c.total > 0);
 
-  function buildBlPayload(f) {
-    return {
-      item: Number(f.item) || undefined,
-      moneytype: Number(f.moneytype) || undefined,
-      unit: Number(f.unit) || undefined,
-      depolar: wh.id,
-      qty: Number(f.qty) || 0,
-      narx: f.narx || "0",
-    };
+  function buildBlPayload(f: any) {
+    return { item: Number(f.item) || undefined, moneytype: Number(f.moneytype) || undefined, unit: Number(f.unit) || undefined, depolar: wh.id, qty: Number(f.qty) || 0, narx: f.narx || "0" };
   }
 
   async function addBl() {
@@ -2072,13 +1771,9 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
     setSaving(true);
     try {
       let itemId = form.item ? Number(form.item) : null;
-      if (!itemId && itemName) {
-        const newItem = await itemlerAPI.create({ name: itemName });
-        itemId = newItem.id;
-      }
-      const payload = { ...buildBlPayload({ ...form, item: itemId }), item: itemId };
-      const created = await buylistAPI.create(payload);
-      setBuylist(prev => [...prev, normalizeBuylist(created, itemler, moneytypes, unitler)]);
+      if (!itemId && itemName) { const ni = await itemlerAPI.create({ name: itemName }); itemId = ni.id; }
+      const created = await buylistAPI.create({ ...buildBlPayload({ ...form, item: itemId }), item: itemId });
+      setBuylist((prev: any) => [...prev, normalizeBuylist(created, itemler, moneytypes, unitler)]);
       addToast("Item added to inventory!"); setShowAdd(false); setForm(EMPTY_BL);
     } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
     finally { setSaving(false); }
@@ -2089,16 +1784,16 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
     setSaving(true);
     try {
       const updated = await buylistAPI.update(editItem.id, buildBlPayload(form));
-      setBuylist(prev => prev.map((i: any) => i.id === editItem.id ? normalizeBuylist(updated, itemler, moneytypes, unitler) : i));
+      setBuylist((prev: any) => prev.map((i: any) => i.id === editItem.id ? normalizeBuylist(updated, itemler, moneytypes, unitler) : i));
       addToast("Yangilandi!"); setEditItem(null);
     } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
     finally { setSaving(false); }
   }
 
-  async function delBl(item) {
+  async function delBl(item: any) {
     try {
       await buylistAPI.delete(item.id);
-      setBuylist(prev => prev.filter((i: any) => i.id !== item.id));
+      setBuylist((prev: any) => prev.filter((i: any) => i.id !== item.id));
       addToast(`"${item.name}" deleted`, "error");
     } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
   }
@@ -2106,32 +1801,20 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
   async function saveWh() {
     setSaving(true);
     try {
-      const updated = await depolarAPI.update(wh.id, {
-        name: whForm.name,
-        address: "", manager: "", phone: "", type: "General",
-        usd_value: "0", som_value: "0",
-      });
+      const updated = await depolarAPI.update(wh.id, { name: whForm.name, address: "", manager: "", phone: "", type: "General", usd_value: "0", som_value: "0" });
       const norm = normalizeDepolar(updated, 0);
-      setWh(prev => ({ ...prev, ...norm }));
-      setWarehouses(ws => ws.map(w2 => w2.id === wh.id ? { ...w2, ...norm } : w2));
+      setWh((prev: any) => ({ ...prev, ...norm }));
+      setWarehouses((ws: any) => ws.map((w2: any) => w2.id === wh.id ? { ...w2, ...norm } : w2));
       addToast("Ombor yangilandi!"); setShowEditWh(false);
     } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
     finally { setSaving(false); }
   }
 
-  function openEdit(item) {
-    setForm({
-      item: item.itemId || "",
-      _itemName: item.name || "",
-      moneytype: item.moneytypeId || "",
-      unit: item.unitId || "",
-      qty: String(item.qty),
-      narx: item.price,
-    });
+  function openEdit(item: any) {
+    setForm({ item: item.itemId || "", _itemName: item.name || "", moneytype: item.moneytypeId || "", unit: item.unitId || "", qty: String(item.qty), narx: item.price });
     setEditItem(item);
   }
-
-  const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+  const sf = (k: string) => (e: any) => setForm((f: any) => ({ ...f, [k]: e.target.value }));
 
   const blForm = (
     <>
@@ -2144,23 +1827,16 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
         {itemler.length === 0 && <div style={{ fontSize: 12, color: "var(--orange)", marginTop: 4 }}>⚠ First add items in the Items section</div>}
       </div>
       <div className="form-row">
-        <div className="form-group">
-          <label className="form-label">Miqdor (qty) *</label>
-          <input className="form-input" type="number" min="0" value={form.qty} onChange={sf("qty")} />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Narx (narx)</label>
-          <input className="form-input" type="number" min="0" step="0.01" value={form.narx} onChange={sf("narx")} />
-        </div>
+        <div className="form-group"><label className="form-label">Miqdor (qty) *</label><input className="form-input" type="number" min="0" value={form.qty} onChange={sf("qty")} /></div>
+        <div className="form-group"><label className="form-label">Narx (narx)</label><input className="form-input" type="number" min="0" step="0.01" value={form.narx} onChange={sf("narx")} /></div>
       </div>
       <div className="form-row">
         <div className="form-group">
           <label className="form-label">Valyuta (Moneytype)</label>
           <select className="form-select" value={form.moneytype} onChange={sf("moneytype")}>
             <option value="">— Valyuta —</option>
-            {moneytypes.map((m: any) => <option key={m.id} value={m.id}>{m.name} {m.code !== m.name ? `(${m.code})` : ""}</option>)}
+            {moneytypes.map((m: any) => <option key={m.id} value={m.id}>{m.name}{m.code !== m.name ? ` (${m.code})` : ""}</option>)}
           </select>
-          {moneytypes.length === 0 && <div style={{ fontSize: 12, color: "var(--orange)", marginTop: 4 }}>⚠ First add currencies in the Currencies section</div>}
         </div>
         <div className="form-group">
           <label className="form-label">Birlik (Unit)</label>
@@ -2168,7 +1844,6 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
             <option value="">— Birlik —</option>
             {unitler.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
           </select>
-          {unitler.length === 0 && <div style={{ fontSize: 12, color: "var(--orange)", marginTop: 4 }}>⚠ First add units in the Units section</div>}
         </div>
       </div>
     </>
@@ -2176,19 +1851,9 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
 
   return (
     <div className="fu">
-      {editItem && (
-        <Modal title="Edit Inventory Item" onClose={() => setEditItem(null)} wide
-          footer={<><button className="btn bo" onClick={() => setEditItem(null)}>{T.cancel}</button><button className="btn bp" onClick={saveEdit} disabled={saving}>{saving ? "..." : T.save}</button></>}>
-          {blForm}
-        </Modal>
-      )}
+      {editItem && <Modal title="Edit Inventory Item" onClose={() => setEditItem(null)} wide footer={<><button className="btn bo" onClick={() => setEditItem(null)}>{T.cancel}</button><button className="btn bp" onClick={saveEdit} disabled={saving}>{saving ? "..." : T.save}</button></>}>{blForm}</Modal>}
       {delItem && <ConfirmModal title="Delete Item" desc={<>«<strong>{delItem.name}</strong>»?</>} onConfirm={() => delBl(delItem)} onClose={() => setDelItem(null)} />}
-      {showEditWh && (
-        <Modal title="Edit Warehouse" onClose={() => setShowEditWh(false)}
-          footer={<><button className="btn bo" onClick={() => setShowEditWh(false)}>{T.cancel}</button><button className="btn bp" onClick={saveWh} disabled={saving}>{saving ? "..." : T.save}</button></>}>
-          <div className="form-group"><label className="form-label">Nomi</label><input className="form-input" value={whForm.name} onChange={e => setWhForm(f => ({ ...f, name: e.target.value }))} /></div>
-        </Modal>
-      )}
+      {showEditWh && <Modal title="Edit Warehouse" onClose={() => setShowEditWh(false)} footer={<><button className="btn bo" onClick={() => setShowEditWh(false)}>{T.cancel}</button><button className="btn bp" onClick={saveWh} disabled={saving}>{saving ? "..." : T.save}</button></>}><div className="form-group"><label className="form-label">Nomi</label><input className="form-input" value={whForm.name} onChange={e => setWhForm(f => ({ ...f, name: e.target.value }))} /></div></Modal>}
 
       <div className="wdh">
         <div className="wdh-banner" style={{ background: grad }}>
@@ -2215,8 +1880,7 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
                     const u = URL.createObjectURL(blob);
                     const a = document.createElement("a");
                     a.href = u; a.download = `${wh.name}_buylist.xlsx`;
-                    document.body.appendChild(a); a.click();
-                    document.body.removeChild(a); URL.revokeObjectURL(u);
+                    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(u);
                     addToast("Excel yuklab olindi!", "success");
                   } catch (err: any) { addToast(`Excel xatosi: ${err.message}`, "error"); }
                 }}>
@@ -2232,9 +1896,7 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
           {[
             { l: "Buylist", v: String(whBl.length), c: "var(--blue)", s: "items" },
             { l: "Low Stock", v: String(lowCount), c: lowCount > 0 ? "var(--red)" : "var(--green)", s: lowCount > 0 ? "warning" : "OK ✓" },
-            ...currencyTotals.map((ct: any) => ({
-              l: ct.name, v: ct.total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }), c: "var(--green)", s: ct.name
-            })),
+            ...currencyTotals.map((ct: any) => ({ l: ct.name, v: ct.total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }), c: "var(--green)", s: ct.name })),
             ...(currencyTotals.length === 0 ? [{ l: "Jami", v: "0", c: "var(--text3)", s: "—" }] : []),
           ].map((stat, i) => (
             <div key={i} className="wdh-stat">
@@ -2251,9 +1913,9 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
           <I n="warn" s={16} c="var(--orange)" />
           <span style={{ color: "var(--orange)" }}>
             To add buylist items, first create:
-            {itemler.length === 0 && " ⚡ Items (left menu),"}
-            {moneytypes.length === 0 && " ⚡ Currencies (left menu),"}
-            {unitler.length === 0 && " ⚡ Units (left menu)"}
+            {itemler.length === 0 && " ⚡ Items,"}
+            {moneytypes.length === 0 && " ⚡ Currencies,"}
+            {unitler.length === 0 && " ⚡ Units"}
           </span>
         </div>
       )}
@@ -2276,60 +1938,28 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
           </div>
         </div>
 
-        {/* ✅ FIX: Inline add form — fully responsive using .bl-add-row CSS class */}
         {showAdd && (
           <div className="bl-add-wrapper">
             <div className="bl-add-row">
-              {/* Mahsulot — full width on small screens via .bl-add-item */}
               <div className="bl-add-item">
                 <label className="form-label">Mahsulot *</label>
-                <input
-                  className="form-input"
-                  list="item-datalist"
-                  placeholder="Tanlang yoki yangi kiriting"
-                  value={
-                    form._itemName !== undefined
-                      ? form._itemName
-                      : (itemler.find((i: any) => String(i.id) === String(form.item))?.name || "")
-                  }
-                  onChange={e => {
-                    const val = e.target.value;
-                    const found = itemler.find((i: any) => i.name === val);
-                    setForm(f => ({ ...f, item: found ? String(found.id) : "", _itemName: val }));
-                  }}
-                />
-                <datalist id="item-datalist">
-                  {itemler.map((i: any) => <option key={i.id} value={i.name} />)}
-                </datalist>
+                <input className="form-input" list="item-datalist" placeholder="Tanlang yoki yangi kiriting"
+                  value={form._itemName !== undefined ? form._itemName : (itemler.find((i: any) => String(i.id) === String(form.item))?.name || "")}
+                  onChange={e => { const val = e.target.value; const found = itemler.find((i: any) => i.name === val); setForm((f: any) => ({ ...f, item: found ? String(found.id) : "", _itemName: val })); }} />
+                <datalist id="item-datalist">{itemler.map((i: any) => <option key={i.id} value={i.name} />)}</datalist>
               </div>
-
-              <div>
-                <label className="form-label">{T.qty} *</label>
-                <input className="form-input" type="number" min="0" value={form.qty} onChange={sf("qty")} onKeyDown={e => e.key === "Enter" && addBl()} />
-              </div>
-
-              <div>
-                <label className="form-label">{T.unit}</label>
+              <div><label className="form-label">{T.qty} *</label><input className="form-input" type="number" min="0" value={form.qty} onChange={sf("qty")} onKeyDown={e => e.key === "Enter" && addBl()} /></div>
+              <div><label className="form-label">{T.unit}</label>
                 <select className="form-select" style={{ width: "100%" }} value={form.unit} onChange={sf("unit")}>
-                  <option value="">— {T.unit} —</option>
-                  {unitler.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                  <option value="">— {T.unit} —</option>{unitler.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               </div>
-
-              <div>
-                <label className="form-label">{T.price}</label>
-                <input className="form-input" type="number" min="0" step="0.01" value={form.narx} onChange={sf("narx")} onKeyDown={e => e.key === "Enter" && addBl()} />
-              </div>
-
-              <div>
-                <label className="form-label">{T.currency}</label>
+              <div><label className="form-label">{T.price}</label><input className="form-input" type="number" min="0" step="0.01" value={form.narx} onChange={sf("narx")} onKeyDown={e => e.key === "Enter" && addBl()} /></div>
+              <div><label className="form-label">{T.currency}</label>
                 <select className="form-select" style={{ width: "100%" }} value={form.moneytype} onChange={sf("moneytype")}>
-                  <option value="">— {T.currency} —</option>
-                  {moneytypes.map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  <option value="">— {T.currency} —</option>{moneytypes.map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
               </div>
-
-              {/* Confirm button — spans full width on mobile via .bl-add-btn */}
               <button className="btn bp bl-add-btn" style={{ alignSelf: "flex-end", minWidth: 44, justifyContent: "center" }} onClick={addBl} disabled={saving}>
                 <I n="ck" s={14} c="#fff" />{saving ? "..." : "OK"}
               </button>
@@ -2338,33 +1968,22 @@ function WarehouseDetail({ wh, setWh, warehouses, setWarehouses, buylist, setBuy
         )}
 
         {shown.length === 0 ? (
-          <div className="empty-state"><I n="bx" s={38} c="var(--border2)" /><h3>{T.noResults || "Inventory is empty"}</h3><p>{T.addFirstItem || "Add your first item."}</p></div>
+          <div className="empty-state"><I n="bx" s={38} c="var(--border2)" /><h3>{T.noResults || "Inventory is empty"}</h3></div>
         ) : (
           <table>
             <thead><tr><th>{T.product}</th><th>{T.qty}</th><th>{T.price}</th><th>{T.currency}</th><th>{T.unit}</th><th>{T.total}</th><th>{T.date}</th><th></th></tr></thead>
-            <tbody>
-              {shown.map(item => (
-                <tr key={item.id}>
-                  <td><div className="ir">
-                    <div className="ith"><I n="bx" s={17} c="var(--blue)" /></div>
-                    <div>
-                      <div className="itn">{item.name}</div>
-                      <div className="iti">ID: {item.itemId}{item.low && <span style={{ color: "var(--red)", fontWeight: 700 }}> · {T.lowStock?.toUpperCase()}</span>}</div>
-                    </div>
-                  </div></td>
-                  <td><span className={`qv${item.low ? " ql" : ""}`}>{item.qty}</span></td>
-                  <td style={{ fontWeight: 500 }}>{item.price}</td>
-                  <td><span className="cpill cp-u">{item.moneytypeName}</span></td>
-                  <td className="dv">{item.unitName}</td>
-                  <td className="tvv">{item.total}</td>
-                  <td className="dv">{item.date}</td>
-                  <td><div className="arr">
-                    <button className="ib" onClick={() => openEdit(item)}><I n="ed" s={13} /></button>
-                    <button className="ib red" onClick={() => setDelItem(item)}><I n="td" s={13} /></button>
-                  </div></td>
-                </tr>
-              ))}
-            </tbody>
+            <tbody>{shown.map((item: any) => (
+              <tr key={item.id}>
+                <td><div className="ir"><div className="ith"><I n="bx" s={17} c="var(--blue)" /></div><div><div className="itn">{item.name}</div><div className="iti">ID: {item.itemId}{item.low && <span style={{ color: "var(--red)", fontWeight: 700 }}> · LOW</span>}</div></div></div></td>
+                <td><span className={`qv${item.low ? " ql" : ""}`}>{item.qty}</span></td>
+                <td style={{ fontWeight: 500 }}>{item.price}</td>
+                <td><span className="cpill cp-u">{item.moneytypeName}</span></td>
+                <td className="dv">{item.unitName}</td>
+                <td className="tvv">{item.total}</td>
+                <td className="dv">{item.date}</td>
+                <td><div className="arr"><button className="ib" onClick={() => openEdit(item)}><I n="ed" s={13} /></button><button className="ib red" onClick={() => setDelItem(item)}><I n="td" s={13} /></button></div></td>
+              </tr>
+            ))}</tbody>
           </table>
         )}
         <div className="tf">
@@ -2397,7 +2016,7 @@ function ShipmentsPage({ shipments, setShipments, addToast, T }: any) {
   function addShip() {
     if (!form.item) return;
     const id = ++SHIP_ID;
-    setShipments(s => [...s, { id, item: form.item, batch: `#${id}`, from: form.from, to: form.to, date: new Date().toLocaleDateString(), status: form.status, val: form.val || "+$0", pos: form.status !== "In Transit" }]);
+    setShipments((s: any) => [...s, { id, item: form.item, batch: `#${id}`, from: form.from, to: form.to, date: new Date().toLocaleDateString(), status: form.status, val: form.val || "+$0", pos: form.status !== "In Transit" }]);
     addToast("Shipment created!"); setShowAdd(false);
     setForm({ item: "", from: "", to: "", val: "", status: "Pending" });
   }
@@ -2422,39 +2041,26 @@ function ShipmentsPage({ shipments, setShipments, addToast, T }: any) {
           </div>
         </Modal>
       )}
-      {delShip && <ConfirmModal title="Delete Shipment" desc={<>«<strong>{delShip.item}</strong>»?</>} onConfirm={() => { setShipments(s => s.filter((x: any) => x.id !== delShip.id)); addToast("Deleted", "error"); }} onClose={() => setDelShip(null)} />}
-
+      {delShip && <ConfirmModal title="Delete Shipment" desc={<>«<strong>{delShip.item}</strong>»?</>} onConfirm={() => { setShipments((s: any) => s.filter((x: any) => x.id !== delShip.id)); addToast("Deleted", "error"); }} onClose={() => setDelShip(null)} />}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
-        <div>
-          <h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-.025em" }}>{T.shipments}</h1>
-          <p style={{ fontSize: 13, color: "var(--text3)", marginTop: 3 }}>{shipments.length} ta yuborish</p>
-        </div>
+        <div><h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-.025em" }}>Shipments</h1><p style={{ fontSize: 13, color: "var(--text3)", marginTop: 3 }}>{shipments.length} ta yuborish</p></div>
         <button className="btn bp" onClick={() => setShowAdd(true)}><I n="pl" s={14} c="#fff" />New Shipment</button>
       </div>
-
       <div className="sg sg3">
         {[{ l: "Delivered", cl: "gr", f: "Delivered" }, { l: "In Transit", cl: "bl", f: "In Transit" }, { l: "Pending", cl: "rd", f: "Pending" }].map((s: any) => (
           <div key={s.l} className="sc"><div className="slb">{s.l}</div><div className={`sv ${s.cl}`}>{shipments.filter((x: any) => x.status === s.f).length}</div></div>
         ))}
       </div>
-
       <div className="tc">
         <div className="sh2"><div className="st2">All Shipments</div></div>
-        {shipments.length === 0
-          ? <div className="empty-state"><I n="ship" s={38} c="var(--border2)" /><h3>No shipments</h3></div>
+        {shipments.length === 0 ? <div className="empty-state"><I n="ship" s={38} c="var(--border2)" /><h3>No shipments</h3></div>
           : shipments.map((s: any) => {
             const st = SHIP_ST[s.status] || SHIP_ST.Pending;
             return (
               <div className="ship-card" key={s.id}>
                 <div className="ship-icon"><I n={st.ic} s={20} c={st.c} /></div>
-                <div className="ship-info">
-                  <div className="ship-name">{s.item}</div>
-                  <div className="ship-meta">Batch {s.batch} · {s.from} → {s.to} · {s.date}</div>
-                </div>
-                <div className="ship-status">
-                  <span className={`txs ${st.cls}`}>{s.status}</span>
-                  <span className={`txi ${s.pos ? "txi-p" : "txi-n"}`}>{s.val}</span>
-                </div>
+                <div className="ship-info"><div className="ship-name">{s.item}</div><div className="ship-meta">Batch {s.batch} · {s.from} → {s.to} · {s.date}</div></div>
+                <div className="ship-status"><span className={`txs ${st.cls}`}>{s.status}</span><span className={`txi ${s.pos ? "txi-p" : "txi-n"}`}>{s.val}</span></div>
                 <div style={{ marginLeft: 12 }}><button className="ib red" onClick={() => setDelShip(s)}><I n="td" s={13} /></button></div>
               </div>
             );
@@ -2467,16 +2073,12 @@ function ShipmentsPage({ shipments, setShipments, addToast, T }: any) {
 /* ═══════════════════ ANALYTICS ═══════════════════ */
 function ReportsPage({ warehouses, buylist, addToast, T }: any) {
   const byWH = warehouses.map((w: any) => ({
-    name: w.name,
-    id: w.id,
+    name: w.name, id: w.id,
     count: buylist.filter((b: any) => String(b.depolarId) === String(w.id)).length,
-    totalVal: buylist
-      .filter((b: any) => String(b.depolarId) === String(w.id))
-      .reduce((acc: number, b: any) => acc + (Number(b.qty) || 0) * (parseFloat(String(b._raw?.narx ?? b.price ?? "0").replace(/,/g, "")) || 0), 0),
+    totalVal: buylist.filter((b: any) => String(b.depolarId) === String(w.id)).reduce((acc: number, b: any) => acc + (Number(b.qty) || 0) * (parseFloat(String(b._raw?.narx ?? b.price ?? "0").replace(/,/g, "")) || 0), 0),
   }));
   const maxWH = Math.max(...byWH.map((w: any) => w.count), 1);
   const colors = ["var(--blue)", "var(--orange)", "var(--purple)", "var(--green)", "var(--red)"];
-
   const currMap: Record<string, number> = {};
   buylist.forEach((b: any) => {
     const cur = b.moneytypeName || "?";
@@ -2485,35 +2087,22 @@ function ReportsPage({ warehouses, buylist, addToast, T }: any) {
   });
   const currEntries = Object.entries(currMap);
   const maxCurr = Math.max(...currEntries.map(([, v]) => v), 1);
-
-  const topItems = [...buylist]
-    .sort((a: any, b: any) => Number(b.total) - Number(a.total))
-    .slice(0, 8);
-
+  const topItems = [...buylist].sort((a: any, b: any) => Number(b.total) - Number(a.total)).slice(0, 8);
   const lowItems = buylist.filter((i: any) => i.low);
 
   return (
     <div className="fu">
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
-        <div>
-          <h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-.025em" }}>{T.analytics || "Analytics"}</h1>
-          <p style={{ fontSize: 13, color: "var(--text3)", marginTop: 3 }}>Barcha omborlar bo'yicha batafsil tahlil</p>
-        </div>
+        <div><h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-.025em" }}>{T.analytics || "Analytics"}</h1><p style={{ fontSize: 13, color: "var(--text3)", marginTop: 3 }}>Barcha omborlar bo'yicha batafsil tahlil</p></div>
       </div>
-
-      <div className="sg" style={{ gridTemplateColumns: `repeat(${Math.max(3, currEntries.length + 2)}, 1fr)`, marginBottom: 20 }}>
+      <div className="sg" style={{ gridTemplateColumns: `repeat(${Math.max(3, currEntries.length + 2)},1fr)`, marginBottom: 20 }}>
         <div className="sc"><div className="slb">Jami Mahsulotlar</div><div className="sv">{buylist.length}</div><div style={{ marginTop: 6 }}><span className="badge bdg">Barcha omborlar</span></div></div>
         <div className="sc"><div className="slb">Omborlar</div><div className="sv bl">{warehouses.length}</div></div>
         <div className="sc"><div className="slb">Kam Zaxira</div><div className="sv rd">{lowItems.length}</div></div>
         {currEntries.map(([cur, total]) => (
-          <div key={cur} className="sc">
-            <div className="slb">Jami · {cur}</div>
-            <div className="sv" style={{ color: "var(--green)", fontSize: 17 }}>{(total as number).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-            <div className="sss">{cur}</div>
-          </div>
+          <div key={cur} className="sc"><div className="slb">Jami · {cur}</div><div className="sv" style={{ color: "var(--green)", fontSize: 17 }}>{(total as number).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div><div className="sss">{cur}</div></div>
         ))}
       </div>
-
       <div className="rep-grid">
         <div className="rep-chart">
           <div className="rep-chart-title">Omborlar bo'yicha mahsulotlar soni</div>
@@ -2526,11 +2115,9 @@ function ReportsPage({ warehouses, buylist, addToast, T }: any) {
               </div>
             ))}
         </div>
-
         <div className="rep-chart">
           <div className="rep-chart-title">Valyuta bo'yicha jami qiymat</div>
-          {currEntries.length === 0
-            ? <div style={{ color: "var(--text4)", fontSize: 13 }}>Ma'lumot yo'q</div>
+          {currEntries.length === 0 ? <div style={{ color: "var(--text4)", fontSize: 13 }}>Ma'lumot yo'q</div>
             : currEntries.map(([cur, total], i) => (
               <div key={cur} className="bar-row">
                 <div className="bar-label">{cur}</div>
@@ -2540,56 +2127,31 @@ function ReportsPage({ warehouses, buylist, addToast, T }: any) {
             ))}
         </div>
       </div>
-
       <div className="tc" style={{ marginTop: 20 }}>
         <div className="sh2"><div className="st2">Eng qimmat mahsulotlar (Top 8)</div></div>
-        {topItems.length === 0
-          ? <div className="empty-state"><I n="bx" s={38} c="var(--border2)" /><h3>Ma'lumot yo'q</h3></div>
-          : <table>
-            <thead><tr><th>Mahsulot</th><th>Ombor</th><th>Miqdor</th><th>Narx</th><th>Valyuta</th><th>Jami</th></tr></thead>
-            <tbody>{topItems.map((b: any, i) => {
-              const wh = warehouses.find((w: any) => String(w.id) === String(b.depolarId));
-              return (
-                <tr key={b.id || i}>
-                  <td><div className="itn">{b.name}</div></td>
-                  <td className="dv">{wh?.name || "—"}</td>
-                  <td><span className={`qv${b.low ? " ql" : ""}`}>{b.qty}</span></td>
-                  <td style={{ fontWeight: 500 }}>{b.price}</td>
-                  <td><span className="cpill cp-u">{b.moneytypeName}</span></td>
-                  <td className="tvv">{Number(b.total).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
-                </tr>
-              );
-            })}</tbody>
-          </table>
-        }
+        {topItems.length === 0 ? <div className="empty-state"><I n="bx" s={38} c="var(--border2)" /><h3>Ma'lumot yo'q</h3></div>
+          : <table><thead><tr><th>Mahsulot</th><th>Ombor</th><th>Miqdor</th><th>Narx</th><th>Valyuta</th><th>Jami</th></tr></thead>
+            <tbody>{topItems.map((b: any, i: number) => {
+              const wh2 = warehouses.find((w: any) => String(w.id) === String(b.depolarId));
+              return <tr key={b.id || i}><td><div className="itn">{b.name}</div></td><td className="dv">{wh2?.name || "—"}</td><td><span className={`qv${b.low ? " ql" : ""}`}>{b.qty}</span></td><td style={{ fontWeight: 500 }}>{b.price}</td><td><span className="cpill cp-u">{b.moneytypeName}</span></td><td className="tvv">{Number(b.total).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td></tr>;
+            })}</tbody></table>}
       </div>
-
       {lowItems.length > 0 && (
         <div className="tc" style={{ marginTop: 20 }}>
-          <div className="sh2"><div className="st2" style={{ color: "var(--red)" }}>⚠ Kam Zaxira Mahsulotlar ({lowItems.length})</div></div>
-          <table>
-            <thead><tr><th>Mahsulot</th><th>Ombor</th><th>Miqdor</th><th>Valyuta</th></tr></thead>
-            <tbody>{lowItems.map((b: any, i) => {
-              const wh = warehouses.find((w: any) => String(w.id) === String(b.depolarId));
-              return (
-                <tr key={b.id || i}>
-                  <td><div className="itn" style={{ color: "var(--red)" }}>{b.name}</div></td>
-                  <td className="dv">{wh?.name || "—"}</td>
-                  <td><span className="qv ql">{b.qty}</span></td>
-                  <td><span className="cpill cp-u">{b.moneytypeName}</span></td>
-                </tr>
-              );
-            })}</tbody>
-          </table>
+          <div className="sh2"><div className="st2" style={{ color: "var(--red)" }}>⚠ Kam Zaxira ({lowItems.length})</div></div>
+          <table><thead><tr><th>Mahsulot</th><th>Ombor</th><th>Miqdor</th><th>Valyuta</th></tr></thead>
+            <tbody>{lowItems.map((b: any, i: number) => {
+              const wh2 = warehouses.find((w: any) => String(w.id) === String(b.depolarId));
+              return <tr key={b.id || i}><td><div className="itn" style={{ color: "var(--red)" }}>{b.name}</div></td><td className="dv">{wh2?.name || "—"}</td><td><span className="qv ql">{b.qty}</span></td><td><span className="cpill cp-u">{b.moneytypeName}</span></td></tr>;
+            })}</tbody></table>
         </div>
       )}
     </div>
   );
 }
 
-/* ═══════════════════ SMART INVOICE INTAKE ═══════════════════ */
+/* ═══════════════════ INTAKE PAGE ═══════════════════ */
 let INTAKE_ID = 100;
-
 function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unitler, addToast, T }: any) {
   const [lines, setLines] = useState<any[]>([]);
   const [approved, setApproved] = useState(false);
@@ -2600,161 +2162,76 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
   const [editingCell, setEditingCell] = useState<any>(null);
   const [showAddLine, setShowAddLine] = useState(false);
   const [newLine, setNewLine] = useState({ desc: "", qty: "", price: "", cur: moneytypes[0]?.name || "UZS" });
-
   const [uploadedFile, setUploadedFile] = useState<any>(null);
   const [previewUrl, setPreviewUrl] = useState<any>(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  useEffect(() => {
-    if (warehouses.length && !selWh) setSelWh(warehouses[0].id);
-  }, [warehouses]);
+  useEffect(() => { if (warehouses.length && !selWh) setSelWh(warehouses[0].id); }, [warehouses]);
 
   const total = lines.reduce((acc, l) => acc + (Number(l.qty) * parseFloat(l.price || 0)), 0);
 
-  function handleFileSelect(file) {
+  function handleFileSelect(file: File) {
     if (!file) return;
     const allowed = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
-    if (!allowed.includes(file.type)) {
-      addToast("Sadece JPG, PNG veya WEBP yükleyebilirsiniz", "error");
-      return;
-    }
-    setUploadedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
-    setLines([]);
+    if (!allowed.includes(file.type)) { addToast("Sadece JPG, PNG veya WEBP", "error"); return; }
+    setUploadedFile(file); setPreviewUrl(URL.createObjectURL(file)); setLines([]);
   }
 
-  function handleDrop(e) {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    handleFileSelect(file);
-  }
+  function handleDrop(e: any) { e.preventDefault(); setIsDragging(false); handleFileSelect(e.dataTransfer.files[0]); }
 
   async function handleScan() {
     if (!uploadedFile) { addToast("Önce bir fatura resmi yükleyin", "error"); return; }
     setScanning(true);
     try {
-      const formData = new FormData();
-      formData.append("image", uploadedFile);
-
+      const formData = new FormData(); formData.append("image", uploadedFile);
       const token = getToken();
-      const res = await fetch(`${BASE}/scan/`, {
-        method: "POST",
-        headers: {
-          ...(token ? { "Authorization": `Token ${token}` } : {}),
-        },
-        credentials: "include" as RequestCredentials,
-        body: formData,
-      });
-
+      const res = await fetch(`${BASE}/scan/`, { method: "POST", headers: { ...(token ? { Authorization: `Token ${token}` } : {}) }, credentials: "include" as RequestCredentials, body: formData });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data?.detail || `Hata: ${res.status}`);
-      }
-
-      const scannedLines = (data.lines || []).map((l, i) => ({
-        ...l,
-        id: ++INTAKE_ID,
-        warn: false,
-      }));
-
-      if (scannedLines.length === 0) {
-        addToast("Faturadan ürün çıkarılamadı. Daha net bir resim deneyin.", "error");
-      } else {
-        setLines(scannedLines);
-        setRefId(`INV-${Date.now().toString().slice(-6)}`);
-        addToast(`${scannedLines.length} ürün başarıyla tarandı!`, "success");
-      }
-    } catch (e: any) {
-      addToast(`Tarama hatası: ${(e as Error).message}`, "error");
-    } finally {
-      setScanning(false);
-    }
+      if (!res.ok) throw new Error(data?.detail || `Hata: ${res.status}`);
+      const scanned = (data.lines || []).map((l: any, i: number) => ({ ...l, id: ++INTAKE_ID, warn: false }));
+      if (scanned.length === 0) { addToast("Faturadan ürün çıkarılamadı", "error"); }
+      else { setLines(scanned); setRefId(`INV-${Date.now().toString().slice(-6)}`); addToast(`${scanned.length} ürün tarandı!`, "success"); }
+    } catch (e: any) { addToast(`Tarama hatası: ${(e as Error).message}`, "error"); }
+    finally { setScanning(false); }
   }
 
-  function updateLine(id, field, value) {
-    setLines(prev => prev.map((l: any) => l.id === id ? { ...l, [field]: value } : l));
-  }
-
-  function deleteLine(id) {
-    setLines(prev => prev.filter((l: any) => l.id !== id));
-  }
-
+  function updateLine(id: number, field: string, value: any) { setLines(p => p.map((l: any) => l.id === id ? { ...l, [field]: value } : l)); }
+  function deleteLine(id: number) { setLines(p => p.filter((l: any) => l.id !== id)); }
   function addLine() {
     if (!newLine.desc.trim()) return;
-    setLines(prev => [...prev, { id: ++INTAKE_ID, desc: newLine.desc, qty: Number(newLine.qty) || 1, price: newLine.price || "0", cur: newLine.cur, warn: false }]);
-    setNewLine({ desc: "", qty: "", price: "", cur: moneytypes[0]?.name || "UZS" });
-    setShowAddLine(false);
+    setLines(p => [...p, { id: ++INTAKE_ID, desc: newLine.desc, qty: Number(newLine.qty) || 1, price: newLine.price || "0", cur: newLine.cur, warn: false }]);
+    setNewLine({ desc: "", qty: "", price: "", cur: moneytypes[0]?.name || "UZS" }); setShowAddLine(false);
   }
 
   async function approve() {
-    if (lines.length === 0) { addToast("No items to approve", "error"); return; }
+    if (lines.length === 0) { addToast("No items", "error"); return; }
     if (!selWh) { addToast("Ombor tanlang", "error"); return; }
     setSaving(true);
-    let success = 0;
-    const errors: string[] = [];
-
-    const localMoneytypes = [...moneytypes];
-    const localUnitler = [...unitler];
-    const localItemler = [...itemler];
-
+    let success = 0; const errors: string[] = [];
+    const lm = [...moneytypes], lu = [...unitler], li = [...itemler];
     for (const line of lines) {
       try {
         let itemId: number | null = null;
         if (line.desc) {
-          const found = localItemler.find((i: any) =>
-            i.name.toLowerCase().trim() === line.desc.toLowerCase().trim()
-          );
-          if (found) {
-            itemId = found.id;
-          } else {
-            const newItem = await itemlerAPI.create({ name: line.desc });
-            itemId = newItem.id;
-            localItemler.push({ id: itemId, name: line.desc });
-          }
+          const found = li.find((i: any) => i.name.toLowerCase().trim() === line.desc.toLowerCase().trim());
+          if (found) { itemId = found.id; } else { const ni = await itemlerAPI.create({ name: line.desc }); itemId = ni.id; li.push({ id: itemId, name: line.desc }); }
         }
-        if (!itemId) { errors.push(`${line.desc}: item yaratilmadi`); continue; }
-
+        if (!itemId) { errors.push(`${line.desc}: skipped`); continue; }
         const curName = line.cur?.trim() || "UZS";
-        let mtFound = localMoneytypes.find((m: any) =>
-          m.code?.toLowerCase() === curName.toLowerCase() ||
-          m.name?.toLowerCase() === curName.toLowerCase()
-        );
-        if (!mtFound) {
-          const newMt = await moneytypesAPI.create({ name: curName });
-          mtFound = { id: newMt.id, name: curName, code: curName, _raw: newMt };
-          localMoneytypes.push(mtFound);
-        }
+        let mtFound = lm.find((m: any) => m.code?.toLowerCase() === curName.toLowerCase() || m.name?.toLowerCase() === curName.toLowerCase());
+        if (!mtFound) { const nm = await moneytypesAPI.create({ name: curName }); mtFound = { id: nm.id, name: curName, code: curName, _raw: nm }; lm.push(mtFound); }
         const mtId = mtFound.id;
-
         const unitName = line.birlik?.trim() || "dona";
-        let unitFound = localUnitler.find((u: any) =>
-          u.name?.toLowerCase() === unitName.toLowerCase()
-        );
-        if (!unitFound) {
-          const newUnit = await unitlerAPI.create({ name: unitName });
-          unitFound = { id: newUnit.id, name: unitName, _raw: newUnit };
-          localUnitler.push(unitFound);
-        }
+        let unitFound = lu.find((u: any) => u.name?.toLowerCase() === unitName.toLowerCase());
+        if (!unitFound) { const nu = await unitlerAPI.create({ name: unitName }); unitFound = { id: nu.id, name: unitName, _raw: nu }; lu.push(unitFound); }
         const unitId = unitFound.id;
-
-        const created = await buylistAPI.create({
-          item: itemId,
-          moneytype: mtId,
-          unit: unitId,
-          depolar: Number(selWh),
-          qty: Number(line.qty) || 0,
-          narx: String(line.price || "0"),
-        });
-        setBuylist(prev => [...prev, normalizeBuylist(created, localItemler, localMoneytypes, localUnitler)]);
+        const created = await buylistAPI.create({ item: itemId, moneytype: mtId, unit: unitId, depolar: Number(selWh), qty: Number(line.qty) || 0, narx: String(line.price || "0") });
+        setBuylist((prev: any) => [...prev, normalizeBuylist(created, li, lm, lu)]);
         success++;
-      } catch (e: any) {
-        errors.push(`${line.desc}: ${e.message}`);
-      }
+      } catch (e: any) { errors.push(`${line.desc}: ${e.message}`); }
     }
     setSaving(false);
-    if (errors.length > 0) console.error("Approve errors:", errors);
-    addToast(`${success}/${lines.length} items added to inventory!`, success > 0 ? "success" : "error");
+    addToast(`${success}/${lines.length} items added!`, success > 0 ? "success" : "error");
     if (success > 0) setApproved(true);
   }
 
@@ -2766,9 +2243,7 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
         </div>
         <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", marginBottom: 8 }}>Muvaffaqiyatli qo'shildi!</h2>
         <p style={{ color: "var(--text3)", marginBottom: 26, fontSize: 14 }}>{lines.length} ta mahsulot inventarga qo'shildi.</p>
-        <button className="btn bp" style={{ padding: "10px 28px", fontSize: 14 }} onClick={() => {
-          setApproved(false); setLines([]); setUploadedFile(null); setPreviewUrl(null); setRefId("");
-        }}>
+        <button className="btn bp" style={{ padding: "10px 28px", fontSize: 14 }} onClick={() => { setApproved(false); setLines([]); setUploadedFile(null); setPreviewUrl(null); setRefId(""); }}>
           <I n="sc" s={15} c="#fff" />Yangi Fatura Skan
         </button>
       </div>
@@ -2778,61 +2253,27 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
   return (
     <div className="fu">
       <div className="ph" style={{ marginBottom: 16 }}>
-        <div className="ph-l">
-          <h1 style={{ fontWeight: 800, letterSpacing: "-.025em" }}>{T.intake || "Smart Invoice Intake"}</h1>
-          <p style={{ color: "var(--text3)", marginTop: 2 }}>Fatura rasmini yuklang va AI bilan skanlang</p>
-        </div>
+        <div className="ph-l"><h1 style={{ fontWeight: 800, letterSpacing: "-.025em" }}>{T.intake || "Smart Invoice Intake"}</h1><p style={{ color: "var(--text3)", marginTop: 2 }}>Fatura rasmini yuklang va AI bilan skanlang</p></div>
       </div>
       <div className="intake-layout">
         <div className="card">
           <div className="card-h">
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 28, height: 28, background: "var(--blue-l)", border: "1px solid var(--blue-m)", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <I n="fi" s={14} c="var(--blue)" />
-              </div>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text2)", letterSpacing: ".03em" }}>
-                {uploadedFile ? uploadedFile.name.toUpperCase() : "FATURA YUKLASH"}
-              </span>
+              <div style={{ width: 28, height: 28, background: "var(--blue-l)", border: "1px solid var(--blue-m)", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}><I n="fi" s={14} c="var(--blue)" /></div>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text2)", letterSpacing: ".03em" }}>{uploadedFile ? uploadedFile.name.toUpperCase() : "FATURA YUKLASH"}</span>
             </div>
-            {uploadedFile && (
-              <button className="ib" onClick={() => { setUploadedFile(null); setPreviewUrl(null); setLines([]); }} title="Tozalash">
-                <I n="x" s={13} />
-              </button>
-            )}
+            {uploadedFile && <button className="ib" onClick={() => { setUploadedFile(null); setPreviewUrl(null); setLines([]); }} title="Tozalash"><I n="x" s={13} /></button>}
           </div>
-
           <div style={{ padding: 16, background: "#f5f6f8", minHeight: 460 }}>
             {!previewUrl ? (
-              <div
-                onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={handleDrop}
-                onClick={() => document.getElementById("invoice-file-input").click()}
-                style={{
-                  border: `2px dashed ${isDragging ? "var(--blue)" : "var(--border2)"}`,
-                  borderRadius: "var(--r)",
-                  background: isDragging ? "var(--blue-l)" : "var(--surface)",
-                  minHeight: 420,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                  transition: "all .2s",
-                  padding: 24,
-                  textAlign: "center",
-                }}>
-                <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--blue-l)", border: "1.5px solid var(--blue-m)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
-                  <I n="dl" s={24} c="var(--blue)" />
-                </div>
+              <div onDragOver={e => { e.preventDefault(); setIsDragging(true); }} onDragLeave={() => setIsDragging(false)} onDrop={handleDrop}
+                onClick={() => (document.getElementById("invoice-file-input") as HTMLInputElement)?.click()}
+                style={{ border: `2px dashed ${isDragging ? "var(--blue)" : "var(--border2)"}`, borderRadius: "var(--r)", background: isDragging ? "var(--blue-l)" : "var(--surface)", minHeight: 420, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all .2s", padding: 24, textAlign: "center" }}>
+                <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--blue-l)", border: "1.5px solid var(--blue-m)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}><I n="dl" s={24} c="var(--blue)" /></div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>Fatura rasmini yuklang</div>
-                <div style={{ fontSize: 12, color: "var(--text3)", marginBottom: 18, lineHeight: 1.6 }}>
-                  Sudrab tashlang yoki bosing<br />JPG, PNG, WEBP · Max 10MB
-                </div>
-                <button className="btn bp" style={{ pointerEvents: "none" }}>
-                  <I n="fi" s={14} c="#fff" />Fayl tanlash
-                </button>
-                <input id="invoice-file-input" type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }} onChange={e => handleFileSelect(e.target.files!![0])} />
+                <div style={{ fontSize: 12, color: "var(--text3)", marginBottom: 18, lineHeight: 1.6 }}>Sudrab tashlang yoki bosing<br />JPG, PNG, WEBP · Max 10MB</div>
+                <button className="btn bp" style={{ pointerEvents: "none" }}><I n="fi" s={14} c="#fff" />Fayl tanlash</button>
+                <input id="invoice-file-input" type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }} onChange={e => handleFileSelect(e.target.files![0])} />
               </div>
             ) : (
               <div style={{ borderRadius: "var(--rs)", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,.12)", background: "#fff" }}>
@@ -2840,52 +2281,28 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
               </div>
             )}
           </div>
-
           <div style={{ padding: "14px 16px", borderTop: "1px solid var(--border)", display: "flex", gap: 10 }}>
             <button className="btn bp" style={{ flex: 1, justifyContent: "center", fontSize: 14, padding: "10px" }} onClick={handleScan} disabled={!uploadedFile || scanning}>
-              {scanning
-                ? <><div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />Skanlanmoqda...</>
-                : <><I n="mg" s={15} c="#fff" />AI bilan Skan Qilish</>
-              }
+              {scanning ? <><div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />Skanlanmoqda...</> : <><I n="mg" s={15} c="#fff" />AI bilan Skan Qilish</>}
             </button>
-            <button className="btn bo" onClick={() => document.getElementById("invoice-file-input").click()} title="Boshqa rasm tanlash">
+            <button className="btn bo" onClick={() => (document.getElementById("invoice-file-input") as HTMLInputElement)?.click()} title="Boshqa rasm">
               <I n="refresh" s={14} />
-              <input id="invoice-file-input" type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }} onChange={e => handleFileSelect(e.target.files!![0])} />
+              <input id="invoice-file-input" type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }} onChange={e => handleFileSelect(e.target.files![0])} />
             </button>
           </div>
         </div>
+
         <div className="card">
           <div style={{ padding: "18px 22px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-              <div style={{ width: 38, height: 38, background: "var(--blue)", borderRadius: "var(--rs)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <I n="mg" s={18} c="#fff" />
-              </div>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)" }}>AI Extraction Results</div>
-                <div style={{ fontSize: 13, color: "var(--text3)", marginTop: 2 }}>
-                  {scanning ? "Fatura skanlanmoqda..." : lines.length > 0 ? `${lines.length} ta mahsulot topildi.` : "Fatura yuklang va AI bilan skanlang."}
-                </div>
-              </div>
+              <div style={{ width: 38, height: 38, background: "var(--blue)", borderRadius: "var(--rs)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><I n="mg" s={18} c="#fff" /></div>
+              <div><div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)" }}>AI Extraction Results</div><div style={{ fontSize: 13, color: "var(--text3)", marginTop: 2 }}>{scanning ? "Skanlanmoqda..." : lines.length > 0 ? `${lines.length} ta mahsulot topildi.` : "Fatura yuklang va AI bilan skanlang."}</div></div>
             </div>
-            {lines.length > 0 && (
-              <div style={{ background: "var(--green-bg)", border: "1px solid var(--green-t)", color: "var(--green-t)", padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
-                <I n="ck" s={12} c="var(--green-t)" />Ko'rib chiqishga tayyor
-              </div>
-            )}
-            {scanning && (
-              <div style={{ background: "var(--blue-l)", border: "1px solid var(--blue-m)", color: "var(--blue)", padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
-                <div className="spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />Skanlanmoqda...
-              </div>
-            )}
+            {lines.length > 0 && <div style={{ background: "var(--green-bg)", border: "1px solid var(--green-t)", color: "var(--green-t)", padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}><I n="ck" s={12} c="var(--green-t)" />Ko'rib chiqishga tayyor</div>}
+            {scanning && <div style={{ background: "var(--blue-l)", border: "1px solid var(--blue-m)", color: "var(--blue)", padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}><div className="spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />Skanlanmoqda...</div>}
           </div>
 
-          {scanning && (
-            <div style={{ padding: "60px 24px", textAlign: "center", color: "var(--text3)" }}>
-              <div className="spinner" style={{ margin: "0 auto 16px" }} />
-              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text2)", marginBottom: 6 }}>OCR va AI ishlayapti...</div>
-              <div style={{ fontSize: 12 }}>Fatura matni o'qilmoqda va tahlil qilinmoqda</div>
-            </div>
-          )}
+          {scanning && <div style={{ padding: "60px 24px", textAlign: "center", color: "var(--text3)" }}><div className="spinner" style={{ margin: "0 auto 16px" }} /><div style={{ fontSize: 14, fontWeight: 600, color: "var(--text2)", marginBottom: 6 }}>OCR va AI ishlayapti...</div></div>}
 
           {!scanning && lines.length === 0 && (
             <div style={{ padding: "60px 24px", textAlign: "center", color: "var(--text4)" }}>
@@ -2898,98 +2315,71 @@ function IntakePage({ buylist, setBuylist, warehouses, itemler, moneytypes, unit
           {!scanning && lines.length > 0 && (
             <>
               <div className="sg sg3" style={{ borderBottom: "1px solid var(--border)", margin: 0 }}>
-                <div style={{ padding: "14px 18px", borderRight: "1px solid var(--border)" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--text4)", marginBottom: 6 }}>{T.items || "Mahsulotlar"}</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{lines.length} ta</div>
-                </div>
-                <div style={{ padding: "14px 18px", borderRight: "1px solid var(--border)" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--text4)", marginBottom: 6 }}>Ref ID</div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", fontStyle: "italic" }}>{refId || "—"}</div>
-                </div>
-                <div style={{ padding: "14px 18px", background: "var(--blue-l)" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--blue)", marginBottom: 6 }}>{T.totalSum || "Jami Summa"}</div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: "var(--blue)", letterSpacing: "-.02em" }}>{total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
-                </div>
+                <div style={{ padding: "14px 18px", borderRight: "1px solid var(--border)" }}><div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--text4)", marginBottom: 6 }}>{T.items || "Mahsulotlar"}</div><div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{lines.length} ta</div></div>
+                <div style={{ padding: "14px 18px", borderRight: "1px solid var(--border)" }}><div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--text4)", marginBottom: 6 }}>Ref ID</div><div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", fontStyle: "italic" }}>{refId || "—"}</div></div>
+                <div style={{ padding: "14px 18px", background: "var(--blue-l)" }}><div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--blue)", marginBottom: 6 }}>Jami Summa</div><div style={{ fontSize: 20, fontWeight: 800, color: "var(--blue)", letterSpacing: "-.02em" }}>{total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div></div>
               </div>
-
               <div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", borderBottom: "1px solid var(--border)" }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>Aniqlangan Mahsulotlar</div>
-                  <button className="btn bg2 bs" style={{ color: "var(--blue)", fontWeight: 700 }} onClick={() => setShowAddLine(v => !v)}>
-                    <I n="pl" s={13} c="var(--blue)" />+ Qo'shish
-                  </button>
+                  <button className="btn bg2 bs" style={{ color: "var(--blue)", fontWeight: 700 }} onClick={() => setShowAddLine(v => !v)}><I n="pl" s={13} c="var(--blue)" />+ Qo'shish</button>
                 </div>
-
                 {showAddLine && (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 90px 80px 36px", gap: 8, padding: "10px 18px", background: "var(--blue-l)", borderBottom: "1px solid var(--border)", alignItems: "center" }}>
                     <input className="form-input" style={{ fontSize: 13, padding: "6px 10px" }} placeholder="Mahsulot nomi" value={newLine.desc} onChange={e => setNewLine(p => ({ ...p, desc: e.target.value }))} onKeyDown={e => e.key === "Enter" && addLine()} />
                     <input className="form-input" style={{ fontSize: 13, padding: "6px 10px" }} type="number" placeholder="Soni" value={newLine.qty} onChange={e => setNewLine(p => ({ ...p, qty: e.target.value }))} />
                     <input className="form-input" style={{ fontSize: 13, padding: "6px 10px" }} type="number" placeholder="Narx" value={newLine.price} onChange={e => setNewLine(p => ({ ...p, price: e.target.value }))} />
                     <select className="form-select" style={{ fontSize: 13, padding: "6px 8px" }} value={newLine.cur} onChange={e => setNewLine(p => ({ ...p, cur: e.target.value }))}>
-                      {moneytypes.length > 0
-                        ? moneytypes.map((m: any) => <option key={m.id} value={m.name}>{m.name}</option>)
-                        : <><option>UZS</option><option>USD</option><option>EUR</option></>
-                      }
+                      {moneytypes.length > 0 ? moneytypes.map((m: any) => <option key={m.id} value={m.name}>{m.name}</option>) : <><option>UZS</option><option>USD</option><option>EUR</option></>}
                     </select>
                     <button className="btn bp" style={{ padding: "6px 8px", justifyContent: "center" }} onClick={addLine}><I n="ck" s={13} c="#fff" /></button>
                   </div>
                 )}
-
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 110px 80px 36px", gap: 8, padding: "8px 18px", borderBottom: "1px solid var(--border)", background: "var(--surface2)" }}>
-                  {["MAHSULOT", "SONI", "NARX", "BIRLIK", ""].map((h, i) => (
-                    <div key={i} style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: "var(--text4)" }}>{h}</div>
-                  ))}
+                  {["MAHSULOT", "SONI", "NARX", "BIRLIK", ""].map((h, i) => <div key={i} style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: "var(--text4)" }}>{h}</div>)}
                 </div>
-
-                {lines.map(line => (
+                {lines.map((line: any) => (
                   <div key={line.id} style={{ display: "grid", gridTemplateColumns: "1fr 70px 110px 80px 36px", gap: 8, padding: "10px 18px", borderBottom: "1px solid var(--border)", alignItems: "center" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "var(--bg)"}
-                    onMouseLeave={e => e.currentTarget.style.background = ""}>
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "var(--bg)"}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ""}>
                     <div>
                       {editingCell?.id === line.id && editingCell?.field === "desc"
                         ? <input autoFocus style={{ width: "100%", padding: "4px 8px", border: "1.5px solid var(--blue)", borderRadius: 4, fontFamily: "inherit", fontSize: 14, color: "var(--text)", background: "var(--surface)", outline: "none" }} value={line.desc} onChange={e => updateLine(line.id, "desc", e.target.value)} onBlur={() => setEditingCell(null)} onKeyDown={e => e.key === "Enter" && setEditingCell(null)} />
-                        : <span style={{ fontSize: 13, color: "var(--text2)", cursor: "text" }} onClick={() => setEditingCell({ id: line.id, field: "desc" })}>{line.desc}</span>
-                      }
+                        : <span style={{ fontSize: 13, color: "var(--text2)", cursor: "text" }} onClick={() => setEditingCell({ id: line.id, field: "desc" })}>{line.desc}</span>}
                     </div>
                     <div>
                       {editingCell?.id === line.id && editingCell?.field === "qty"
                         ? <input autoFocus type="number" style={{ width: "100%", padding: "4px 8px", border: "1.5px solid var(--blue)", borderRadius: 4, fontFamily: "inherit", fontSize: 14, color: "var(--text)", background: "var(--surface)", outline: "none" }} value={line.qty} onChange={e => updateLine(line.id, "qty", e.target.value)} onBlur={() => setEditingCell(null)} onKeyDown={e => e.key === "Enter" && setEditingCell(null)} />
-                        : <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", cursor: "text" }} onClick={() => setEditingCell({ id: line.id, field: "qty" })}>{line.qty}</span>
-                      }
+                        : <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", cursor: "text" }} onClick={() => setEditingCell({ id: line.id, field: "qty" })}>{line.qty}</span>}
                     </div>
                     <div>
                       {editingCell?.id === line.id && editingCell?.field === "price"
                         ? <input autoFocus type="number" style={{ width: "100%", padding: "4px 8px", border: "1.5px solid var(--blue)", borderRadius: 4, fontFamily: "inherit", fontSize: 14, color: "var(--text)", background: "var(--surface)", outline: "none" }} value={line.price} onChange={e => updateLine(line.id, "price", e.target.value)} onBlur={() => setEditingCell(null)} onKeyDown={e => e.key === "Enter" && setEditingCell(null)} />
-                        : <span style={{ fontSize: 14, color: "var(--text2)", cursor: "text" }} onClick={() => setEditingCell({ id: line.id, field: "price" })}>{line.price}</span>
-                      }
+                        : <span style={{ fontSize: 14, color: "var(--text2)", cursor: "text" }} onClick={() => setEditingCell({ id: line.id, field: "price" })}>{line.price}</span>}
                     </div>
                     <div style={{ fontSize: 12, color: "var(--text3)", fontWeight: 600 }}>{line.birlik || line.cur}</div>
                     <button style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text4)", display: "flex", alignItems: "center", justifyContent: "center", padding: 4, borderRadius: 4 }}
-                      onMouseEnter={e => { e.currentTarget.style.background = "var(--red-bg)"; e.currentTarget.style.color = "var(--red)"; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = ""; e.currentTarget.style.color = "var(--text4)"; }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--red-bg)"; (e.currentTarget as HTMLElement).style.color = "var(--red)"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ""; (e.currentTarget as HTMLElement).style.color = "var(--text4)"; }}
                       onClick={() => deleteLine(line.id)}><I n="td" s={14} /></button>
                   </div>
                 ))}
               </div>
-
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, padding: "16px 18px", borderTop: "1px solid var(--border)", background: "var(--surface2)" }}>
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--text4)", marginBottom: 7 }}>Omborga joylash</div>
+                <div><div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--text4)", marginBottom: 7 }}>Omborga joylash</div>
                   <select className="form-select" style={{ width: "100%", padding: "10px 32px 10px 12px" }} value={selWh} onChange={e => setSelWh(e.target.value)}>
                     <option value="">— Ombor tanlang —</option>
                     {warehouses.map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)}
                   </select>
                 </div>
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--text4)", marginBottom: 7 }}>Ref ID</div>
+                <div><div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--text4)", marginBottom: 7 }}>Ref ID</div>
                   <input className="form-input" value={refId} onChange={e => setRefId(e.target.value)} placeholder="INV-000001" />
                 </div>
               </div>
-
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderTop: "1px solid var(--border)" }}>
-                <button className="btn bo" style={{ color: "var(--text3)" }} onClick={() => { setLines([]); }}>Bekor qilish</button>
+                <button className="btn bo" style={{ color: "var(--text3)" }} onClick={() => setLines([])}>Bekor qilish</button>
                 <button className="btn bp" style={{ padding: "9px 20px", fontWeight: 700, fontSize: 14 }} onClick={approve} disabled={saving}>
-                  {saving ? "Qo'shilmoqda..." : <><I n="ck" s={15} c="#fff" />Tasdiqlash va Inventarga Qo'shish →</>}
+                  {saving ? "Qo'shilmoqda..." : <><I n="ck" s={15} c="#fff" />Tasdiqlash →</>}
                 </button>
               </div>
             </>
@@ -3012,29 +2402,20 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser, onCh
   const [form, setForm] = useState(EMPTY);
 
   const isAdmin = currentUser.role === "admin" || currentUser.role === "superadmin";
-
   const filtered = users.filter((u: any) => {
     const isSuper = u.role === "superadmin" || u.role === "super_admin" || u.username === "superadmin";
     if (isSuper) return false;
-    return (
-      u.username?.toLowerCase().includes(search.toLowerCase()) ||
-      u.email?.toLowerCase().includes(search.toLowerCase())
-    );
+    return u.username?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase());
   });
 
   async function addUser() {
     if (!form.username.trim()) { addToast("Username kiriting", "error"); return; }
     if (!form.password) { addToast("Parol kiriting", "error"); return; }
     if (form.password !== form.password2) { addToast("Parollar mos kelmadi!", "error"); return; }
-    if (form.password.length < 6) { addToast("Parol kamida 6 ta belgi bo'lishi kerak", "error"); return; }
+    if (form.password.length < 6) { addToast("Parol kamida 6 ta belgi", "error"); return; }
     setSaving(true);
     try {
-      await authAPI.createUser({
-        username: form.username.trim(),
-        password: form.password,
-        role: form.role,
-        company: currentUser.company ? Number(currentUser.company) : null
-      });
+      await authAPI.createUser({ username: form.username.trim(), password: form.password, role: form.role, company: currentUser.company ? Number(currentUser.company) : null });
       addToast(`"${form.username}" yaratildi!`); setShowAdd(false); setForm(EMPTY); onRefresh();
     } catch (e: any) { addToast(`Xato: ${(e as Error).message}`, "error"); }
     finally { setSaving(false); }
@@ -3045,20 +2426,13 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser, onCh
     setDeleting(true);
     try {
       await authAPI.deleteUser(user.id);
-      addToast(`"${user.username}" muvaffaqiyatli o'chirildi`);
-      onRefresh();
+      addToast(`"${user.username}" o'chirildi`); onRefresh();
     } catch (e: any) {
       const msg = (e as Error).message || "";
       if (msg.includes("usersettings") || msg.includes("does not exist") || msg.includes("500")) {
-        addToast(`Server xatosi: Admin backendda "python manage.py migrate" buyrug'ini ishga tushirsin`, "error");
-      } else {
-        addToast(`Xato: ${msg}`, "error");
-      }
-    } finally {
-      setDelUser(null);
-      setDelConfirmName("");
-      setDeleting(false);
-    }
+        addToast(`Server xatosi: Admin backendda migrate buyrug'ini ishga tushirsin`, "error");
+      } else { addToast(`Xato: ${msg}`, "error"); }
+    } finally { setDelUser(null); setDelConfirmName(""); setDeleting(false); }
   }
 
   const rolePill = (role: any) => {
@@ -3073,26 +2447,16 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser, onCh
       {showAdd && (
         <Modal title={T.addUser || "Add New User"} onClose={() => { setShowAdd(false); setForm(EMPTY); }}
           footer={<><button className="btn bo" onClick={() => { setShowAdd(false); setForm(EMPTY); }}>{T.cancel}</button><button className="btn bp" onClick={addUser} disabled={saving}>{saving ? "..." : T.save}</button></>}>
-          <div className="form-group">
-            <label className="form-label">Username *</label>
-            <input className="form-input" value={form.username} onChange={sf("username")} placeholder="username" autoFocus />
-          </div>
+          <div className="form-group"><label className="form-label">Username *</label><input className="form-input" value={form.username} onChange={sf("username")} placeholder="username" autoFocus /></div>
           <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Parol *</label>
-              <input className="form-input" type="password" value={form.password} onChange={sf("password")} placeholder="••••••" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Parolni tasdiqlang *</label>
+            <div className="form-group"><label className="form-label">Parol *</label><input className="form-input" type="password" value={form.password} onChange={sf("password")} placeholder="••••••" /></div>
+            <div className="form-group"><label className="form-label">Tasdiqlash *</label>
               <input className="form-input" type="password" value={form.password2} onChange={sf("password2")} placeholder="••••••"
                 style={{ borderColor: form.password2 && form.password !== form.password2 ? "var(--red)" : "" }} />
-              {form.password2 && form.password !== form.password2 && (
-                <div style={{ fontSize: 11, color: "var(--red)", marginTop: 4 }}>Parollar mos kelmadi</div>
-              )}
+              {form.password2 && form.password !== form.password2 && <div style={{ fontSize: 11, color: "var(--red)", marginTop: 4 }}>Parollar mos kelmadi</div>}
             </div>
           </div>
-          <div className="form-group">
-            <label className="form-label">Role</label>
+          <div className="form-group"><label className="form-label">Role</label>
             <select className="form-select" value={form.role} onChange={sf("role")}>
               <option value="admin">Admin</option><option value="user">User</option>
             </select>
@@ -3101,99 +2465,51 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser, onCh
       )}
       {delUser && (
         <Modal title={T.deleteUser || "Delete User"} onClose={() => { setDelUser(null); setDelConfirmName(""); }}
-          footer={<>
-            <button className="btn bo" onClick={() => { setDelUser(null); setDelConfirmName(""); }}>{T.cancel}</button>
-            <button className="btn bd" onClick={() => delU(delUser)}
-              disabled={delConfirmName.trim() !== delUser.username || deleting}>
-              {deleting ? "..." : T.deleteBtn || "Delete"}
-            </button>
-          </>}>
+          footer={<><button className="btn bo" onClick={() => { setDelUser(null); setDelConfirmName(""); }}>{T.cancel}</button><button className="btn bd" onClick={() => delU(delUser)} disabled={delConfirmName.trim() !== delUser.username || deleting}>{deleting ? "..." : T.deleteBtn || "Delete"}</button></>}>
           <div className="confirm-icon"><I n="warn" s={24} c="var(--red)" /></div>
-          <div style={{ textAlign: "center", marginBottom: 4 }}>
-            <strong>{delUser.username}</strong> ({delUser.email || "—"}) · <span style={{ color: "var(--text3)" }}>{delUser.role}</span>
-          </div>
-          <div style={{ textAlign: "center", marginBottom: 16, color: "var(--text3)", fontSize: 13 }}>
-            O'chirishni tasdiqlash uchun foydalanuvchi nomini yozing:
-          </div>
-          <div style={{ background: "var(--bg)", border: "1px solid var(--border2)", borderRadius: "var(--rs)", padding: "8px 14px", textAlign: "center", fontWeight: 800, fontSize: 20, letterSpacing: "0.04em", color: "var(--text)", marginBottom: 14, fontFamily: "monospace" }}>
-            {delUser.username}
-          </div>
-          <div className="form-group">
-            <label className="form-label">Foydalanuvchi nomini kiriting:</label>
-            <input className="form-input" value={delConfirmName}
-              onChange={e => setDelConfirmName(e.target.value)}
-              placeholder={delUser.username} autoFocus />
-          </div>
+          <div style={{ textAlign: "center", marginBottom: 4 }}><strong>{delUser.username}</strong> · <span style={{ color: "var(--text3)" }}>{delUser.role}</span></div>
+          <div style={{ textAlign: "center", marginBottom: 16, color: "var(--text3)", fontSize: 13 }}>O'chirishni tasdiqlash uchun foydalanuvchi nomini yozing:</div>
+          <div style={{ background: "var(--bg)", border: "1px solid var(--border2)", borderRadius: "var(--rs)", padding: "8px 14px", textAlign: "center", fontWeight: 800, fontSize: 20, letterSpacing: "0.04em", color: "var(--text)", marginBottom: 14, fontFamily: "monospace" }}>{delUser.username}</div>
+          <div className="form-group"><label className="form-label">Foydalanuvchi nomini kiriting:</label><input className="form-input" value={delConfirmName} onChange={e => setDelConfirmName(e.target.value)} placeholder={delUser.username} autoFocus /></div>
         </Modal>
       )}
-
       <div className="ph">
-        <div className="ph-l">
-          <h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-.025em" }}>{T.users || "Users"}</h1>
-          <p style={{ fontSize: 13, color: "var(--text3)", marginTop: 3 }}>{users.length} foydalanuvchi jami</p>
-        </div>
+        <div className="ph-l"><h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-.025em" }}>{T.users || "Users"}</h1><p style={{ fontSize: 13, color: "var(--text3)", marginTop: 3 }}>{users.length} foydalanuvchi</p></div>
         <div className="ph-r">
-          <div className="sw-wrap" style={{ width: 180 }}>
-            <span className="si-ico"><I n="sr" s={14} /></span>
-            <input placeholder={T.search} value={search} onChange={e => setSearch(e.target.value)} />
-          </div>
-          {isAdmin && (
-            <button className="btn bp" onClick={() => setShowAdd(true)}><I n="pl" s={14} c="#fff" />{T.addUser || "Add User"}</button>
-          )}
+          <div className="sw-wrap" style={{ width: 180 }}><span className="si-ico"><I n="sr" s={14} /></span><input placeholder={T.search} value={search} onChange={e => setSearch(e.target.value)} /></div>
+          {isAdmin && <button className="btn bp" onClick={() => setShowAdd(true)}><I n="pl" s={14} c="#fff" />{T.addUser || "Add User"}</button>}
         </div>
       </div>
-
       <div className="sg sg2" style={{ marginBottom: 16 }}>
         <div className="sc"><div className="slb">{T.total || "Total"}</div><div className="sv">{filtered.length}</div></div>
         <div className="sc"><div className="slb">Admin</div><div className="sv rd">{filtered.filter((u: any) => u.role === "admin").length}</div></div>
       </div>
-
       <div className="tc">
-        <div style={{ padding: "12px 18px", borderBottom: "1px solid var(--border)" }}>
-          <div className="sw-wrap" style={{ maxWidth: 300 }}>
-            <span className="si-ico"><I n="sr" s={14} /></span>
-            <input placeholder={T.search} value={search} onChange={e => setSearch(e.target.value)} />
-          </div>
-        </div>
         {filtered.length === 0 ? (
-          <div className="empty-state"><I n="usrs" s={38} c="var(--border2)" /><h3>{T.noResults || "No users found"}</h3><p>{T.addUserPrompt || "Add a new user to begin."}</p></div>
+          <div className="empty-state"><I n="usrs" s={38} c="var(--border2)" /><h3>{T.noResults || "No users found"}</h3><p>{T.addUserPrompt}</p></div>
         ) : (
           <table>
-            <thead><tr><th>{T.username}</th><th>Email</th><th>Role</th>{isAdmin && <th></th>}</tr></thead>
-            <tbody>
-              {filtered.map((user: any) => {
-                const isSelf = user.username === currentUser.username || user.id === currentUser.id;
-                return (
-                  <tr key={user.id} style={isSelf ? { background: "var(--blue-l)" } : {}}>
-                    <td><div className="ir" style={{ cursor: "pointer" }} onClick={() => !isSelf && onChatOpen(user)}>
-                      <div className="av" style={{ width: 32, height: 32, fontSize: 11, flexShrink: 0, background: isSelf ? "var(--blue)" : undefined }}>
-                        {user.username?.slice(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="itn">{user.username}{isSelf && <span style={{ marginLeft: 7, fontSize: 10, fontWeight: 700, color: "var(--blue)", background: "var(--blue-l)", border: "1px solid var(--blue-m)", borderRadius: 10, padding: "1px 7px" }}>{T.you || "Sen"}</span>}</div>
-                        {!isSelf && <div style={{ fontSize: 10, color: "var(--blue)", fontWeight: 700 }}>Chat uchun bosing</div>}
-                      </div>
-                    </div></td>
-                    <td className="dv">{user.email || "—"}</td>
-                    <td>{rolePill(user.role)}</td>
-                    <td>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        {!isSelf && (
-                          <button className="ib" title="Chat" onClick={() => onChatOpen(user)}>
-                            <I n="bl" s={13} c="var(--blue)" />
-                          </button>
-                        )}
-                        {isAdmin && !isSelf && (
-                          <button className="ib red" onClick={() => { setDelUser(user); setDelConfirmName(""); }}>
-                            <I n="td" s={13} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
+            <thead><tr><th>{T.username}</th><th>Email</th><th>Role</th><th></th></tr></thead>
+            <tbody>{filtered.map((user: any) => {
+              const isSelf = user.username === currentUser.username || user.id === currentUser.id;
+              return (
+                <tr key={user.id} style={isSelf ? { background: "var(--blue-l)" } : {}}>
+                  <td><div className="ir" style={{ cursor: "pointer" }} onClick={() => !isSelf && onChatOpen(user)}>
+                    <div className="av" style={{ width: 32, height: 32, fontSize: 11, flexShrink: 0, background: isSelf ? "var(--blue)" : undefined }}>{user.username?.slice(0, 2).toUpperCase()}</div>
+                    <div>
+                      <div className="itn">{user.username}{isSelf && <span style={{ marginLeft: 7, fontSize: 10, fontWeight: 700, color: "var(--blue)", background: "var(--blue-l)", border: "1px solid var(--blue-m)", borderRadius: 10, padding: "1px 7px" }}>{T.you || "Sen"}</span>}</div>
+                      {!isSelf && <div style={{ fontSize: 10, color: "var(--blue)", fontWeight: 700 }}>Chat uchun bosing</div>}
+                    </div>
+                  </div></td>
+                  <td className="dv">{user.email || "—"}</td>
+                  <td>{rolePill(user.role)}</td>
+                  <td><div style={{ display: "flex", gap: 8 }}>
+                    {!isSelf && <button className="ib" title="Chat" onClick={() => onChatOpen(user)}><I n="bl" s={13} c="var(--blue)" /></button>}
+                    {isAdmin && !isSelf && <button className="ib red" onClick={() => { setDelUser(user); setDelConfirmName(""); }}><I n="td" s={13} /></button>}
+                  </div></td>
+                </tr>
+              );
+            })}</tbody>
           </table>
         )}
       </div>
@@ -3201,14 +2517,11 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser, onCh
   );
 }
 
-/* ═══════════════════ SETTINGS ═══════════════════ */
+/* ═══════════════════ SETTINGS PAGE ═══════════════════ */
 const SETTINGS_NAV = [
-  { k: "profile", l: "Profile", i: "usr" },
-  { k: "appearance", l: "Appearance", i: "palette" },
-  { k: "notifications", l: "Notifications", i: "bell2" },
-  { k: "privacy", l: "Security", i: "shield" },
-  { k: "regional", l: "Regional", i: "globe" },
-  { k: "danger", l: "Danger Zone", i: "warn" },
+  { k: "profile", l: "Profile", i: "usr" }, { k: "appearance", l: "Appearance", i: "palette" },
+  { k: "notifications", l: "Notifications", i: "bell2" }, { k: "privacy", l: "Security", i: "shield" },
+  { k: "regional", l: "Regional", i: "globe" }, { k: "danger", l: "Danger Zone", i: "warn" },
 ];
 
 function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onAccent, lang, onLang, currentUser, onUserUpdate, addToast, onLogout, T }: any) {
@@ -3219,16 +2532,16 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
 
-  function upd(k, v) { setSettings(s => ({ ...s, [k]: v })); }
+  function upd(k: string, v: any) { setSettings((s: any) => ({ ...s, [k]: v })); }
 
-  const srow = (label, desc, right) => (
+  const srow = (label: any, desc: any, right: any) => (
     <div className="settings-row">
       <div className="settings-row-info"><div className="settings-row-label">{label}</div>{desc && <div className="settings-row-desc">{desc}</div>}</div>
       <div style={{ marginLeft: 14, flexShrink: 0 }}>{right}</div>
     </div>
   );
 
-  const card = (iconEl, iconBg, title, subtitle, body) => (
+  const card = (iconEl: any, iconBg: any, title: any, subtitle: any, body: any) => (
     <div className="settings-card">
       <div className="settings-card-header">
         <div className="settings-card-icon" style={{ background: iconBg }}>{iconEl}</div>
@@ -3238,32 +2551,25 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
     </div>
   );
 
-  const sections = {
+  const sections: Record<string, any> = {
     profile: (
       <div className="settings-section">
         {card(<I n="usr" s={17} c="var(--blue)" />, "var(--blue-l)", T.profileAcc, T.profileSub || "Manage your personal information",
           <>
             <div className="profile-avatar-area">
               <div className="profile-avatar-big">{pf.name?.slice(0, 2).toUpperCase()}</div>
-              <div>
-                <div className="profile-avatar-name">{pf.name}</div>
-                <div className="profile-avatar-role">{pf.role} · {currentUser.email || "—"}</div>
-                <div style={{ fontSize: 12, color: "var(--text4)", marginTop: 3 }}>ID: #{currentUser.id ?? "—"}</div>
-              </div>
+              <div><div className="profile-avatar-name">{pf.name}</div><div className="profile-avatar-role">{pf.role} · {currentUser.email || "—"}</div><div style={{ fontSize: 12, color: "var(--text4)", marginTop: 3 }}>ID: #{currentUser.id ?? "—"}</div></div>
             </div>
             <div className="form-row">
               <div className="form-group"><label className="form-label">{T.username}</label><input className="form-input" value={pf.name} onChange={e => setPf(f => ({ ...f, name: e.target.value }))} /></div>
               <div className="form-group"><label className="form-label">Email</label><input className="form-input" type="email" value={pf.email} onChange={e => setPf(f => ({ ...f, email: e.target.value }))} /></div>
             </div>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}><button className="btn bp" onClick={async () => {
-              try {
-                const updated = await authAPI.updateUser(currentUser.id, { username: pf.name, email: pf.email });
-                onUserUpdate(updated);
-                addToast(T.saveSuccess || "Muvaffaqiyatli saqlandi!");
-              } catch (e: any) {
-                addToast(`Xato: ${e.message}`, "error");
-              }
-            }}><I n="ck" s={14} c="#fff" />{T.save}</button></div>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button className="btn bp" onClick={async () => {
+                try { const updated = await authAPI.updateUser(currentUser.id, { username: pf.name, email: pf.email }); onUserUpdate(updated); addToast(T.saveSuccess || "Saqlandi!"); }
+                catch (e: any) { addToast(`Xato: ${e.message}`, "error"); }
+              }}><I n="ck" s={14} c="#fff" />{T.save}</button>
+            </div>
           </>
         )}
       </div>
@@ -3273,13 +2579,12 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
         {card(<I n={darkMode ? "moon" : "sun"} s={17} c="var(--purple)" />, "var(--purple-bg)", T.appearance, T.designColor,
           <>
             {srow(T.darkMode, "Dark interface", <Toggle checked={darkMode} onChange={onDarkMode} />)}
-            {srow(T.compactMode, "Use less space", <Toggle checked={settings.compactView} onChange={v => upd("compactView", v)} />)}
+            {srow(T.compactMode, "Use less space", <Toggle checked={settings.compactView} onChange={(v: boolean) => upd("compactView", v)} />)}
             <div className="settings-row">
               <div className="settings-row-info"><div className="settings-row-label">{T.accentColor}</div></div>
               <div style={{ marginLeft: 14 }}>
                 <div className="color-swatches">{ACCENT_COLORS.map(ac => (
-                  <div key={ac.val} className={`color-swatch${accent === ac.val ? " active" : ""}`}
-                    style={{ background: ac.val }} title={ac.name} onClick={() => { onAccent(ac.val); addToast(`${ac.name}`, "info"); }} />
+                  <div key={ac.val} className={`color-swatch${accent === ac.val ? " active" : ""}`} style={{ background: ac.val }} title={ac.name} onClick={() => { onAccent(ac.val); addToast(`${ac.name}`, "info"); }} />
                 ))}</div>
               </div>
             </div>
@@ -3291,9 +2596,9 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
       <div className="settings-section">
         {card(<I n="bell2" s={17} c="var(--orange)" />, "var(--orange-bg)", T.notifSettings, "",
           <>
-            {srow("Low Stock", "When quantity drops low", <Toggle checked={settings.notifLowStock} onChange={v => upd("notifLowStock", v)} />)}
-            {srow("Shipments", "When status changes", <Toggle checked={settings.notifShipments} onChange={v => upd("notifShipments", v)} />)}
-            {srow("Reports", "Weekly summary", <Toggle checked={settings.notifReports} onChange={v => upd("notifReports", v)} />)}
+            {srow("Low Stock", "When quantity drops low", <Toggle checked={settings.notifLowStock} onChange={(v: boolean) => upd("notifLowStock", v)} />)}
+            {srow("Shipments", "When status changes", <Toggle checked={settings.notifShipments} onChange={(v: boolean) => upd("notifShipments", v)} />)}
+            {srow("Reports", "Weekly summary", <Toggle checked={settings.notifReports} onChange={(v: boolean) => upd("notifReports", v)} />)}
           </>
         )}
       </div>
@@ -3305,10 +2610,8 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
             <div className="form-group">
               <label className="form-label">{T.currentPass}</label>
               <div style={{ position: "relative" }}>
-                <input className="form-input" type="password" value={pw.current} onChange={e => setPw(p => ({ ...p, current: e.target.value }))} style={{ paddingRight: 38 }} />
-                <button onClick={() => setShowPw(v => !v)} style={{ position: "absolute", top: "50%", right: 10, transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--text4)" }}>
-                  <I n={showPw ? "eyeoff" : "eye2"} s={14} />
-                </button>
+                <input className="form-input" type={showPw ? "text" : "password"} value={pw.current} onChange={e => setPw(p => ({ ...p, current: e.target.value }))} style={{ paddingRight: 38 }} />
+                <button onClick={() => setShowPw(v => !v)} style={{ position: "absolute", top: "50%", right: 10, transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--text4)" }}><I n={showPw ? "eyeoff" : "eye2"} s={14} /></button>
               </div>
             </div>
             <div className="form-row">
@@ -3319,13 +2622,8 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
               <button className="btn bp" onClick={async () => {
                 if (!pw.current) { addToast("Please enter your current password", "error"); return; }
                 if (pw.next !== pw.confirm) { addToast("Passwords do not match", "error"); return; }
-                try {
-                  await authAPI.changePassword({ current_password: pw.current, new_password: pw.next });
-                  addToast(T.passSuccess || "Parol yangilandi!");
-                  setPw({ current: "", next: "", confirm: "" });
-                } catch (e: any) {
-                  addToast(`Xato: ${e.message}`, "error");
-                }
+                try { await authAPI.changePassword({ current_password: pw.current, new_password: pw.next }); addToast("Parol yangilandi!"); setPw({ current: "", next: "", confirm: "" }); }
+                catch (e: any) { addToast(`Xato: ${e.message}`, "error"); }
               }}><I n="lock" s={14} c="#fff" />O'zgartirish</button>
             </div>
           </>
@@ -3338,19 +2636,17 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
           <div className="lang-grid" style={{ marginTop: 4 }}>
             {LANGUAGES.map((l: any) => (
               <div key={l.code} className={`lang-option${lang === l.code ? " active" : ""}`} onClick={() => { onLang(l.code); addToast(`Til: ${l.name}`, "info"); }}>
-                <span className="lang-flag">{l.flag}</span>
-                <div><div className="lang-name">{l.name}</div><div className="lang-local">{l.local}</div></div>
+                <span className="lang-flag">{l.flag}</span><div><div className="lang-name">{l.name}</div><div className="lang-local">{l.local}</div></div>
               </div>
             ))}
           </div>
         )}
       </div>
     ),
-    api: null,
     danger: (
       <div className="settings-section">
         {confirmReset && <ConfirmModal title="Reset Settings" desc={<>Reset all settings to defaults?</>} onConfirm={() => addToast("Settings reset", "info")} onClose={() => setConfirmReset(false)} />}
-        {confirmDel && <ConfirmModal title="Delete Account" desc={<>Are you sure you want to permanently delete this account and all data?</>} onConfirm={() => { addToast("Account deleted", "error"); setTimeout(onLogout, 1500); }} onClose={() => setConfirmDel(false)} />}
+        {confirmDel && <ConfirmModal title="Delete Account" desc={<>Permanently delete this account and all data?</>} onConfirm={() => { addToast("Account deleted", "error"); setTimeout(onLogout, 1500); }} onClose={() => setConfirmDel(false)} />}
         <div className="settings-card danger-zone">
           <div className="settings-card-header">
             <div className="settings-card-icon" style={{ background: "var(--red-bg)" }}><I n="warn" s={17} c="var(--red)" /></div>
@@ -3384,87 +2680,7 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
             </div>
           ))}
         </div>
-        <div className="fu">{(sections as any)[active] || null}</div>
-      </div>
-    </div>
-  );
-}
-
-/* ═══════════════════ CHAT WINDOW ═══════════════════ */
-function ChatWindow({ targetUser, currentUser, messages, onSendMessage, onClose }: any) {
-  const [text, setText] = useState("");
-  const scrollRef = useEffect(() => {
-    const el = document.getElementById("chat-body");
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [messages]);
-
-  const handleSend = () => {
-    if (!text.trim()) return;
-    onSendMessage(text);
-    setText("");
-  };
-
-  return (
-    <div className="chat-panel">
-      <div className="chat-header">
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div className="av" style={{ width: 30, height: 30, fontSize: 10, background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.3)" }}>
-            {targetUser.username?.slice(0, 2).toUpperCase()}
-          </div>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700 }}>{targetUser.username}</div>
-            <div style={{ fontSize: 10, opacity: 0.8 }}>Online</div>
-          </div>
-        </div>
-        <button className="ib" style={{ background: "none", border: "none", color: "#fff", padding: 0, width: "auto", height: "auto" }} onClick={onClose}>
-          <I n="x" s={20} />
-        </button>
-      </div>
-      <div className="chat-body" id="chat-body">
-        {messages.map((m: any, i: number) => {
-          const isMe = m.sender === currentUser.username;
-          return (
-            <div key={i} className={`msg-wrap ${isMe ? "msg-me" : "msg-them"}`}>
-              <div className="msg">
-                {m.text}
-                {m.attachment && (() => {
-                  // ensure URL is absolute
-                  let url = m.attachment;
-                  if (!url.startsWith('http')) {
-                    // prefix leading slash if missing
-                    if (!url.startsWith('/')) url = `/${url}`;
-                    url = `${BASE}${url}`;
-                  }
-                  return (
-                    <>
-                      {url.match(/\.(jpe?g|png|gif|bmp|webp)$/i) ? (
-                        <img src={url} style={{ maxWidth: 200, display: 'block', marginTop: 8 }} />
-                      ) : (
-                        <a href={url} target="_blank" rel="noreferrer">
-                          {url.split('/').pop()}
-                        </a>
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
-              <span className="msg-time">{m.time}</span>
-            </div>
-          );
-        })}
-      </div>
-      <div className="chat-footer">
-        <input
-          className="chat-input"
-          placeholder="Yozing..."
-          value={text}
-          onChange={e => setText(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && handleSend()}
-          autoFocus
-        />
-        <button className="chat-send" onClick={handleSend}>
-          <I n="ck" s={16} c="#fff" />
-        </button>
+        <div className="fu">{sections[active] || null}</div>
       </div>
     </div>
   );
@@ -3473,31 +2689,17 @@ function ChatWindow({ targetUser, currentUser, messages, onSendMessage, onClose 
 /* ═══════════════════ ROOT ═══════════════════ */
 export default function App() {
   const [user, setUser] = useState<any>(null);
-  const [lang, setLang] = useState(() => {
-    try { return localStorage.getItem("rf_lang_global") || "uz"; } catch { return "uz"; }
-  });
-  const [accent, setAccent] = useState(() => {
-    try { return localStorage.getItem("rf_accent_global") || "#2563eb"; } catch { return "#2563eb"; }
-  });
+  const [lang, setLang] = useState(() => { try { return localStorage.getItem("rf_lang_global") || "uz"; } catch { return "uz"; } });
+  const [accent, setAccent] = useState(() => { try { return localStorage.getItem("rf_accent_global") || "#2563eb"; } catch { return "#2563eb"; } });
 
-  useEffect(() => {
-    try { localStorage.setItem("rf_lang_global", lang); } catch { }
-  }, [lang]);
-
-  useEffect(() => {
-    try { localStorage.setItem("rf_accent_global", accent); } catch { }
-  }, [accent]);
+  useEffect(() => { try { localStorage.setItem("rf_lang_global", lang); } catch { } }, [lang]);
+  useEffect(() => { try { localStorage.setItem("rf_accent_global", accent); } catch { } }, [accent]);
 
   if (!user) {
     return (
       <>
         <style>{makeCSS(accent)}</style>
-        <AuthPage
-          onLogin={userData => setUser(userData)}
-          lang={lang}
-          onLang={setLang}
-          accent={accent}
-        />
+        <AuthPage onLogin={(userData: any) => setUser(userData)} lang={lang} onLang={setLang} accent={accent} />
       </>
     );
   }
@@ -3505,11 +2707,9 @@ export default function App() {
   return (
     <Dashboard
       currentUser={user}
-      lang={lang}
-      onLang={setLang}
-      accent={accent}
-      onAccent={setAccent}
-      onUserUpdate={u => setUser(prev => ({ ...prev, ...u }))}
+      lang={lang} onLang={setLang}
+      accent={accent} onAccent={setAccent}
+      onUserUpdate={(u: any) => setUser((prev: any) => ({ ...prev, ...u }))}
       onLogout={() => { setToken(""); setUser(null); }}
     />
   );
