@@ -167,6 +167,7 @@ function normalizeBuylist(b: any, itemler: any[] = [], moneytypes: any[] = [], u
 }
 
 /* ═══════════════════ CSS ═══════════════════ */
+c/* ═══════════════════ CSS ═══════════════════ */
 const makeCSS = (accent = "#2563eb") => `
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -199,6 +200,24 @@ const makeCSS = (accent = "#2563eb") => `
 html,body{font-family:'DM Sans',-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;transition:background .25s,color .25s;overflow-x:hidden!important;width:100%;height:100%;-webkit-text-size-adjust:100%}
 .app,.main,.content{overflow-x:hidden!important;max-width:100%!important;width:100%}
 ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ── Breakpoint indicator (debug) ── */
+.bp-badge{
+  position:fixed;top:12px;left:50%;transform:translateX(-50%);
+  background:#111827;border:1px solid var(--border);
+  border-radius:20px;padding:5px 14px;
+  font-size:11px;font-weight:700;letter-spacing:.06em;
+  z-index:9999;color:var(--text3);
+  display:none;align-items:center;gap:8px;
+  box-shadow:0 4px 20px rgba(0,0,0,.4);
+}
+.bp-badge.show{display:flex}
+.bp-dot{width:8px;height:8px;border-radius:50%;background:#4ade80;transition:background .3s}
+@media(max-width:1024px){.bp-badge .bp-dot{background:#fb923c}}
+@media(max-width:768px){.bp-badge .bp-dot{background:#f472b6}}
+@media(max-width:480px){.bp-badge .bp-dot{background:#c084fc}}
+
+/* ── Auth page ── */
 .auth-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px;position:relative;overflow:hidden}
 .auth-bg-blob{position:fixed;border-radius:50%;filter:blur(80px);opacity:.35;pointer-events:none;z-index:0}
 .auth-card{position:relative;z-index:1;display:grid;grid-template-columns:1fr 1fr;width:100%;max-width:900px;min-height:560px;background:var(--surface);border:1px solid var(--border);border-radius:22px;box-shadow:0 32px 100px rgba(37,99,235,.13),0 4px 24px rgba(0,0,0,.07);overflow:hidden}
@@ -226,8 +245,23 @@ html,body{font-family:'DM Sans',-apple-system,sans-serif;background:var(--bg);co
 .sub-btn:hover{opacity:.92;box-shadow:0 6px 20px var(--blue-m);transform:translateY(-1px)}
 .sub-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
 .auth-err{background:var(--red-bg);border:1px solid var(--red);border-radius:var(--rs);padding:10px 14px;margin-bottom:14px;color:var(--red);font-size:13px;font-weight:600}
-.app{display:flex;min-height:100vh;background:var(--bg)}
-.sidebar{width:var(--sw);background:var(--surface);border-right:1px solid var(--border);position:fixed;height:100vh;display:flex;flex-direction:column;z-index:100;transition:background .25s,border-color .25s}
+
+/* ── App shell ── */
+.app{display:flex;min-height:100vh;background:var(--bg);position:relative}
+
+/* ── Sidebar ── */
+.sidebar{
+  width:var(--sw);
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  position:fixed;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  z-index:100;
+  transition:background .25s,border-color .25s;
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+}
 .s-logo{padding:16px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
 .s-mark{width:34px;height:34px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .s-name{font-size:15px;font-weight:800;color:var(--text);letter-spacing:-.02em}
@@ -244,10 +278,48 @@ html,body{font-family:'DM Sans',-apple-system,sans-serif;background:var(--bg);co
 .dm-row:hover{background:var(--bg);color:var(--text2)}
 .dm-label{flex:1}
 .s-foot{border-top:1px solid var(--border);padding:10px 8px}
-.main{margin-left:var(--sw);flex:1;display:flex;flex-direction:column;min-height:100vh;max-width:100%;overflow-x:hidden;width:100%}
-.topbar{background:var(--surface);border-bottom:1px solid var(--border);height:52px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;transition:background .25s,border-color .25s}
+
+/* Sidebar backdrop */
+.sidebar-backdrop{
+  display:none;
+  position:fixed;inset:0;
+  background:rgba(15,23,42,0.4);
+  backdrop-filter:blur(8px);
+  z-index:90;
+  animation:fadeIn .3s ease;
+}
+
+/* ── Main ── */
+.main{
+  margin-left:var(--sw);
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  min-height:100vh;
+  max-width:100%;
+  overflow-x:hidden;
+  width:100%;
+  transition:margin-left .3s;
+}
+
+/* ── Topbar ── */
+.topbar{
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  height:52px;
+  padding:0 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  position:sticky;
+  top:0;
+  z-index:50;
+  transition:background .25s,border-color .25s;
+}
 .tb-r{display:flex;align-items:center;gap:10px}
 .content{padding:20px;flex:1}
+
+/* ── Buttons ── */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--rs);font-size:13.5px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:all .12s;font-family:inherit;line-height:1}
 .bp{background:var(--blue);color:#fff;border-color:var(--blue)}.bp:hover{opacity:.9;box-shadow:0 4px 12px var(--blue-m)}
 .bo{background:var(--surface);color:var(--text2);border-color:var(--border2)}.bo:hover{border-color:var(--text4);background:var(--bg)}
@@ -266,12 +338,16 @@ html,body{font-family:'DM Sans',-apple-system,sans-serif;background:var(--bg);co
 .breadcrumb-active{color:var(--text2);font-weight:600}
 .breadcrumb-link{color:var(--blue);cursor:pointer;font-weight:500}
 .breadcrumb-link:hover{text-decoration:underline}
+
+/* ── Toggle ── */
 .toggle{position:relative;width:42px;height:23px;flex-shrink:0;cursor:pointer;display:block}
 .toggle input{opacity:0;width:0;height:0;position:absolute}
 .toggle-slider{position:absolute;inset:0;background:var(--tog-off);border-radius:23px;transition:.25s;pointer-events:none}
 .toggle-slider::before{content:'';position:absolute;width:17px;height:17px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.25s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
 .toggle input:checked+.toggle-slider{background:var(--blue)}
 .toggle input:checked+.toggle-slider::before{transform:translateX(19px)}
+
+/* ── Stats ── */
 .sg{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
 .sg3{grid-template-columns:repeat(3,1fr)}.sg2{grid-template-columns:repeat(2,1fr)}
 .sc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;box-shadow:var(--sh);transition:background .25s,border-color .25s}
@@ -281,11 +357,15 @@ html,body{font-family:'DM Sans',-apple-system,sans-serif;background:var(--bg);co
 .sss{font-size:12px;color:var(--text4);margin-top:4px}
 .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:12px;font-weight:600}
 .bdg{background:var(--green-bg);color:var(--green-t)}.bdb{background:var(--blue-l);color:var(--blue)}
+
+/* ── Search ── */
 .sw-wrap{position:relative}
 .sw-wrap input{width:100%;padding:8px 12px 8px 34px;border:1px solid var(--border2);border-radius:var(--rs);font-family:inherit;font-size:14px;color:var(--text);background:var(--surface);outline:none;transition:border-color .12s}
 .sw-wrap input:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
 .sw-wrap input::placeholder{color:var(--text4)}
 .si-ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text4);pointer-events:none}
+
+/* ── Table ── */
 .tc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);overflow-x:auto;transition:background .25s;max-width:100%}
 table{width:100%;border-collapse:collapse}
 thead{background:var(--surface2)}
@@ -312,6 +392,8 @@ tbody tr:hover{background:var(--bg)}
 .pb:hover:not(.act){background:var(--bg);color:var(--text)}
 select{appearance:none;background:var(--surface);border:1px solid var(--border2);border-radius:var(--rs);padding:7px 28px 7px 10px;font-family:inherit;font-size:13px;color:var(--text);cursor:pointer;outline:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
 select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
+
+/* ── Warehouse Cards ── */
 .wg{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-bottom:22px;align-items:stretch}
 .wc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;transition:box-shadow .15s,transform .15s,background .25s;cursor:pointer;display:flex;flex-direction:column}
 .wc:hover{box-shadow:var(--sh2);transform:translateY(-3px)}
@@ -336,6 +418,8 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
 .awc{width:44px;height:44px;border:2px dashed currentColor;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 10px}
 .awt{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px}
 .aws{font-size:13px;line-height:1.5}
+
+/* ── Menu Dropdown ── */
 .wh-menu{position:relative}
 .wh-menu-btn{background:none;border:none;cursor:pointer;color:var(--text4);font-size:18px;line-height:1;padding:2px 7px;border-radius:4px}
 .wh-menu-btn:hover{background:var(--bg);color:var(--text3)}
@@ -344,6 +428,8 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
 .wh-dd-item:hover{background:var(--bg)}
 .wh-dd-item.del{color:var(--red)}.wh-dd-item.del:hover{background:var(--red-bg)}
 .wh-dd-sep{height:1px;background:var(--border);margin:3px 0}
+
+/* ── Warehouse Detail ── */
 .wdh{position:relative;margin-bottom:30px}
 .wdh-banner{min-height:160px;display:flex;align-items:flex-start;padding:24px 26px 60px;position:relative;border-radius:var(--r);overflow:hidden}
 .wdh-glow{position:absolute;border-radius:50%;background:rgba(255,255,255,.1);pointer-events:none}
@@ -357,6 +443,8 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
 .wdh-stat-l{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text4);margin-bottom:6px}
 .wdh-stat-v{font-size:22px;font-weight:800;letter-spacing:-.03em;line-height:1.1}
 .wdh-stat-s{font-size:12px;color:var(--text4);margin-top:4px}
+
+/* ── Detail Cards ── */
 .detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}
 .info-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
 .info-card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surface2)}
@@ -380,13 +468,14 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
 .ship-name{font-weight:700;color:var(--text);font-size:14px}
 .ship-meta{font-size:12px;color:var(--text3);margin-top:2px}
 .ship-status{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+
+/* ── Modal ── */
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(5px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .18s ease}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .modal{background:var(--surface);border-radius:14px;width:100%;max-width:520px;box-shadow:var(--sh3);animation:slideUp .22s ease;max-height:90vh;overflow-y:auto;border:1px solid var(--border)}
 .intake-layout{display:grid;grid-template-columns:420px 1fr;gap:20px;align-items:start}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
 .card-h{background:var(--surface2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between}
-@media(max-width:1024px){.intake-layout{grid-template-columns:1fr}}
 @keyframes slideUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
 .modal-header{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .modal-title{font-size:16px;font-weight:800;color:var(--text)}
@@ -404,14 +493,23 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
 .confirm-icon{width:50px;height:50px;border-radius:50%;background:var(--red-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
 .confirm-text{text-align:center;color:var(--text3);font-size:14px;line-height:1.6}
 .confirm-text strong{color:var(--text);font-weight:700}
+
+/* ── Toast ── */
 .toast-stack{position:fixed;bottom:22px;right:22px;z-index:3000;display:flex;flex-direction:column;gap:7px}
 .toast{background:#1e293b;color:#f1f5f9;padding:11px 16px;border-radius:9px;font-size:14px;font-weight:500;box-shadow:var(--sh3);display:flex;align-items:center;gap:9px;animation:toastIn .25s ease;min-width:240px;border:1px solid rgba(255,255,255,.08)}
 .toast.success{background:#14532d;border-color:#166534}
 .toast.error{background:#450a0a;border-color:#991b1b}
 .toast.info{background:#1e3a5f;border-color:#1d4ed8}
 @keyframes toastIn{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:translateX(0)}}
+.toast-close{background:none;border:none;color:inherit;opacity:.6;cursor:pointer;font-size:18px;line-height:1;margin-left:10px}
+.toast-close:hover{opacity:1}
+
+/* ── Notifications ── */
 .notif{position:relative}
 .notif-dot{position:absolute;top:6px;right:6px;width:7px;height:7px;background:var(--red);border-radius:50%;border:2px solid var(--surface)}
+.notif-badge{position:absolute;top:-5px;right:-5px;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 5px;border-radius:10px;border:2px solid var(--surface);min-width:18px;text-align:center;z-index:2}
+
+/* ── Footer ── */
 .footer{border-top:1px solid var(--border);background:var(--surface);padding:12px 26px;display:flex;align-items:center;justify-content:space-between;transition:background .25s}
 .fh{display:flex;align-items:center;gap:10px}
 .ht{background:#1f2937;color:#f3f4f6;font-size:11px;font-weight:700;padding:4px 9px;border-radius:var(--rx);letter-spacing:.05em}
@@ -420,6 +518,8 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
 .fc{font-size:12px;color:var(--text4)}
 .fl{display:flex;gap:16px}
 .fli{font-size:12px;color:var(--text3);cursor:pointer}.fli:hover{color:var(--blue)}
+
+/* ── Reports ── */
 .rep-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px}
 .rep-chart{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:var(--sh)}
 .rep-chart-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px}
@@ -431,6 +531,8 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
 .empty-state{text-align:center;padding:50px 20px;color:var(--text4)}
 .empty-state h3{font-size:15px;font-weight:700;color:var(--text3);margin-bottom:5px}
 .empty-state p{font-size:13px}
+
+/* ── Settings ── */
 .settings-layout{display:grid;grid-template-columns:210px 1fr;gap:22px;align-items:start}
 .settings-nav{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;position:sticky;top:80px}
 .settings-nav-header{padding:12px 16px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text4)}
@@ -477,12 +579,16 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
 .role-admin{background:#fef3c7;color:#92400e}
 .role-manager{background:var(--blue-l);color:var(--blue)}
 .role-staff{background:var(--green-bg);color:var(--green-t)}
+
+/* ── Loading ── */
 .loading-overlay{display:flex;align-items:center;justify-content:center;padding:60px;flex-direction:column;gap:12px;color:var(--text3)}
 .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .api-err{background:var(--red-bg);border:1px solid var(--red);border-radius:var(--r);padding:14px 18px;margin-bottom:16px;color:var(--red);font-size:14px;font-weight:600;display:flex;align-items:center;gap:9px}
 @keyframes fu{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
 .fu{animation:fu .25s ease}
+
+/* ── Reference ── */
 .ref-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;margin-bottom:22px}
 .ref-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2)}
 .ref-title{font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
@@ -490,6 +596,8 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
 .ref-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;background:var(--bg);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text2);font-weight:500}
 .ref-chip button{background:none;border:none;cursor:pointer;color:var(--text4);display:flex;align-items:center;font-size:14px;line-height:1;padding:0;margin-left:2px}
 .ref-chip button:hover{color:var(--red)}
+
+/* ── Page Header ── */
 .ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap;max-width:100%}
 .ph-l{flex:1;min-width:180px;max-width:100%}
 .ph-r{display:flex;gap:10px;align-items:center;flex-wrap:wrap;max-width:100%}
@@ -497,27 +605,318 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
 
 /* ═══ BUYLIST INLINE ADD FORM ═══ */
 .bl-add-wrapper{padding:14px;border-bottom:1px solid var(--border);background:var(--blue-l);min-width:600px}
-@media(max-width:600px){.bl-add-wrapper{min-width:100%}}
 .bl-add-row{display:grid;grid-template-columns:1.5fr 90px 110px 90px 130px auto;gap:10px;align-items:flex-end}
-@media(max-width:900px){.bl-add-row{grid-template-columns:1fr 1fr 1fr;gap:8px}.bl-add-row .bl-add-btn{grid-column:1/-1;justify-content:center;width:100%}}
-@media(max-width:600px){.bl-add-row{grid-template-columns:1fr 1fr;gap:8px}.bl-add-row .bl-add-item{grid-column:1/-1}.bl-add-row .bl-add-btn{grid-column:1/-1;justify-content:center;width:100%}}
 
-@media(max-width:640px){.ph{flex-direction:column;align-items:stretch;gap:15px}.ph-r{flex-direction:column;align-items:stretch;gap:8px}.ph-r .sw-wrap{width:100%!important}.ph-r .btn{width:100%;justify-content:center}.wdh-top{flex-direction:column;align-items:stretch;gap:12px}.wdh-top .btn{width:100%;justify-content:center}}
+/* ═══════════════════ RESPONSIVE ═══════════════════ */
 
-/* ═══ RESPONSIVE ═══ */
-@media(max-width:920px){.settings-layout{grid-template-columns:1fr}.settings-nav{position:static;display:flex;overflow-x:auto;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border)}.settings-nav-item{border-left:none;border-bottom:3px solid transparent;white-space:nowrap}.settings-nav-item.active{border-bottom-color:var(--blue)}.wdh-body{grid-template-columns:1fr 1fr;gap:12px}.wdh-stat{border:none;padding:10px}}
-@media(max-width:768px){:root{--sw:0px}.sidebar{transform:translateX(-100%);transition:transform .3s cubic-bezier(0.4,0,0.2,1);width:260px;box-shadow:20px 0 50px rgba(0,0,0,.15)}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.topbar{padding:0 12px;height:52px}.content{padding:14px}.auth-card{grid-template-columns:1fr;min-height:auto}.auth-hero{display:none}.sg{grid-template-columns:1fr 1fr;gap:10px}.sg3,.sg2{grid-template-columns:1fr;gap:10px}.detail-grid,.rep-grid{grid-template-columns:1fr;gap:12px}.wdh-banner{height:auto;min-height:80px;padding:16px 16px 24px}.wdh-icon{width:40px;height:40px}.wdh-title{font-size:17px}.wdh-body{grid-template-columns:1fr 1fr;padding:10px;margin:12px 8px 0!important;gap:8px}.wdh-stat{padding:8px}.wdh-stat:not(:last-child){border-right:none;border-bottom:1px solid var(--border)}.wdh-stat-v{font-size:18px}.form-row{grid-template-columns:1fr;gap:10px}.mobile-toggle{display:flex!important;width:34px;height:34px;margin-right:8px}.mobile-toggle svg{width:18px;height:18px}.modal{max-width:100%;margin:0;width:100%;border-radius:20px 20px 0 0;position:fixed;bottom:0}.modal-backdrop{align-items:flex-end;padding:0}.modal-header{padding:14px 18px}.modal-body{padding:18px}.modal-footer{padding:12px 18px}.footer{flex-direction:column;gap:10px;padding:12px 16px;text-align:center}.fh,.fl{justify-content:center}.ht{font-size:10px;padding:3px 6px}}
-@media(max-width:480px){.sg{grid-template-columns:1fr}.content{padding:10px}.tb-r .btn{padding:6px 10px;font-size:12px}.tb-r .btn span{display:none}.ph-l h1{font-size:18px!important}.ph-l p{font-size:11px!important}.sv{font-size:18px}.sc{padding:12px 14px}.ti{font-size:11px}.pb{width:28px;height:28px;font-size:12px}.wg{grid-template-columns:1fr}.wdh-body{grid-template-columns:1fr!important;margin:10px 6px 0!important;padding:8px}.wdh-banner{padding:12px 12px 20px}.wdh-stat:not(:last-child){border-right:none;border-bottom:1px solid var(--border)}}
-.mobile-toggle{display:none;width:40px;height:40px;align-items:center;justify-content:center;color:var(--text);cursor:pointer;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;margin-right:8px;transition:all .2s cubic-bezier(0.4,0,0.2,1);box-shadow:var(--sh);position:relative;z-index:20}
-.mobile-toggle:hover{border-color:var(--blue);color:var(--blue);transform:scale(1.05);background:var(--blue-l)}
-.mobile-toggle:active{transform:scale(0.95)}
-.sidebar-backdrop{position:fixed;inset:0;background:rgba(15,23,42,0.4);backdrop-filter:blur(8px);z-index:90;animation:fadeIn .3s ease;display:block}
-.app{overflow-x:hidden;width:100%}
-img,svg{max-width:100%}
-table{min-width:600px}
-@media(max-width:600px){table{min-width:100%}th,td{padding:8px 10px;font-size:12px}.itn{font-size:12px}.sv{font-size:18px}}
+/* Desktop > 1200px */
+@media (min-width: 1200px) {
+  .app { max-width: 1600px; margin: 0 auto; }
+  .content { padding: 24px 32px; }
+  .wg { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+}
 
-/* ═══════════════════ CHAT STYLES ═══════════════════ */
+/* Laptop 1024px - 1199px */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  :root { --sw: 220px; }
+  .content { padding: 20px 24px; }
+  .sg { grid-template-columns: repeat(4, 1fr); }
+  .wdh-body { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+}
+
+/* Tablet 768px - 1023px */
+@media (min-width: 768px) and (max-width: 1023px) {
+  :root { --sw: 200px; }
+  .sidebar { width: var(--sw); }
+  .main { margin-left: var(--sw); }
+  .content { padding: 16px 20px; }
+  .sg, .sg3, .sg2 { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .detail-grid, .rep-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .intake-layout { grid-template-columns: 1fr; }
+  .settings-layout { grid-template-columns: 1fr; }
+  .settings-nav { position: static; display: flex; overflow-x: auto; margin-bottom: 16px; }
+  .settings-nav-item { border-left: none; border-bottom: 3px solid transparent; white-space: nowrap; }
+  .settings-nav-item.active { border-bottom-color: var(--blue); }
+  .wdh-body { grid-template-columns: 1fr 1fr; padding: 14px; margin: 14px 10px 0 !important; gap: 10px; }
+  .wdh-stat { border: none; padding: 10px; }
+  .wdh-stat:not(:last-child) { border-right: none; border-bottom: 1px solid var(--border); }
+  .wdh-banner { min-height: 140px; padding: 20px 20px 40px; }
+  .wdh-title { font-size: 20px; }
+  .wg { grid-template-columns: repeat(2, 1fr); }
+  .form-row { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .chat-panel { right: 16px; width: 340px; height: 460px; }
+}
+
+/* Mobile < 768px */
+@media (max-width: 767px) {
+  :root { --sw: 0px; }
+  
+  /* Sidebar slides off-screen */
+  .sidebar {
+    transform: translateX(-100%);
+    width: 280px;
+    box-shadow: 24px 0 60px rgba(0, 0, 0, 0.2);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-backdrop { display: block; }
+  
+  /* Main takes full width */
+  .main {
+    margin-left: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  /* Topbar */
+  .topbar {
+    padding: 0 12px;
+    height: 52px;
+  }
+  .tb-r { gap: 6px; }
+  .tb-r .btn { padding: 6px 10px; }
+  .tb-r .btn span { display: none; }
+  
+  /* Content */
+  .content {
+    padding: 12px;
+    overflow-x: hidden;
+  }
+  
+  /* Auth */
+  .auth-card { grid-template-columns: 1fr; min-height: auto; }
+  .auth-hero { display: none; }
+  .auth-panel { padding: 24px; }
+  
+  /* Stats */
+  .sg, .sg3, .sg2 { grid-template-columns: 1fr; gap: 10px; }
+  .sc { padding: 14px; }
+  .sv { font-size: 20px; }
+  .slb { font-size: 11px; }
+  
+  /* Grids */
+  .detail-grid, .rep-grid { grid-template-columns: 1fr; gap: 10px; }
+  
+  /* Warehouse Detail */
+  .wdh-banner {
+    min-height: 100px;
+    padding: 14px 14px 24px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .wdh-icon { width: 44px; height: 44px; }
+  .wdh-title { font-size: 18px; }
+  .wdh-addr { font-size: 12px; }
+  .wdh-top { flex-direction: column; align-items: stretch; gap: 10px; }
+  .wdh-top .btn { width: 100%; justify-content: center; }
+  .wdh-body {
+    grid-template-columns: 1fr 1fr;
+    padding: 12px;
+    margin: 12px 8px 0 !important;
+    gap: 8px;
+  }
+  .wdh-stat { padding: 8px; border: none !important; }
+  .wdh-stat-v { font-size: 16px; }
+  
+  /* Warehouse Cards */
+  .wg { grid-template-columns: 1fr; gap: 12px; }
+  
+  /* Forms */
+  .form-row { grid-template-columns: 1fr; gap: 10px; }
+  .ph { flex-direction: column; align-items: stretch; gap: 12px; }
+  .ph-l { min-width: 100%; }
+  .ph-r { flex-direction: column; width: 100%; gap: 8px; }
+  .ph-r .sw-wrap { width: 100% !important; }
+  .ph-r .btn { width: 100%; justify-content: center; }
+  
+  /* Tables */
+  .tc { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 500px; }
+  th, td { padding: 8px 10px; font-size: 12px; }
+  .itn { font-size: 12px; }
+  .ir { gap: 8px; }
+  .ith { width: 28px; height: 28px; }
+  
+  /* Modal */
+  .modal {
+    max-width: 100%;
+    margin: 0;
+    width: 100%;
+    border-radius: 20px 20px 0 0;
+    position: fixed;
+    bottom: 0;
+    max-height: 85vh;
+  }
+  .modal-backdrop { align-items: flex-end; padding: 0; }
+  .modal-header { padding: 14px 18px; }
+  .modal-body { padding: 16px; }
+  .modal-footer { padding: 12px 16px; flex-direction: column; gap: 8px; }
+  .modal-footer .btn { width: 100%; justify-content: center; }
+  
+  /* Buttons */
+  .btn { width: 100%; justify-content: center; margin-bottom: 8px; }
+  .btn:last-child { margin-bottom: 0; }
+  .btn.bp, .btn.bo { display: flex; }
+  
+  /* Settings */
+  .settings-layout { grid-template-columns: 1fr; }
+  .settings-nav { 
+    position: static; 
+    display: flex; 
+    overflow-x: auto; 
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .settings-nav-item { 
+    border-left: none; 
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .settings-nav-item.active { border-bottom-color: var(--blue); }
+  .settings-card-body { padding: 14px 16px; }
+  .settings-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .profile-avatar-area { flex-direction: column; text-align: center; }
+  .color-swatches { justify-content: center; }
+  .lang-grid { grid-template-columns: 1fr; }
+  
+  /* Intake */
+  .intake-layout { grid-template-columns: 1fr; }
+  .bl-add-wrapper { min-width: 100%; padding: 12px; }
+  .bl-add-row { 
+    grid-template-columns: 1fr 1fr; 
+    gap: 8px; 
+  }
+  .bl-add-row .bl-add-btn { 
+    grid-column: 1 / -1; 
+    justify-content: center; 
+    width: 100%; 
+  }
+  .bl-add-item { grid-column: 1 / -1; }
+  
+  /* Shipments */
+  .ship-card { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .ship-status { align-items: flex-start; }
+  
+  /* Footer */
+  .footer { 
+    flex-direction: column; 
+    gap: 10px; 
+    padding: 12px 16px; 
+    text-align: center; 
+  }
+  .fh, .fl { justify-content: center; }
+  
+  /* Toast */
+  .toast-stack { 
+    left: 12px; 
+    right: 12px; 
+    bottom: 12px; 
+  }
+  .toast { min-width: auto; width: 100%; }
+}
+
+/* Small mobile < 480px */
+@media (max-width: 480px) {
+  .content { padding: 10px; }
+  .ph-l h1 { font-size: 18px !important; }
+  .ph-l p { font-size: 11px !important; }
+  
+  .sv { font-size: 18px; }
+  .sc { padding: 12px 14px; }
+  
+  .wdh-banner { padding: 10px 10px 16px; }
+  .wdh-body { grid-template-columns: 1fr !important; margin: 8px 6px 0 !important; padding: 8px; }
+  .wdh-stat-v { font-size: 15px; }
+  
+  .tc { margin: 0 -10px; border-radius: 0; border-left: none; border-right: none; }
+  table { min-width: 400px; }
+  
+  .ti { font-size: 11px; }
+  .pb { width: 26px; height: 26px; font-size: 11px; }
+  
+  .modal { border-radius: 16px 16px 0 0; }
+  
+  .btn { font-size: 13px; padding: 10px 14px; }
+  .btn.bp { font-weight: 600; }
+  
+  .breadcrumb { font-size: 11px; }
+  .topbar { padding: 0 10px; }
+  
+  .chat-panel { height: 74vh; max-height: 74vh; }
+  .chat-footer { padding-bottom: 34px; }
+}
+
+/* Extra small < 360px */
+@media (max-width: 360px) {
+  :root { font-size: 13px; }
+  
+  .auth-panel { padding: 16px; }
+  .auth-logo-name { font-size: 15px; }
+  .auth-panel h2 { font-size: 20px; }
+  
+  .sc { padding: 10px 12px; }
+  .sv { font-size: 16px; }
+  
+  .wdh-body { gap: 6px; padding: 6px; }
+  .wdh-stat { padding: 6px; }
+  .wdh-stat-v { font-size: 14px; }
+  
+  .btn { padding: 8px 12px; font-size: 12px; }
+  
+  .form-input { padding: 8px 10px; font-size: 13px; }
+  .form-label { font-size: 10px; }
+  
+  .chat-panel { height: 80vh; max-height: 80vh; }
+  .msg-wrap { max-width: 92%; }
+}
+
+/* Landscape orientation */
+@media (max-height: 500px) and (orientation: landscape) {
+  .auth-page { padding: 10px; }
+  .auth-card { max-height: 90vh; overflow-y: auto; }
+  
+  .chat-panel { height: 90vh; max-height: 90vh; }
+  .modal { max-height: 90vh; }
+  .modal-body { max-height: 60vh; overflow-y: auto; }
+}
+
+/* Touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .n-item, .btn, .ib, .wh-menu-btn, .settings-nav-item {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .n-item { padding: 10px 12px; }
+  .btn { padding: 12px 16px; }
+  
+  input, select, textarea { font-size: 16px; }
+  .chat-input { font-size: 16px; }
+  
+  .toggle { width: 48px; height: 28px; }
+  .toggle-slider::before { width: 20px; height: 20px; }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+}
+
+/* Print */
+@media print {
+  .sidebar, .topbar, .footer, .chat-panel, .toast-stack { display: none !important; }
+  .main { margin-left: 0; }
+  .content { padding: 0; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ═══ CHAT STYLES ═══════════════════════════════ */
 .chat-mobile-backdrop {
   display: none;
   position: fixed;
@@ -701,74 +1100,19 @@ table{min-width:600px}
 .chat-send:hover  { transform: scale(1.1);  box-shadow: 0 4px 14px rgba(124,58,237,0.5); }
 .chat-send:active { transform: scale(0.92); }
 
-.toast-close{background:none;border:none;color:inherit;opacity:.6;cursor:pointer;font-size:18px;line-height:1;margin-left:10px}
-.toast-close:hover{opacity:1}
-.notif-badge{position:absolute;top:-5px;right:-5px;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 5px;border-radius:10px;border:2px solid var(--surface);min-width:18px;text-align:center;z-index:2}
-
-/* ── Tablet (≤1024px) ── */
+/* Tablet chat ≤1024px */
 @media (max-width:1024px) {
   .chat-panel { right:12px; width:320px; height:480px; }
 }
 
-/* ── Mobile (≤768px) ── */
+/* Mobile chat ≤768px */
 @media (max-width:768px) {
   .chat-mobile-backdrop { display:block; }
   .chat-panel {
     position: fixed;
     bottom: 0; left: 0; right: 0;
     width: 100%; height: 70vh; max-height: 70vh;
-    border-radius: 22px 22px 0 0;
-    box-shadow: 0 -8px 48px rgba(0,0,0,0.3);
-    z-index: 3000;
-    animation: chatMobileUp .3s cubic-bezier(0.34,1.1,0.64,1);
-  }
-  @keyframes chatMobileUp {
-    from { transform:translateY(100%); opacity:.7; }
-    to   { transform:translateY(0);    opacity:1; }
-  }
-  .chat-header {
-    border-radius: 22px 22px 0 0;
-    height: 60px; min-height: 60px;
-    padding: 0 18px;
-    position: relative;
-  }
-  .chat-header::before {
-    content: '';
-    position: absolute;
-    top: 8px; left: 50%;
-    transform: translateX(-50%);
-    width: 36px; height: 4px;
-    background: rgba(255,255,255,0.25);
-    border-radius: 2px;
-    pointer-events: none;
-  }
-  .chat-header-avatar { width:38px; height:38px; font-size:13px; }
-  .chat-header-name   { font-size:14px; }
-  .chat-header-status { font-size:11px; }
-  .chat-close-btn     { width:34px; height:34px; border-radius:10px; }
-  .chat-body  { padding:14px; gap:10px; }
-  .msg        { font-size:14px; padding:10px 14px; }
-  .msg-time   { font-size:11px; }
-  .msg-wrap   { max-width:84%; }
-  .chat-footer {
-    padding: 10px 16px 30px;
-    gap: 10px;
-  }
-  .chat-input {
-    font-size: 16px; /* iOS auto-zoom fix */
-    padding: 11px 18px;
-    border-radius: 26px;
-  }
-  .chat-send { width:42px; height:42px; }
-}
-
-/* ── Small mobile (≤400px) ── */
-@media (max-width:400px) {
-  .chat-panel  { height:76vh; max-height:76vh; }
-  .msg-wrap    { max-width:90%; }
-  .chat-footer { padding-bottom:36px; }
-}
-`;
+    border-radius: 22px 
 
 /* ═══════════════════ ICONS ═══════════════════ */
 const P: Record<string, string> = {
@@ -843,7 +1187,7 @@ function ToastList({ toasts, removeToast }: any) {
   return (
     <div className="toast-stack">
       {toasts.map((t: any) => (
-        <div key={t.id} className={`toast ${t.type || ""}`}>
+        <div key={t.id} className={`toast ${ t.type || ""}`}>
           <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
             {t.type === "success" && <I n="ck" s={15} c="#4ade80" />}
             {t.type === "error" && <I n="x" s={15} c="#f87171" />}
@@ -919,7 +1263,7 @@ const STRINGS: Record<string, any> = {
     warehouses: "Warehouses", analytics: "Analytics", intake: "Smart Intake", settings: "Settings", users: "Users",
     darkMode: "Dark Mode", lightMode: "Light Mode", logout: "Logout", createWh: "Create Warehouse", save: "Save",
     cancel: "Cancel", search: "Search...", items: "Items", moneytypes: "Currencies", units: "Units",
-    deleteUser: "Delete User", deleteConfirmText: (name: string) => `Are you sure you want to delete "${name}"?`,
+    deleteUser: "Delete User", deleteConfirmText: (name: string) => `Are you sure you want to delete "${name}" ? `,
     deleteConfirmLabel: "Type the username to confirm:", deleteBtn: "Delete", addUser: "Add New User",
     loginTitle: "Welcome back", loginSub: "Sign in to RenoFlow", username: "Nickname", password: "Password",
     enterUsername: "Enter nickname", signIn: "Sign In →", signingIn: "Signing in...",
@@ -946,78 +1290,78 @@ const STRINGS: Record<string, any> = {
     darkMode: "Tungi rejim", lightMode: "Kunduzgi", logout: "Chiqish", createWh: "Ombor yaratish", save: "Saqlash",
     cancel: "Bekor qilish", search: "Qidirish...", items: "Mahsulotlar", moneytypes: "Valyutalar", units: "Birliklar",
     deleteUser: "O'chirish", deleteConfirmText: (name: string) => `"${name}" ni o'chirmoqchimisiz?`,
-    deleteConfirmLabel: "Tasdiqlash uchun foydalanuvchi nomini yozing:", deleteBtn: "O'chirish", addUser: "Yangi foydalanuvchi",
-    loginTitle: "Xush kelibsiz", loginSub: "RenoFlow tizimiga kiring", username: "Nickname", password: "Parol",
+deleteConfirmLabel: "Tasdiqlash uchun foydalanuvchi nomini yozing:", deleteBtn: "O'chirish", addUser: "Yangi foydalanuvchi",
+  loginTitle: "Xush kelibsiz", loginSub: "RenoFlow tizimiga kiring", username: "Nickname", password: "Parol",
     enterUsername: "Nickname kiriting", signIn: "Kirish →", signingIn: "Kirilmoqda...",
-    totalWhs: "Jami omborlar", inventoryVal: "Invertar qiymati", lowStock: "Kam qolganlar",
-    recentShipments: "So'nggi harakatlar", viewAll: "Hammasi", whStats: "Ombor statistikasi",
-    addBtn: "Qo'shish", editBtn: "Tahrirlash", filter: "Saralash", all: "Hammasi",
-    scanning: "Skanerlanmoqda...", detected: "Topilgan mahsulotlar", confirmAdd: "Tasdiqlash va qo'shish",
-    profile: "Profil", appearance: "Ko'rinish", security: "Xavfsizlik", general: "Umumiy",
-    language: "Til", accentColor: "Asosiy rang", compactMode: "Ixcham ko'rinish",
-    changePass: "Parolni o'zgartirish", currentPass: "Eski parol", newPass: "Yangi parol",
-    statusActive: "Faol", totalItems: "Jami Mahsulotlar", acrossAll: "Barcha omborlarda",
-    view: "Ko'rish", details: "Tafsilotlar", value: "Qiymat", itemsInStock: "Zaxirada", low: "kam",
-    addWhDesc: "Yangi ombor yarating.",
-    mainSec: "Asosiy", refSec: "Ma'lumotnomalar", analytSec: "Tahlillar", mgmtSec: "Boshqaruv",
-    profileAcc: "Profil va Hisob", designColor: "Dizayn va rang sozlamalari",
-    notifSettings: "Bildirishnomalar", secPrivacy: "Xavfsizlik va Maxfiylik",
-    regionalSett: "Mintaqaviy sozlamalar", dangerZone: "Xavfli hudud", config: "Konfiguratsiya",
-    qty: "Miqdor", price: "Narx", currency: "Valyuta", unit: "Birlik",
-    total: "Jami", date: "Sana", product: "Mahsulot", backBtn: "Orqaga",
-    you: "Siz", noResults: "Foydalanuvchilar topilmadi", addUserPrompt: "Boshlash uchun yangi foydalanuvchi qo'shing.",
+      totalWhs: "Jami omborlar", inventoryVal: "Invertar qiymati", lowStock: "Kam qolganlar",
+        recentShipments: "So'nggi harakatlar", viewAll: "Hammasi", whStats: "Ombor statistikasi",
+          addBtn: "Qo'shish", editBtn: "Tahrirlash", filter: "Saralash", all: "Hammasi",
+            scanning: "Skanerlanmoqda...", detected: "Topilgan mahsulotlar", confirmAdd: "Tasdiqlash va qo'shish",
+              profile: "Profil", appearance: "Ko'rinish", security: "Xavfsizlik", general: "Umumiy",
+                language: "Til", accentColor: "Asosiy rang", compactMode: "Ixcham ko'rinish",
+                  changePass: "Parolni o'zgartirish", currentPass: "Eski parol", newPass: "Yangi parol",
+                    statusActive: "Faol", totalItems: "Jami Mahsulotlar", acrossAll: "Barcha omborlarda",
+                      view: "Ko'rish", details: "Tafsilotlar", value: "Qiymat", itemsInStock: "Zaxirada", low: "kam",
+                        addWhDesc: "Yangi ombor yarating.",
+                          mainSec: "Asosiy", refSec: "Ma'lumotnomalar", analytSec: "Tahlillar", mgmtSec: "Boshqaruv",
+                            profileAcc: "Profil va Hisob", designColor: "Dizayn va rang sozlamalari",
+                              notifSettings: "Bildirishnomalar", secPrivacy: "Xavfsizlik va Maxfiylik",
+                                regionalSett: "Mintaqaviy sozlamalar", dangerZone: "Xavfli hudud", config: "Konfiguratsiya",
+                                  qty: "Miqdor", price: "Narx", currency: "Valyuta", unit: "Birlik",
+                                    total: "Jami", date: "Sana", product: "Mahsulot", backBtn: "Orqaga",
+                                      you: "Siz", noResults: "Foydalanuvchilar topilmadi", addUserPrompt: "Boshlash uchun yangi foydalanuvchi qo'shing.",
   },
-  ru: {
-    warehouses: "Склады", analytics: "Аналитика", intake: "Скан-приход", settings: "Настройки", users: "Пользователи",
+ru: {
+  warehouses: "Склады", analytics: "Аналитика", intake: "Скан-приход", settings: "Настройки", users: "Пользователи",
     darkMode: "Темная тема", lightMode: "Светлая", logout: "Выйти", createWh: "Создать склад", save: "Сохранить",
-    cancel: "Отмена", search: "Поиск...", items: "Товары", moneytypes: "Валюты", units: "Единицы",
-    deleteUser: "Удалить", deleteConfirmText: (name: string) => `Удалить "${name}"?`,
-    deleteConfirmLabel: "Введите имя для подтверждения:", deleteBtn: "Удалить", addUser: "Новый пользователь",
-    loginTitle: "С возвращением", loginSub: "Войти в RenoFlow", username: "Никнейм", password: "Пароль",
-    enterUsername: "Введите никнейм", signIn: "Войти →", signingIn: "Вход...",
-    totalWhs: "Всего складов", inventoryVal: "Стоимость запасов", lowStock: "Мало товара",
-    recentShipments: "Последние поставки", viewAll: "Все", whStats: "Статистика склада",
-    addBtn: "Добавить", editBtn: "Изм.", filter: "Фильтр", all: "Все",
-    scanning: "Сканирование...", detected: "Найдено товаров", confirmAdd: "Подтвердить",
-    profile: "Профиль", appearance: "Оформление", security: "Безопасность", general: "Общие",
-    language: "Язык", accentColor: "Основной цвет", compactMode: "Компактный вид",
-    changePass: "Сменить пароль", currentPass: "Старый пароль", newPass: "Новый пароль",
-    statusActive: "Активно", totalItems: "Всего товаров", acrossAll: "По всем складам",
-    view: "Смотреть", details: "Детали", value: "Цена", itemsInStock: "В наличии", low: "мало",
-    addWhDesc: "Создать новый склад.",
-    mainSec: "Главное", refSec: "Справочники", analytSec: "Аналитика", mgmtSec: "Управление",
-    profileAcc: "Профиль и Аккаунт", designColor: "Настройки дизайна",
-    notifSettings: "Уведомления", secPrivacy: "Безопасность",
-    regionalSett: "Региональные настройки", dangerZone: "Опасная зона", config: "Конфигурация",
-    qty: "Кол-во", price: "Цена", currency: "Валюта", unit: "Ед.",
-    total: "Итого", date: "Дата", product: "Товар", backBtn: "Назад",
-    you: "Вы", noResults: "Не найдено", addUserPrompt: "Добавьте пользователя.",
+      cancel: "Отмена", search: "Поиск...", items: "Товары", moneytypes: "Валюты", units: "Единицы",
+        deleteUser: "Удалить", deleteConfirmText: (name: string) => `Удалить "${name}"?`,
+          deleteConfirmLabel: "Введите имя для подтверждения:", deleteBtn: "Удалить", addUser: "Новый пользователь",
+            loginTitle: "С возвращением", loginSub: "Войти в RenoFlow", username: "Никнейм", password: "Пароль",
+              enterUsername: "Введите никнейм", signIn: "Войти →", signingIn: "Вход...",
+                totalWhs: "Всего складов", inventoryVal: "Стоимость запасов", lowStock: "Мало товара",
+                  recentShipments: "Последние поставки", viewAll: "Все", whStats: "Статистика склада",
+                    addBtn: "Добавить", editBtn: "Изм.", filter: "Фильтр", all: "Все",
+                      scanning: "Сканирование...", detected: "Найдено товаров", confirmAdd: "Подтвердить",
+                        profile: "Профиль", appearance: "Оформление", security: "Безопасность", general: "Общие",
+                          language: "Язык", accentColor: "Основной цвет", compactMode: "Компактный вид",
+                            changePass: "Сменить пароль", currentPass: "Старый пароль", newPass: "Новый пароль",
+                              statusActive: "Активно", totalItems: "Всего товаров", acrossAll: "По всем складам",
+                                view: "Смотреть", details: "Детали", value: "Цена", itemsInStock: "В наличии", low: "мало",
+                                  addWhDesc: "Создать новый склад.",
+                                    mainSec: "Главное", refSec: "Справочники", analytSec: "Аналитика", mgmtSec: "Управление",
+                                      profileAcc: "Профиль и Аккаунт", designColor: "Настройки дизайна",
+                                        notifSettings: "Уведомления", secPrivacy: "Безопасность",
+                                          regionalSett: "Региональные настройки", dangerZone: "Опасная зона", config: "Конфигурация",
+                                            qty: "Кол-во", price: "Цена", currency: "Валюта", unit: "Ед.",
+                                              total: "Итого", date: "Дата", product: "Товар", backBtn: "Назад",
+                                                you: "Вы", noResults: "Не найдено", addUserPrompt: "Добавьте пользователя.",
   },
-  tr: {
-    warehouses: "Depolar", analytics: "Analiz", intake: "Akıllı Giriş", settings: "Ayarlar", users: "Kullanıcılar",
+tr: {
+  warehouses: "Depolar", analytics: "Analiz", intake: "Akıllı Giriş", settings: "Ayarlar", users: "Kullanıcılar",
     darkMode: "Karanlık Mod", lightMode: "Aydınlık", logout: "Çıkış", createWh: "Depo Oluştur", save: "Kaydet",
-    cancel: "İptal", search: "Ara...", items: "Ürünler", moneytypes: "Para Birimleri", units: "Birimler",
-    deleteUser: "Kullanıcıyı sil", deleteConfirmText: (name: string) => `"${name}" silinsin mi?`,
-    deleteConfirmLabel: "Onay için kullanıcı adını girin:", deleteBtn: "Sil", addUser: "Yeni Kullanıcı",
-    loginTitle: "Tekrar hoşgeldiniz", loginSub: "RenoFlow'a giriş yapın", username: "Kullanıcı Adı", password: "Şifre",
-    enterUsername: "Kullanıcı adı girin", signIn: "Giriş Yap →", signingIn: "Giriş yapılıyor...",
-    totalWhs: "Toplam Depo", inventoryVal: "Envanter Değeri", lowStock: "Kritik Stok",
-    recentShipments: "Son Hareketler", viewAll: "Tümü", whStats: "Depo İstatistikleri",
-    addBtn: "Ekle", editBtn: "Düzenle", filter: "Filtrele", all: "Tümü",
-    scanning: "Taranıyor...", detected: "Tespit Edilenler", confirmAdd: "Onayla ve Ekle",
-    profile: "Profil", appearance: "Görünüm", security: "Güvenlik", general: "Genel",
-    language: "Dil", accentColor: "Vurgu Rengi", compactMode: "Sıkışık Görünüm",
-    changePass: "Şifre Değiştir", currentPass: "Mevcut Şifre", newPass: "Yeni Şifre",
-    statusActive: "Aktif", totalItems: "Toplam Ürün", acrossAll: "Tüm depolarda",
-    view: "Görüntüle", details: "Detaylar", value: "Değer", itemsInStock: "Stokta", low: "az",
-    addWhDesc: "Yeni depo oluşturun.",
-    mainSec: "Ana Menü", refSec: "Referanslar", analytSec: "Analizler", mgmtSec: "Yönetim",
-    profileAcc: "Profil ve Hesap", designColor: "Tasarım ayarları",
-    notifSettings: "Bildirimler", secPrivacy: "Güvenlik ve Gizlilik",
-    regionalSett: "Bölgesel Ayarlar", dangerZone: "Tehlikeli Bölge", config: "Konfigürasyon",
-    qty: "Miktar", price: "Fiyat", currency: "Para Birimi", unit: "Birim",
-    total: "Toplam", date: "Tarih", product: "Ürün", backBtn: "Geri",
-    you: "Sen", noResults: "Bulunamadı", addUserPrompt: "Kullanıcı ekleyin.",
+      cancel: "İptal", search: "Ara...", items: "Ürünler", moneytypes: "Para Birimleri", units: "Birimler",
+        deleteUser: "Kullanıcıyı sil", deleteConfirmText: (name: string) => `"${name}" silinsin mi?`,
+          deleteConfirmLabel: "Onay için kullanıcı adını girin:", deleteBtn: "Sil", addUser: "Yeni Kullanıcı",
+            loginTitle: "Tekrar hoşgeldiniz", loginSub: "RenoFlow'a giriş yapın", username: "Kullanıcı Adı", password: "Şifre",
+              enterUsername: "Kullanıcı adı girin", signIn: "Giriş Yap →", signingIn: "Giriş yapılıyor...",
+                totalWhs: "Toplam Depo", inventoryVal: "Envanter Değeri", lowStock: "Kritik Stok",
+                  recentShipments: "Son Hareketler", viewAll: "Tümü", whStats: "Depo İstatistikleri",
+                    addBtn: "Ekle", editBtn: "Düzenle", filter: "Filtrele", all: "Tümü",
+                      scanning: "Taranıyor...", detected: "Tespit Edilenler", confirmAdd: "Onayla ve Ekle",
+                        profile: "Profil", appearance: "Görünüm", security: "Güvenlik", general: "Genel",
+                          language: "Dil", accentColor: "Vurgu Rengi", compactMode: "Sıkışık Görünüm",
+                            changePass: "Şifre Değiştir", currentPass: "Mevcut Şifre", newPass: "Yeni Şifre",
+                              statusActive: "Aktif", totalItems: "Toplam Ürün", acrossAll: "Tüm depolarda",
+                                view: "Görüntüle", details: "Detaylar", value: "Değer", itemsInStock: "Stokta", low: "az",
+                                  addWhDesc: "Yeni depo oluşturun.",
+                                    mainSec: "Ana Menü", refSec: "Referanslar", analytSec: "Analizler", mgmtSec: "Yönetim",
+                                      profileAcc: "Profil ve Hesap", designColor: "Tasarım ayarları",
+                                        notifSettings: "Bildirimler", secPrivacy: "Güvenlik ve Gizlilik",
+                                          regionalSett: "Bölgesel Ayarlar", dangerZone: "Tehlikeli Bölge", config: "Konfigürasyon",
+                                            qty: "Miktar", price: "Fiyat", currency: "Para Birimi", unit: "Birim",
+                                              total: "Toplam", date: "Tarih", product: "Ürün", backBtn: "Geri",
+                                                you: "Sen", noResults: "Bulunamadı", addUserPrompt: "Kullanıcı ekleyin.",
   },
 };
 
@@ -2714,3 +3058,4 @@ export default function App() {
     />
   );
 }
+bx: "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0-4 1.73l7 4a2 2 0 0 0 2 0l7-4A
