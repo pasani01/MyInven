@@ -224,11 +224,16 @@ class ConversationViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Conversation.objects.none()
+        return Conversation.objects.filter(participants=self.request.user).distinct()
+
+    def list(self, request, *args, **kwargs):
         try:
-            return Conversation.objects.filter(participants=self.request.user).distinct()
+            return super().list(request, *args, **kwargs)
         except Exception as e:
-            # This will help us see the real error in the network tab
-            raise ValidationError({"detail": f"Conversation Query Error: {str(e)}"})
+            import traceback
+            return Response({"detail": str(e), "traceback": traceback.format_exc()}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def perform_create(self, serializer):
         participants_data = self.request.data.get('participants', [])
@@ -245,10 +250,9 @@ class MessageViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        try:
-            return Message.objects.filter(conversation__participants=self.request.user).distinct()
-        except Exception as e:
-            raise ValidationError({"detail": f"Message Query Error: {str(e)}"})
+        if getattr(self, 'swagger_fake_view', False):
+            return Message.objects.none()
+        return Message.objects.filter(conversation__participants=self.request.user).distinct()
 
     def perform_create(self, serializer):
         try:
@@ -263,39 +267,40 @@ class MessageViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'], url_path='direct-message')
     def direct_message(self, request):
-        conversation_id = request.data.get('conversation')
-        receiver_id = request.data.get('receiver_id')
-        text = request.data.get('text')
-        
-        if not text:
-            return Response({"detail": "text is required"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        conversation = None
-        if conversation_id:
-            try:
-                conversation = Conversation.objects.get(id=conversation_id, participants=request.user)
-            except Conversation.DoesNotExist:
-                return Response({"detail": "Conversation not found"}, status=status.HTTP_404_NOT_FOUND)
-        elif receiver_id:
-            try:
-                receiver = CustomUser.objects.get(id=receiver_id)
-            except CustomUser.DoesNotExist:
-                return Response({"detail": "Receiver not found"}, status=status.HTTP_404_NOT_FOUND)
-                
-            # Find DM conversation (exactly 2 participants)
-            conversation = Conversation.objects.annotate(num_p=Count('participants'))\
-                .filter(num_p=2)\
-                .filter(participants=request.user)\
-                .filter(participants=receiver)\
-                .first()
-            
-            if not conversation:
-                conversation = Conversation.objects.create()
-                conversation.participants.set([request.user, receiver])
-        else:
-            return Response({"detail": "Either receiver_id or conversation is required"}, status=status.HTTP_400_BAD_REQUEST)
-            
+        import traceback
         try:
+            conversation_id = request.data.get('conversation')
+            receiver_id = request.data.get('receiver_id')
+            text = request.data.get('text')
+            
+            if not text:
+                return Response({"detail": "text is required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            conversation = None
+            if conversation_id:
+                try:
+                    conversation = Conversation.objects.get(id=conversation_id, participants=request.user)
+                except Conversation.DoesNotExist:
+                    return Response({"detail": "Conversation not found"}, status=status.HTTP_404_NOT_FOUND)
+            elif receiver_id:
+                try:
+                    receiver = CustomUser.objects.get(id=receiver_id)
+                except CustomUser.DoesNotExist:
+                    return Response({"detail": "Receiver not found"}, status=status.HTTP_404_NOT_FOUND)
+                    
+                # Find or create DM conversation
+                conversation = Conversation.objects.annotate(num_p=Count('participants'))\
+                    .filter(num_p=2)\
+                    .filter(participants=request.user)\
+                    .filter(participants=receiver)\
+                    .first()
+                
+                if not conversation:
+                    conversation = Conversation.objects.create()
+                    conversation.participants.set([request.user, receiver])
+            else:
+                return Response({"detail": "Either receiver_id or conversation is required"}, status=status.HTTP_400_BAD_REQUEST)
+                
             message = Message.objects.create(
                 conversation=conversation,
                 sender=request.user,
@@ -304,4 +309,41 @@ class MessageViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(message)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except Exception as e:
-            return Response({"detail": f"Message Creation Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"detail": str(e), "trace": traceback.format_exc()}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ChatDebugView(APIView):
+    """Temporary debug view to diagnose 500 errors"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        import traceback
+        result = {"user": request.user.username, "tests": {}}
+        
+        # Test 1: Can we query Conversation model?
+        try:
+            count = Conversation.objects.count()
+            result["tests"]["conversation_count"] = count
+        except Exception as e:
+            result["tests"]["conversation_error"] = str(e)
+        
+        # Test 2: Can we filter by participant?
+        try:
+            convs = Conversation.objects.filter(participants=request.user).distinct()
+            result["tests"]["user_conversations"] = convs.count()
+        except Exception as e:
+            result["tests"]["filter_error"] = str(e)
+
+        # Test 3: Serialize one conversation
+        try:
+            conv = Conversation.objects.filter(participants=request.user).first()
+            if conv:
+                s = ConversationSerializer(conv)
+                result["tests"]["sample_conversation"] = s.data
+            else:
+                result["tests"]["sample_conversation"] = "none found"
+        except Exception as e:
+            result["tests"]["serializer_error"] = str(e)
+            result["tests"]["traceback"] = traceback.format_exc()
+
+        return Response(result)

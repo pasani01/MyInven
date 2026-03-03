@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import CustomUserViewSet, CompanyViewSet, UserLoginView, UserLogoutView, ConversationViewSet, MessageViewSet
+from .views import CustomUserViewSet, CompanyViewSet, UserLoginView, UserLogoutView, ConversationViewSet, MessageViewSet, ChatDebugView
 
 router = DefaultRouter()
 router.register(r'companies', CompanyViewSet)
@@ -15,4 +15,7 @@ urlpatterns = [
     # message urls
     path('conversations/', ConversationViewSet.as_view({'get': 'list', 'post': 'create'})),
     path('conversations/<int:pk>/', ConversationViewSet.as_view({'get': 'retrieve'})),
+
+    # debug endpoint (remove after fixing)
+    path('chat-debug/', ChatDebugView.as_view(), name='chat-debug'),
 ]
