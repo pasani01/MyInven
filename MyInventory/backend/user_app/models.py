@@ -46,3 +46,25 @@ class UserSettings(models.Model):
 
     def __str__(self):
         return f"Settings for {self.user.username}"
+
+
+# message model
+class Conversation(models.Model):
+    participants = models.ManyToManyField(CustomUser, related_name='conversations')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Conversation {self.id}"
+
+class Message(models.Model):
+    conversation = models.ForeignKey(Conversation, related_name='messages', on_delete=models.CASCADE)
+    sender = models.ForeignKey(CustomUser, related_name='sent_messages', on_delete=models.CASCADE)
+    text = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)    
+    is_read = models.BooleanField(default=False)
+    
+    # opsiyonel: dosya veya resim desteği
+    attachment = models.FileField(upload_to='attachments/', blank=True, null=True)
+
+    def __str__(self):
+        return f"Message {self.id} by {self.sender.username}"

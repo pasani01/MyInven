@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from django.contrib.auth import authenticate
 from .models import CustomUser, Company
-from .serializers import CustomUserSerializer, CompanySerializer, UserLoginSerializer
+from .serializers import CustomUserSerializer, CompanySerializer, UserLoginSerializer, ConversationSerializer, MessageSerializer
 
 
 class CompanyViewSet(viewsets.ModelViewSet):
@@ -213,3 +213,28 @@ class UserLogoutView(APIView):
         except Exception:
             pass
         return Response({"detail": "Başarıyla çıkış yapıldı."}, status=status.HTTP_200_OK)
+
+
+# message views
+
+class ConversationViewSet(viewsets.ModelViewSet):
+    serializer_class = ConversationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Conversation.objects.filter(participants=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(participants=[self.request.user])
+
+class MessageViewSet(viewsets.ModelViewSet):
+    serializer_class = MessageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Message.objects.filter(conversation__participants=self.request.user)
+
+    def perform_create(self, serializer):
+        conversation_id = self.request.data.get('conversation')
+        conversation = Conversation.objects.get(id=conversation_id, participants=self.request.user)
+        serializer.save(sender=self.request.user, conversation=conversation)

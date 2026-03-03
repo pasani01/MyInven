@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser, Company
+from .models import CustomUser, Company, Conversation, Message
 from django.contrib.auth import authenticate
 
 class CompanySerializer(serializers.ModelSerializer):
@@ -55,3 +55,21 @@ class UserLoginSerializer(serializers.Serializer):
 
         data['user'] = user_obj
         return data
+
+# message serializers
+class MessageSerializer(serializers.ModelSerializer):
+    sender_username = serializers.CharField(source='sender.username', read_only=True)
+    sender_role = serializers.CharField(source='sender.role', read_only=True)
+    
+    class Meta:
+        model = Message
+        fields = ['id', 'conversation', 'sender', 'sender_username', 'sender_role', 'text', 'created_at', 'is_read', 'attachment']
+        read_only_fields = ['sender', 'created_at', 'is_read']
+
+class ConversationSerializer(serializers.ModelSerializer):
+    participants = CustomUserSerializer(many=True, read_only=True)
+    messages = MessageSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = Conversation
+        fields = ['id', 'participants', 'messages', 'created_at']
