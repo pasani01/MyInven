@@ -1429,7 +1429,6 @@ deleteConfirmLabel: "Tasdiqlash uchun foydalanuvchi nomini yozing:",
                                                                                                                           you: "Siz",
                                                                                                                             noResults: "Foydalanuvchilar topilmadi",
                                                                                                                               addUserPrompt: "Boshlash uchun yangi foydalanuvchi qo'shing.",
-                                                                                                                                newMessage: "Yangi xabar keldi!",
   },
 ru: {
   warehouses: "Склады",
@@ -1513,7 +1512,6 @@ ru: {
                                                                                                                                                               you: "Вы",
                                                                                                                                                                 noResults: "Не найдено",
                                                                                                                                                                   addUserPrompt: "Добавьте пользователя.",
-                                                                                                                                                                    newMessage: "Новое сообщение!",
   },
 tr: {
   warehouses: "Depolar",
@@ -1597,7 +1595,6 @@ tr: {
                                                                                                                                                               you: "Sen",
                                                                                                                                                                 noResults: "Bulunamadı",
                                                                                                                                                                   addUserPrompt: "Kullanıcı ekleyin.",
-                                                                                                                                                                    newMessage: "Yeni mesaj!",
   },
 };
 
