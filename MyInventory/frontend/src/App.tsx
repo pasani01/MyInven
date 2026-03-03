@@ -800,6 +800,7 @@ table{min-width:600px}
   }
 `;
 
+
 /* ═══════════════════ ICONS ═══════════════════ */
 const P = {
   wh: "M2 20h20 M4 20V10l8-6 8 6v10 M10 20v-6h4v6",
@@ -3250,17 +3251,21 @@ function ChatWindow({ targetUser, currentUser, messages, onSendMessage, onClose 
             <div key={i} className={`msg-wrap ${isMe ? "msg-me" : "msg-them"}`}>
               <div className="msg">
                 {m.text}
-                {m.attachment && (
-                  <>
-                    {m.attachment.match(/\.(jpe?g|png|gif|bmp|webp)$/i) ? (
-                      <img src={m.attachment} style={{ maxWidth: 200, display: 'block', marginTop: 8 }} />
-                    ) : (
-                      <a href={m.attachment} target="_blank" rel="noreferrer">
-                        {m.attachment.split('/').pop()}
-                      </a>
-                    )}
-                  </>
-                )}
+                {m.attachment && (() => {
+                  // ensure URL is absolute
+                  const url = m.attachment.startsWith('http') ? m.attachment : `${BASE}${m.attachment}`;
+                  return (
+                    <>
+                      {url.match(/\.(jpe?g|png|gif|bmp|webp)$/i) ? (
+                        <img src={url} style={{ maxWidth: 200, display: 'block', marginTop: 8 }} />
+                      ) : (
+                        <a href={url} target="_blank" rel="noreferrer">
+                          {url.split('/').pop()}
+                        </a>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
               <span className="msg-time">{m.time}</span>
             </div>
