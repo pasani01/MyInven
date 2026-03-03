@@ -1,7 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
 /* ═══════════════════ BASE URL ═══════════════════ */
+// base API/host URL (used also for building absolute URLs for media)
 const BASE = "https://myinven-production.up.railway.app";
+
+// branding constants
+const BRAND = {
+  name: "My<span>Inventory</span>",
+  subtitle: "Warehouse Management",
+  logoPath: "/logo.png" // put your custom logo in public/logo.png
+};
 
 
 /* ═══════════════════ AUTH TOKEN ═══════════════════ */
@@ -264,6 +272,10 @@ html,body{font-family:'DM Sans',-apple-system,sans-serif;background:var(--bg);co
 .auth-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px;position:relative;overflow:hidden}
 .auth-bg-blob{position:fixed;border-radius:50%;filter:blur(80px);opacity:.35;pointer-events:none;z-index:0}
 .auth-card{position:relative;z-index:1;display:grid;grid-template-columns:1fr 1fr;width:100%;max-width:900px;min-height:560px;background:var(--surface);border:1px solid var(--border);border-radius:22px;box-shadow:0 32px 100px rgba(37,99,235,.13),0 4px 24px rgba(0,0,0,.07);overflow:hidden}
+  @media (max-width: 800px) {
+    .auth-card { grid-template-columns:1fr; max-width: 100%; min-height: auto; }
+    .auth-hero { display: none; }
+  }
 .auth-panel{padding:44px 48px;display:flex;flex-direction:column;justify-content:center}
 .auth-hero{position:relative;background:linear-gradient(135deg,${accent} 0%,#7c3aed 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:44px;overflow:hidden}
 .auth-hero-glow{position:absolute;border-radius:50%;background:rgba(255,255,255,.12);pointer-events:none}
@@ -1104,8 +1116,28 @@ function AuthPage({ onLogin, lang, onLang, accent }: any) {
       <div className="auth-card">
         <div className="auth-panel">
           <div className="auth-logo-row">
-            <div className="auth-logo-mark"><I n="wh" s={16} c="#fff" /></div>
-            <div className="auth-logo-name">Reno<span>Flow</span></div>
+            <div className="auth-logo-mark" style={{ position: 'relative' }}>
+              {/* custom logo with fallback icon */}
+              {BRAND.logoPath ? (
+                <>
+                  <img
+                    src={BRAND.logoPath}
+                    alt="logo"
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    onError={e => {
+                      const img = e.currentTarget;
+                      img.style.display = 'none';
+                      const icon = img.nextElementSibling as HTMLElement | null;
+                      if (icon) icon.style.display = 'flex';
+                    }}
+                  />
+                  <I n="wh" s={16} c="#fff" style={{ display: 'none', position: 'absolute', top:0, left:0, right:0, bottom:0, alignItems:'center', justifyContent:'center' }} />
+                </>
+              ) : (
+                <I n="wh" s={16} c="#fff" />
+              )}
+            </div>
+            <div className="auth-logo-name" dangerouslySetInnerHTML={{ __html: BRAND.name }} />
           </div>
           <h2>{T.loginTitle}</h2>
           <p className="auth-sub">{T.loginSub}</p>
@@ -1385,8 +1417,30 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
       {sbOpen && <div className="sidebar-backdrop" onClick={() => setSbOpen(false)} />}
       <aside className={`sidebar ${sbOpen ? "open" : ""}`}>
         <div className="s-logo">
-          <div className="s-mark"><I n="wh" s={18} c="#fff" /></div>
-          <div><div className="s-name">Reno<span>Flow</span></div><div className="s-sub">Warehouse Management</div></div>
+          <div className="s-mark" style={{ position: 'relative' }}>
+            {BRAND.logoPath ? (
+              <>
+                <img
+                  src={BRAND.logoPath}
+                  alt="logo"
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  onError={e => {
+                    const img = e.currentTarget;
+                    img.style.display = 'none';
+                    const icon = img.nextElementSibling as HTMLElement | null;
+                    if (icon) icon.style.display = 'flex';
+                  }}
+                />
+                <I n="wh" s={18} c="#fff" style={{ display: 'none', position: 'absolute', top:0, left:0, right:0, bottom:0, alignItems:'center', justifyContent:'center' }} />
+              </>
+            ) : (
+              <I n="wh" s={18} c="#fff" />
+            )}
+          </div>
+          <div>
+            <div className="s-name" dangerouslySetInnerHTML={{ __html: BRAND.name }} />
+            <div className="s-sub">{BRAND.subtitle}</div>
+          </div>
         </div>
         <nav className="s-nav">
           <div className="n-sec">{T.mainSec}</div>
@@ -3253,7 +3307,12 @@ function ChatWindow({ targetUser, currentUser, messages, onSendMessage, onClose 
                 {m.text}
                 {m.attachment && (() => {
                   // ensure URL is absolute
-                  const url = m.attachment.startsWith('http') ? m.attachment : `${BASE}${m.attachment}`;
+                  let url = m.attachment;
+                  if (!url.startsWith('http')) {
+                    // prefix leading slash if missing
+                    if (!url.startsWith('/')) url = `/${url}`;
+                    url = `${BASE}${url}`;
+                  }
                   return (
                     <>
                       {url.match(/\.(jpe?g|png|gif|bmp|webp)$/i) ? (
