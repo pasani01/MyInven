@@ -95,9 +95,10 @@ const authAPI = {
   updateCompany: (id: number | string, data: any) => api(`/user_app/companies/${id}/`, "PUT", data),
   deleteCompany: (id: number | string) => api(`/user_app/companies/${id}/`, "DELETE"),
   changePassword: (data: any) => api("/user_app/users/change-password/", "POST", data),
-  getConversations: () => api("/user_app/conversations/"),
-  getMessages: (convId: number) => api(`/user_app/conversations/${convId}/`),
+  // Chat API - using /messages/ endpoints per Swagger schema
+  getMessages: () => api("/user_app/messages/"),
   sendDirectMessage: (receiver_id: number, text: string) => api("/user_app/messages/direct-message/", "POST", { receiver_id, text }),
+  deleteMessage: (id: number) => api(`/user_app/messages/${id}/`, "DELETE"),
 };
 
 const depolarAPI = {
@@ -1203,28 +1204,34 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
   const [messages, setMessages] = useState<any[]>([]);
   const [notifCount, setNotifCount] = useState(0);
 
-  const fetchMessages = useCallback(async (targetId: number) => {
+  const fetchMessages = useCallback(async (targetId: number, targetUsername: string) => {
     try {
-      const res = await authAPI.getConversations();
-      const conversations = Array.isArray(res) ? res : (res.results || []);
-      const conv = conversations.find((c: any) => c.participants.some((p: any) => p.id === targetId));
-      if (conv) {
-        setMessages(conv.messages.map((m: any) => ({
-          sender: m.sender_username,
-          text: m.text,
-          time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        })));
-      }
+      // Use GET /user_app/messages/ - returns all messages for current user
+      const res = await authAPI.getMessages();
+      const allMessages = Array.isArray(res) ? res : (res.results || []);
+      // Filter messages between current user and target user
+      const filtered = allMessages.filter((m: any) =>
+        m.sender_username === targetUsername || m.sender_username === currentUser.username
+      );
+      // Sort by creation time
+      filtered.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      setMessages(filtered.map((m: any) => ({
+        id: m.id,
+        sender: m.sender_username,
+        text: m.text,
+        time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        is_read: m.is_read,
+      })));
     } catch (err) {
-      // Quietly handle errors to avoid 500 alerts during polling
-      console.warn("Retrying messages...");
+      console.warn("Chat fetch error:", err);
     }
-  }, []);
+  }, [currentUser.username]);
 
   useEffect(() => {
     if (chatUser) {
-      fetchMessages(chatUser.id);
-      const interval = setInterval(() => fetchMessages(chatUser.id), 5000);
+      setMessages([]); // Clear on new chat open
+      fetchMessages(chatUser.id, chatUser.username);
+      const interval = setInterval(() => fetchMessages(chatUser.id, chatUser.username), 4000);
       return () => clearInterval(interval);
     }
   }, [chatUser, fetchMessages]);
@@ -1233,13 +1240,19 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
     try {
       const res = await authAPI.sendDirectMessage(chatUser.id, text);
       const newMsg = {
+        id: res.id,
         sender: currentUser.username,
-        text: res.text,
-        time: new Date(res.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        text: res.text || text,
+        time: res.created_at
+          ? new Date(res.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        is_read: false,
       };
       setMessages(prev => [...prev, newMsg]);
-    } catch (err) {
-      addToast("Xabar yuborishda xato", "error");
+      setNotifCount(prev => prev + 1);
+    } catch (err: any) {
+      const detail = err?.data?.detail || err?.message || "Xabar yuborishda xato";
+      addToast(detail, "error");
     }
   };
 
