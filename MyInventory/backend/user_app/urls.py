@@ -5,6 +5,7 @@ from .views import CustomUserViewSet, CompanyViewSet, UserLoginView, UserLogoutV
 router = DefaultRouter()
 router.register(r'companies', CompanyViewSet)
 router.register(r'users', CustomUserViewSet, basename='user')
+router.register(r'messages', MessageViewSet, basename='message')
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -14,5 +15,4 @@ urlpatterns = [
     # message urls
     path('conversations/', ConversationViewSet.as_view({'get': 'list', 'post': 'create'})),
     path('conversations/<int:pk>/', ConversationViewSet.as_view({'get': 'retrieve'})),
-    path('messages/', MessageViewSet.as_view({'get': 'list', 'post': 'create'})),
 ]

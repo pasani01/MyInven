@@ -225,7 +225,14 @@ class ConversationViewSet(viewsets.ModelViewSet):
         return Conversation.objects.filter(participants=self.request.user)
 
     def perform_create(self, serializer):
-        serializer.save(participants=[self.request.user])
+        participants_data = self.request.data.get('participants', [])
+        if not participants_data:
+            participants_data = [self.request.user.id]
+        elif self.request.user.id not in participants_data:
+            participants_data.append(self.request.user.id)
+        
+        instance = serializer.save()
+        instance.participants.set(participants_data)
 
 class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
@@ -238,3 +245,32 @@ class MessageViewSet(viewsets.ModelViewSet):
         conversation_id = self.request.data.get('conversation')
         conversation = Conversation.objects.get(id=conversation_id, participants=self.request.user)
         serializer.save(sender=self.request.user, conversation=conversation)
+
+    @action(detail=False, methods=['post'], url_path='direct-message')
+    def direct_message(self, request):
+        receiver_id = request.data.get('receiver_id')
+        text = request.data.get('text')
+        
+        if not receiver_id or not text:
+            return Response({"detail": "receiver_id and text are required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            receiver = CustomUser.objects.get(id=receiver_id)
+        except CustomUser.DoesNotExist:
+            return Response({"detail": "Receiver not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+        # Check if conversation already exists between these two
+        conversation = Conversation.objects.filter(participants=request.user).filter(participants=receiver).first()
+        
+        if not conversation:
+            conversation = Conversation.objects.create()
+            conversation.participants.set([request.user, receiver])
+            
+        message = Message.objects.create(
+            conversation=conversation,
+            sender=request.user,
+            text=text
+        )
+        
+        serializer = self.get_serializer(message)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

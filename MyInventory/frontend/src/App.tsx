@@ -95,6 +95,9 @@ const authAPI = {
   updateCompany: (id: number | string, data: any) => api(`/user_app/companies/${id}/`, "PUT", data),
   deleteCompany: (id: number | string) => api(`/user_app/companies/${id}/`, "DELETE"),
   changePassword: (data: any) => api("/user_app/users/change-password/", "POST", data),
+  getConversations: () => api("/user_app/conversations/"),
+  getMessages: (convId: number) => api(`/user_app/conversations/${convId}/`),
+  sendDirectMessage: (receiver_id: number, text: string) => api("/user_app/messages/direct-message/", "POST", { receiver_id, text }),
 };
 
 const depolarAPI = {
@@ -707,12 +710,21 @@ table{min-width:600px}
   @keyframes chatSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
   .chat-header {
     padding: 12px 16px;
-    background: var(--blue);
+    background: #1e293b;
     color: #fff;
     border-radius: 12px 12px 0 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .typing-indicator {
+    font-size: 11px;
+    color: #4ade80;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
   }
   .chat-body {
     flex: 1;
@@ -1157,17 +1169,46 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
   const [messages, setMessages] = useState<any[]>([]);
   const [notifCount, setNotifCount] = useState(0);
 
-  const sendMessage = (text: string) => {
-    const newMsg = { sender: currentUser.username, text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
-    setMessages(prev => [...prev, newMsg]);
+  const fetchMessages = useCallback(async (targetId: number) => {
+    try {
+      // Find or create conversation by sending a dummy DM or using specific endpoint
+      // For now, let's use direct-message as it returns message with conversation info
+      // but simpler is to fetch all messages filter in frontend or better backend filtered
+      const res = await authAPI.getConversations();
+      const conversations = Array.isArray(res) ? res : (res.results || []);
+      const conv = conversations.find((c: any) => c.participants.some((p: any) => p.id === targetId));
+      if (conv) {
+        setMessages(conv.messages.map((m: any) => ({
+          sender: m.sender_username,
+          text: m.text,
+          time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        })));
+      }
+    } catch (err) {
+      console.error("Chat error:", err);
+    }
+  }, []);
 
-    // Simulate auto-reply for demo
-    setTimeout(() => {
-      const reply = { sender: chatUser.username, text: "Xabar qabul qilindi! 👋", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
-      setMessages(prev => [...prev, reply]);
-      setNotifCount(prev => prev + 1);
-      addToast(`${chatUser.username}: ${reply.text}`, "info");
-    }, 1500);
+  useEffect(() => {
+    if (chatUser) {
+      fetchMessages(chatUser.id);
+      const interval = setInterval(() => fetchMessages(chatUser.id), 5000);
+      return () => clearInterval(interval);
+    }
+  }, [chatUser, fetchMessages]);
+
+  const sendMessage = async (text: string) => {
+    try {
+      const res = await authAPI.sendDirectMessage(chatUser.id, text);
+      const newMsg = {
+        sender: currentUser.username,
+        text: res.text,
+        time: new Date(res.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages(prev => [...prev, newMsg]);
+    } catch (err) {
+      addToast("Xabar yuborishda xato", "error");
+    }
   };
 
   const fetchWarehouses = useCallback(async () => {
