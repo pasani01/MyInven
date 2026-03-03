@@ -1,0 +1,17 @@
+// Invalid UUID appId
+// Request ID: 8afd72d7-79da-4301-8f81-9d0c6825b337
+
+Invalid UUID appId
+Request ID: ebeb7000-138f-46f0-9ffd-76052bffe75b
+
+Invalid UUID appId
+Request ID: ab54cd4d-1b4c-4c12-87ab-ff4cee1aa569
+
+
+Invalid UUID appId
+Request ID: 5f344916-ce2a-4b47-a8c1-d3e7e1c55024
+
+
+√ Would you like to create a project for @pasago/renoflow? ... yes
+√ Created @pasago/renoflow: https://expo.dev/accounts/pasago/projects/renoflow
+√ Project successfully linked (ID: 44d533dc-a748-44d7-9b17-850839c77f06) (modified app.json)

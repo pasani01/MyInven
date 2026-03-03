@@ -1,32 +1,31 @@
 {
   "expo": {
-    "name": "RenoFlowApp",
-    "slug": "RenoFlowApp",
+    "name": "RenoFlow",
+    "slug": "renoflow",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#1e40af"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.renoflow.app"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/splash-icon.png",
+        "backgroundColor": "#1e40af"
       },
-      "edgeToEdgeEnabled": true
+      "package": "com.renoflow.app"
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
+    "extra": {
+      "eas": {
+        "projectId": "44d533dc-a748-44d7-9b17-850839c77f06"
+      }
     },
-    "plugins": [
-      "expo-secure-store"
-    ]
+    "owner": "pasago"
   }
 }
