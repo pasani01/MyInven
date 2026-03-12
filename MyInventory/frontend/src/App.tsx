@@ -75,11 +75,19 @@ const authAPI = {
   deleteCompany: (id: number | string) => api(`/user_app/companies/${id}/`, "DELETE"),
   changePassword: (data: any) => api("/user_app/users/change-password/", "POST", data),
   getMessages: () => api("/user_app/messages/"),
+  getConversations: () => api("/user_app/conversations/"),
+  createConversation: (participants: number[]) => api("/user_app/conversations/", "POST", { participants }),
   getUnreadCount: () => api("/user_app/messages/unread-count/"),
   markMessagesAsRead: (data: { conversation_id?: number; receiver_id?: number }) =>
     api("/user_app/messages/mark-as-read/", "POST", data),
-  sendDirectMessage: (receiver_id: number, text: string) =>
-    api("/user_app/messages/direct-message/", "POST", { receiver_id, text }),
+  sendDirectMessage: (receiver_id?: number, text?: string, conversation_id?: number) => {
+    // backend supports both receiver_id (auto-find/create 2‑party conv) or explicit conversation
+    const body: any = {};
+    if (receiver_id !== undefined && receiver_id !== null) body.receiver_id = receiver_id;
+    if (conversation_id !== undefined && conversation_id !== null) body.conversation = conversation_id;
+    if (text !== undefined) body.text = text;
+    return api("/user_app/messages/direct-message/", "POST", body);
+  },
   sendDirectMessageForm: (formData: FormData) =>
     api("/user_app/messages/direct-message/", "POST", formData),
   deleteMessage: (id: number) => api(`/user_app/messages/${id}/`, "DELETE"),
@@ -1346,6 +1354,10 @@ const STRINGS: Record<string, any> = {
     noResults: "No results found",
     addUserPrompt: "Add a new user to begin.",
     newMessage: "New message received!",
+    chats: "Chats",
+    startGroupChat: "Group chat",
+    multiSelect: "Select multiple",
+    done: "Done",
     profileSub: "Manage your personal information",
     darkModeDesc: "Dark interface",
     compactModeDesc: "Use less space",
@@ -1442,6 +1454,7 @@ ru: {
 tr: {
   warehouses: "Depolar", analytics: "Analiz", intake: "Akıllı Giriş", settings: "Ayarlar", users: "Kullanıcılar",
     darkMode: "Karanlık Mod", lightMode: "Aydınlık", logout: "Çıkış", createWh: "Depo Oluştur",
+  chats: "Sohbetler", startGroupChat: "Grup sohbeti", multiSelect: "Birden çok seç", done: "Tamam",
       save: "Kaydet", cancel: "İptal", search: "Ara...", items: "Ürünler", moneytypes: "Para Birimleri",
         units: "Birimler", deleteUser: "Kullanıcıyı sil", deleteConfirmText: (name: string) => `"${name}" silinsin mi?`,
           deleteConfirmLabel: "Onay için kullanıcı adını girin:", deleteBtn: "Sil", addUser: "Yeni Kullanıcı",
@@ -1663,7 +1676,11 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
     compactView: false, animationsEnabled: true, autoSave: true,
     twoFactor: false, sessionTimeout: "30min", currency: "USD", timezone: "UTC+5",
   });
-  const [chatUser, setChatUser] = useState<any>(null);
+  // chat-related state
+  const [chatUser, setChatUser] = useState<any>(null); // legacy: single user click
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [activeConv, setActiveConv] = useState<any>(null); // currently open conversation
+  const [showConvList, setShowConvList] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [notifCount, setNotifCount] = useState(0);
   const [shipments, setShipments] = useState([
@@ -1687,16 +1704,37 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
 
   const goto = (p: string, cb?: any) => { setPage(p); setSelectedWh(null); setSbOpen(false); if (cb) cb(); };
 
-  const fetchMessages = useCallback(async (targetId: number, targetUsername: string) => {
+/**
+   * Load conversation messages.  Argument may be either a user object (legacy)
+   * or a conversation object containing id/participants/messages.
+   */
+  const fetchMessages = useCallback(async (convOrUser: any) => {
     try {
-      const res = await authAPI.getMessages();
-      const all = Array.isArray(res) ? res : (res.results || []);
-      // Filter by conversation participant matching
-      const filtered = all.filter((m: any) =>
-        (Number(m.sender) === Number(targetId) || Number(m.sender) === Number(currentUser.id))
+      const res = await authAPI.getConversations();
+      const convs = Array.isArray(res) ? res : (res?.results ?? []);
+      setConversations(convs); // keep list up to date
+
+      let conv: any = null;
+      if (convOrUser && convOrUser.id) {
+        // conversation object passed
+        conv = convs.find((c: any) => c.id === convOrUser.id) || convOrUser;
+      } else if (convOrUser && convOrUser.id === undefined) {
+        // assume it's a user
+        const targetId = Number(convOrUser.id);
+        conv = convs.find((c: any) => {
+          const participants = Array.isArray(c?.participants) ? c.participants.map((p: any) => Number(p?.id)) : [];
+          return participants.length === 2 &&
+            participants.includes(Number(currentUser.id)) &&
+            participants.includes(targetId);
+        });
+      }
+
+      const rawMessages = Array.isArray(conv?.messages) ? conv.messages : [];
+      const sorted = [...rawMessages].sort(
+        (a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       );
-      filtered.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      setMessages(filtered.map((m: any) => ({
+
+      setMessages(sorted.map((m: any) => ({
         id: m.id,
         sender: m.sender_username,
         senderId: m.sender,
@@ -1705,13 +1743,19 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
         is_read: m.is_read,
         attachment: m.attachment || null,
       })));
-      if (chatUser && filtered.length > 0) {
+
+      // mark read using conversation if possible
+      if (conv && conv.id) {
+        authAPI.markMessagesAsRead({ conversation_id: conv.id }).then(() => {
+          authAPI.getUnreadCount().then(r => { if (r && typeof r.count === "number") setNotifCount(r.count); });
+        });
+      } else if (chatUser && sorted.length > 0) {
         authAPI.markMessagesAsRead({ receiver_id: chatUser.id }).then(() => {
           authAPI.getUnreadCount().then(r => { if (r && typeof r.count === "number") setNotifCount(r.count); });
         });
       }
     } catch (err) { console.warn("Chat fetch error:", err); }
-  }, [currentUser.id]);
+  }, [chatUser, currentUser.id]);
 
   const fetchUnreadCount = useCallback(async () => {
     try {
@@ -1719,42 +1763,98 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
       if (res && typeof res.count === "number") {
         setNotifCount(prev => {
           // Show toast if count increased and chat is not open
-          if (res.count > prev && !chatUser) {
+          if (res.count > prev && !chatUser && !activeConv) {
             addToast(T.newMessage || "New message received!", "info");
           }
           return res.count;
         });
       }
     } catch { }
-  }, [chatUser, addToast, T.newMessage]);
+  }, [chatUser, activeConv, addToast, T.newMessage]);
+
+  const fetchConversationsList = useCallback(async () => {
+    try {
+      const res = await authAPI.getConversations();
+      const convs = Array.isArray(res) ? res : (res?.results ?? []);
+      setConversations(convs);
+    } catch (e) { console.warn("Failed to load conv list", e); }
+  }, []);
 
   useEffect(() => {
     fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 4000); // 4s interval for better responsiveness
-    return () => clearInterval(interval);
-  }, [fetchUnreadCount]);
+    fetchConversationsList();
+    const interval1 = setInterval(fetchUnreadCount, 4000); // poll unread count
+    const interval2 = setInterval(fetchConversationsList, 8000); // refresh conversation list
+    return () => { clearInterval(interval1); clearInterval(interval2); };
+  }, [fetchUnreadCount, fetchConversationsList]);
+
+  // helper: open direct chat with a specific user, converting to conversation object
+  const openChatWithUser = useCallback(async (payload: any) => {
+    if (!payload) return;
+    // if payload has participants array, it's a group-chat request
+    let participantIds: number[] = [];
+    if (Array.isArray(payload.participants)) {
+      participantIds = payload.participants.map((p: any) => Number(p.id)).filter((x: any) => !!x);
+    } else if (payload.id) {
+      participantIds = [Number(payload.id)];
+    } else {
+      return;
+    }
+    // always include self
+    if (!participantIds.includes(Number(currentUser.id))) participantIds.push(Number(currentUser.id));
+
+    // try to find existing conv with exactly same set of participants
+    let conv = conversations.find((c: any) => {
+      const pids = Array.isArray(c.participants) ? c.participants.map((p: any) => Number(p?.id)) : [];
+      if (pids.length !== participantIds.length) return false;
+      return participantIds.every(id => pids.includes(id));
+    });
+
+    if (!conv) {
+      try {
+        conv = await authAPI.createConversation(participantIds);
+        setConversations(prev => [...prev, conv]);
+      } catch (e) {
+        console.warn("Unable to create conversation", e);
+      }
+    }
+
+    setActiveConv(conv || null);
+    setChatUser(null);
+  }, [conversations, currentUser.id]);
 
   useEffect(() => {
-    if (chatUser) {
+    const arg = activeConv || chatUser;
+    if (arg) {
       setMessages([]);
-      fetchMessages(chatUser.id, chatUser.username);
-      // Mark as read when opening chat
-      authAPI.markMessagesAsRead({ receiver_id: chatUser.id }).then(() => fetchUnreadCount());
-
-      const interval = setInterval(() => fetchMessages(chatUser.id, chatUser.username), 4000);
+      fetchMessages(arg);
+      if (activeConv && activeConv.id) {
+        authAPI.markMessagesAsRead({ conversation_id: activeConv.id }).then(() => fetchUnreadCount());
+      }
+      const interval = setInterval(() => fetchMessages(arg), 4000);
       return () => clearInterval(interval);
     }
-  }, [chatUser, fetchMessages, fetchUnreadCount]);
+  }, [activeConv, chatUser, fetchMessages, fetchUnreadCount]);
 
   const sendMessage = async (text: string) => {
     try {
-      const res = await authAPI.sendDirectMessage(chatUser.id, text);
+      let res: any;
+      if (activeConv && activeConv.id) {
+        res = await authAPI.sendDirectMessage(undefined, text, activeConv.id);
+      } else if (chatUser && chatUser.id) {
+        res = await authAPI.sendDirectMessage(chatUser.id, text);
+      } else {
+        throw new Error("No active chat target");
+      }
       setMessages(prev => [...prev, {
-        id: res.id, sender: currentUser.username, text: res.text || text,
+        id: res.id,
+        sender: currentUser.username,
+        senderId: currentUser.id,
+        text: res.text || text,
         time: res.created_at ? new Date(res.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         is_read: false,
+        attachment: res.attachment || null,
       }]);
-      // setNotifCount(p => p + 1); // Removed: Notifications should only change when receiving messages
     } catch (err: any) { addToast(err?.data?.detail || err?.message || "Xabar yuborishda xato", "error"); }
   };
 
@@ -1900,7 +2000,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
             <button className="ib" title="Refresh" onClick={() => { fetchWarehouses(); refreshBuylist(); fetchItemler(); fetchMoneytypes(); fetchUnitler(); }}>
               <I n="refresh" s={15} />
             </button>
-            <div className="notif" onClick={() => setNotifCount(0)}>
+            <div className="notif" title="Chati ochish" onClick={() => setShowConvList(true)}>
               <button className="ib"><I n="bl" s={16} /></button>
               {(lowItems > 0 || notifCount > 0) && <div className="notif-dot" />}
               {notifCount > 0 && <div className="notif-badge">{notifCount}</div>}
@@ -1926,7 +2026,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
           {page === "itemler" && <RefPage title={T.items} icon="pkg" data={itemler} setData={setItemler} api={itemlerAPI} normalize={normalizeItem} fields={[{ k: "name", l: "Name *", required: true }]} addToast={addToast} T={T} />}
           {page === "moneytypes" && <RefPage title={T.moneytypes} icon="dr" data={moneytypes} setData={setMoneytypes} api={moneytypesAPI} normalize={normalizeMoneytype} fields={[{ k: "name", l: "Name * (USD, UZS, EUR)", required: true }]} addToast={addToast} T={T} />}
           {page === "unitler" && <RefPage title={T.units} icon="tag" data={unitler} setData={setUnitler} api={unitlerAPI} normalize={normalizeUnit} fields={[{ k: "name", l: "Name *", required: true }]} addToast={addToast} T={T} />}
-          {page === "users" && <UsersPage users={users} companies={companies} onRefresh={fetchUsers} addToast={addToast} T={T} currentUser={currentUser} onChatOpen={setChatUser} />}
+          {page === "users" && <UsersPage users={users} companies={companies} onRefresh={fetchUsers} addToast={addToast} T={T} currentUser={currentUser} onChatOpen={openChatWithUser} />}
           {page === "settings" && <SettingsPage settings={settings} setSettings={setSettings} darkMode={darkMode} onDarkMode={setDarkMode} accent={accent} onAccent={onAccent} lang={lang} onLang={onLang} currentUser={currentUser} onUserUpdate={onUserUpdate} addToast={addToast} onLogout={handleLogout} T={T} />}
         </main>
 
@@ -1943,21 +2043,48 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
       </div>
 
       {/* ═══ CHAT WINDOW ═══ */}
-      {chatUser && (
+      {(activeConv || chatUser) && (
         <ChatWindow
+          conversation={activeConv}
           targetUser={chatUser}
           currentUser={currentUser}
           messages={messages}
           onSendMessage={sendMessage}
-          onClose={() => setChatUser(null)}
+          onClose={() => { setActiveConv(null); setChatUser(null); }}
         />
+      )}
+
+      {/* ═══ Conversation list modal ═══ */}
+      {showConvList && (
+        <Modal title={T.chats || "Chats"} onClose={() => setShowConvList(false)} wide>
+          <div className="chat-list" style={{ maxHeight: "60vh", overflowY: "auto" }}>
+            {conversations.length === 0 ? (
+              <div style={{ padding: 20, textAlign: "center", color: "var(--text3)" }}>No conversations yet.</div>
+            ) : conversations.map((c: any) => {
+              const others = (Array.isArray(c.participants) ? c.participants : [])
+                .filter((p: any) => Number(p.id) !== Number(currentUser.id))
+                .map((p: any) => p.username || p.email || p.id)
+                .join(", ");
+              const unread = Array.isArray(c.messages)
+                ? c.messages.filter((m: any) => !m.is_read && Number(m.sender) !== Number(currentUser.id)).length
+                : 0;
+              return (
+                <div key={c.id} className="n-item" style={{ justifyContent: "space-between" }}
+                     onClick={() => { setActiveConv(c); setChatUser(null); setShowConvList(false); }}>
+                  <span>{others || "(you)"}</span>
+                  {unread > 0 && <span className="notif-badge" style={{ marginRight: 0 }}>{unread}</span>}
+                </div>
+              );
+            })}
+          </div>
+        </Modal>
       )}
     </div>
   );
 }
 
 /* ═══════════════════ CHAT WINDOW ═══════════════════ */
-function ChatWindow({ targetUser, currentUser, messages, onSendMessage, onClose }: any) {
+function ChatWindow({ conversation, targetUser, currentUser, messages, onSendMessage, onClose }: any) {
   const [text, setText] = useState("");
 
   useEffect(() => {
@@ -1971,6 +2098,20 @@ function ChatWindow({ targetUser, currentUser, messages, onSendMessage, onClose 
     setText("");
   };
 
+  // decide header display
+  const headerName = conversation
+    ? (Array.isArray(conversation.participants)
+        ? conversation.participants
+            .filter((p: any) => Number(p.id) !== Number(currentUser.id))
+            .map((p: any) => p.username || p.email || p.id)
+            .join(", ")
+        : "")
+    : (targetUser?.username || "");
+
+  const headerAvatar = conversation
+    ? (headerName.slice(0,2).toUpperCase())
+    : (targetUser?.username?.slice(0, 2).toUpperCase());
+
   return (
     <>
       {/* Mobile backdrop — click to close */}
@@ -1981,10 +2122,10 @@ function ChatWindow({ targetUser, currentUser, messages, onSendMessage, onClose 
         <div className="chat-header">
           <div className="chat-header-info">
             <div className="chat-header-avatar">
-              {targetUser.username?.slice(0, 2).toUpperCase()}
+              {headerAvatar}
             </div>
             <div style={{ minWidth: 0 }}>
-              <div className="chat-header-name">{targetUser.username}</div>
+              <div className="chat-header-name">{headerName}</div>
               <div className="chat-header-status">
                 <span className="chat-online-dot" />
                 Online
@@ -2956,6 +3097,8 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser, onCh
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [multiMode, setMultiMode] = useState(false);
+  const [selectedForChat, setSelectedForChat] = useState<number[]>([]);
   const EMPTY = { username: "", password: "", password2: "", role: "user" };
   const [form, setForm] = useState(EMPTY);
 
@@ -3033,9 +3176,21 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser, onCh
       )}
       <div className="ph">
         <div className="ph-l"><h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-.025em" }}>{T.users || "Users"}</h1><p style={{ fontSize: 13, color: "var(--text3)", marginTop: 3 }}>{users.length} foydalanuvchi</p></div>
-        <div className="ph-r">
+        <div className="ph-r" style={{ alignItems: "center", gap: 8 }}>
           <div className="sw-wrap" style={{ width: 180 }}><span className="si-ico"><I n="sr" s={14} /></span><input placeholder={T.search} value={search} onChange={e => setSearch(e.target.value)} /></div>
-          {isAdmin && <button className="btn bp" onClick={() => setShowAdd(true)}><I n="pl" s={14} c="#fff" />{T.addUser || "Add User"}</button>}
+          {selectedForChat.length >= 2 && (
+            <button className="btn bp" onClick={() => onChatOpen && onChatOpen({ participants: selectedForChat.map(id => ({ id })) })}>
+              {T.startGroupChat || "Group chat"}
+            </button>
+          )}
+          {isAdmin && !multiMode && (
+            <button className="btn bp" onClick={() => setShowAdd(true)}><I n="pl" s={14} c="#fff" />{T.addUser || "Add User"}</button>
+          )}
+          {isAdmin && (
+            <button className="btn bs" onClick={() => { setMultiMode(v => !v); if (multiMode) setSelectedForChat([]); }}>
+              {multiMode ? (T.done || "Done") : (T.multiSelect || "Select multiple")}
+            </button>
+          )}
         </div>
       </div>
       <div className="sg sg2" style={{ marginBottom: 16 }}>
@@ -3050,15 +3205,26 @@ function UsersPage({ users, companies, onRefresh, addToast, T, currentUser, onCh
             <thead><tr><th>{T.username}</th><th>Email</th><th>Role</th><th></th></tr></thead>
             <tbody>{filtered.map((user: any) => {
               const isSelf = user.username === currentUser.username || user.id === currentUser.id;
+              const checked = selectedForChat.includes(user.id);
               return (
                 <tr key={user.id} style={isSelf ? { background: "var(--blue-l)" } : {}}>
-                  <td><div className="ir" style={{ cursor: "pointer" }} onClick={() => !isSelf && onChatOpen(user)}>
-                    <div className="av" style={{ width: 32, height: 32, fontSize: 11, flexShrink: 0, background: isSelf ? "var(--blue)" : undefined }}>{user.username?.slice(0, 2).toUpperCase()}</div>
-                    <div>
-                      <div className="itn">{user.username}{isSelf && <span style={{ marginLeft: 7, fontSize: 10, fontWeight: 700, color: "var(--blue)", background: "var(--blue-l)", border: "1px solid var(--blue-m)", borderRadius: 10, padding: "1px 7px" }}>{T.you || "Sen"}</span>}</div>
-                      {!isSelf && <div style={{ fontSize: 10, color: "var(--blue)", fontWeight: 700 }}>Chat uchun bosing</div>}
+                  <td style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    {multiMode && !isSelf && (
+                      <input type="checkbox" checked={checked} onChange={e => {
+                        setSelectedForChat(prev => {
+                          if (e.target.checked) return [...prev, user.id];
+                          return prev.filter(id => id !== user.id);
+                        });
+                      }} />
+                    )}
+                    <div className="ir" style={{ cursor: !isSelf ? "pointer" : "default" }} onClick={() => !isSelf && onChatOpen(user)}>
+                      <div className="av" style={{ width: 32, height: 32, fontSize: 11, flexShrink: 0, background: isSelf ? "var(--blue)" : undefined }}>{user.username?.slice(0, 2).toUpperCase()}</div>
+                      <div>
+                        <div className="itn">{user.username}{isSelf && <span style={{ marginLeft: 7, fontSize: 10, fontWeight: 700, color: "var(--blue)", background: "var(--blue-l)", border: "1px solid var(--blue-m)", borderRadius: 10, padding: "1px 7px" }}>{T.you || "Sen"}</span>}</n                        </div>
+                        {!isSelf && <div style={{ fontSize: 10, color: "var(--blue)", fontWeight: 700 }}>Chat uchun bosing</div>}
+                      </div>
                     </div>
-                  </div></td>
+                  </td>
                   <td className="dv">{user.email || "—"}</td>
                   <td>{rolePill(user.role)}</td>
                   <td><div style={{ display: "flex", gap: 8 }}>
@@ -3246,9 +3412,20 @@ function SettingsPage({ settings, setSettings, darkMode, onDarkMode, accent, onA
 
 /* ═══════════════════ ROOT ═══════════════════ */
 export default function App() {
-  const [user, setUser] = useState<any>(null);
+  // helpers for persistent storage
+  const saveUser = (u: any) => {
+    try { if (u) localStorage.setItem("rf_user", JSON.stringify(u)); else localStorage.removeItem("rf_user"); } catch {};
+  };
+  const loadUser = () => {
+    try { const s = localStorage.getItem("rf_user"); return s ? JSON.parse(s) : null; } catch { return null; }
+  };
+
+  const [user, setUser] = useState<any>(() => loadUser());
   const [lang, setLang] = useState(() => { try { return localStorage.getItem("rf_lang_global") || "uz"; } catch { return "uz"; } });
   const [accent, setAccent] = useState(() => { try { return localStorage.getItem("rf_accent_global") || "#2563eb"; } catch { return "#2563eb"; } });
+
+  // persist user when changed
+  useEffect(() => { saveUser(user); }, [user]);
 
   useEffect(() => { try { localStorage.setItem("rf_lang_global", lang); } catch { } }, [lang]);
   useEffect(() => { try { localStorage.setItem("rf_accent_global", accent); } catch { } }, [accent]);
@@ -3268,7 +3445,7 @@ export default function App() {
       lang={lang} onLang={setLang}
       accent={accent} onAccent={setAccent}
       onUserUpdate={(u: any) => setUser((prev: any) => ({ ...prev, ...u }))}
-      onLogout={() => { setToken(""); setUser(null); }}
+      onLogout={() => { setToken(""); setUser(null); saveUser(null); }}
     />
   );
 }
