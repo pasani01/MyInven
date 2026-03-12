@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { MessageSquare, X, Send, Minus, Search, Paperclip, Smile } from 'lucide-react';
+import EmojiPicker from 'emoji-picker-react';
 
 /* ═══════════════════ BASE URL ═══════════════════ */
 const BASE = "https://myinven-production.up.railway.app";
@@ -1125,6 +1127,70 @@ select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
     width: 100%; height: 70vh; max-height: 70vh;
     border-radius: 22px 
 
+/* additional chat widget styles */
+.chat-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 3000;
+}
+.fab-icon-wrapper { position: relative; }
+
+.unread-badge-global {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: var(--red);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 10px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.chat-minimize-btn {
+  width: 30px; height: 30px; border: none;
+  background: rgba(255,255,255,0.12);
+  border-radius: 8px;
+  color: rgba(255,255,255,0.85);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; transition: all .15s;
+}
+.chat-minimize-btn:hover { background: rgba(255,255,255,0.22); color:#fff; }
+.chat-contacts { display: flex; flex-direction: column; flex:1; overflow-y:auto; }
+.search-bar { display: flex; align-items: center; padding: 8px; border-bottom: 1px solid var(--border2); gap: 6px; }
+.search-bar input { flex:1; padding:6px 8px; border:1px solid var(--border2); border-radius:var(--rs); }
+.contacts-list { flex:1; overflow-y:auto; }
+.contact-card { display:flex; justify-content:space-between; align-items:center; padding:8px; cursor:pointer; }
+.contact-card:hover { background: var(--bg2); }
+.unread-pill { background: var(--red); color:#fff; font-size:10px; padding:2px 6px; border-radius:10px; }
+.image-preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: var(--rs);
+  margin-bottom: 4px;
+}
+.image-preview-bar img { max-height: 40px; border-radius: 4px; }
+.chat-panel.minimized { height: 40px; }
+.chat-panel.minimized .chat-body,
+.chat-panel.minimized .chat-footer,
+.chat-panel.minimized .chat-contacts { display: none; }
+
 /* ═══════════════════ ICONS ═══════════════════ */
 const P: Record<string, string> = {
   wh: "M2 20h20 M4 20V10l8-6 8 6v10 M10 20v-6h4v6",
@@ -1677,10 +1743,25 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
     twoFactor: false, sessionTimeout: "30min", currency: "USD", timezone: "UTC+5",
   });
   // chat-related state
-  const [chatUser, setChatUser] = useState<any>(null); // legacy: single user click
   const [conversations, setConversations] = useState<any[]>([]);
   const [activeConv, setActiveConv] = useState<any>(null); // currently open conversation
   const [messages, setMessages] = useState<any[]>([]);
+  const [text, setText] = useState("");
+
+  // supplemental state for improved chat widget
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isChatMinimized, setIsChatMinimized] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [chatContacts, setChatContacts] = useState<any[]>([]);
+  const [chatUnreadCounts, setChatUnreadCounts] = useState<Record<number, number>>({});
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevMessageCountRef = useRef(0);
+  const prevActiveConvRef = useRef<any>(null);
 
   const [shipments, setShipments] = useState([
     { id: 20, item: "Premium Wall Latex Paint", batch: "#902-X", from: "Warehouse 1", to: "Construction", date: "2024-10-24", status: "Delivered", val: "+$1,200", pos: true },
@@ -1688,6 +1769,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
   ]);
 
   const T = STRINGS[lang] || STRINGS.en;
+  const totalUnread = Object.values(chatUnreadCounts).reduce((a,b) => a + b, 0);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", darkMode ? "dark" : "light");
@@ -1746,23 +1828,38 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
       // mark read using conversation if possible
       if (conv && conv.id) {
         authAPI.markMessagesAsRead({ conversation_id: conv.id }).then(() => {
-          authAPI.getUnreadCount().then(r => { if (r && typeof r.count === "number") setNotifCount(r.count); });
+          fetchConversationsList();
         });
-      } else if (chatUser && sorted.length > 0) {
-        authAPI.markMessagesAsRead({ receiver_id: chatUser.id }).then(() => {
-          authAPI.getUnreadCount().then(r => { if (r && typeof r.count === "number") setNotifCount(r.count); });
-        });
-      }
     } catch (err) { console.warn("Chat fetch error:", err); }
-  }, [chatUser, currentUser.id]);
+  }, [currentUser.id]);
 
   const fetchConversationsList = useCallback(async () => {
     try {
       const res = await authAPI.getConversations();
       const convs = Array.isArray(res) ? res : (res?.results ?? []);
       setConversations(convs);
+
+      // build a simple contact list from conversations
+      const contacts = convs.map((c: any) => {
+        const others = (c.participants || []).filter((p: any) => Number(p.id) !== Number(currentUser.id));
+        return {
+          id: c.id,
+          username: others.map((p: any) => p.username || p.email || "").join(", ") || "Group",
+          is_online: others.some((p: any) => p.is_online),
+        };
+      });
+      setChatContacts(contacts);
+
+      // unread counts per conversation
+      const counts: Record<number, number> = {};
+      convs.forEach((c: any) => {
+        const unread = (c.messages || []).filter((m: any) => !m.is_read && m.sender !== currentUser.id).length;
+        counts[c.id] = unread;
+      });
+      setChatUnreadCounts(counts);
+
     } catch (e) { console.warn("Failed to load conv list", e); }
-  }, []);
+  }, [currentUser.id]);
 
   useEffect(() => {
     fetchConversationsList();
@@ -1796,37 +1893,116 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
       try {
         conv = await authAPI.createConversation(participantIds);
         setConversations(prev => [...prev, conv]);
-      } catch (e) {
-        console.warn("Unable to create conversation", e);
-      }
-    }
+        // add to contacts list immediately
+        const othersC = (conv.participants || []).filter((p: any) => Number(p.id) !== Number(currentUser.id));
+        const newContact = {
+          id: conv.id,
+          username: othersC.map((p: any) => p.username || p.email || "").join(", ") || "Group",
+          is_online: othersC.some((p: any) => p.is_online),
+        };
+        setChatContacts(prev => [...prev, newContact]);
+        const unread = (conv.messages || []).filter((m: any) => !m.is_read && m.sender !== currentUser.id).length;
+        setChatUnreadCounts(prev => ({ ...prev, [conv.id]: unread }));
 
     setActiveConv(conv || null);
-    setChatUser(null);
+    // open widget if it's closed
+    setIsChatOpen(true);
+    setIsChatMinimized(false);
   }, [conversations, currentUser.id]);
 
   useEffect(() => {
-    const arg = activeConv || chatUser;
+    const arg = activeConv;
     if (arg) {
       setMessages([]);
       fetchMessages(arg);
       if (activeConv && activeConv.id) {
-        authAPI.markMessagesAsRead({ conversation_id: activeConv.id }).then(() => fetchUnreadCount());
+        authAPI.markMessagesAsRead({ conversation_id: activeConv.id });
       }
       const interval = setInterval(() => fetchMessages(arg), 4000);
       return () => clearInterval(interval);
     }
-  }, [activeConv, chatUser, fetchMessages, fetchUnreadCount]);
+  }, [activeConv, fetchMessages]);
 
-  const sendMessage = async (text: string) => {
+  // auto-scroll and track conversation changes
+  useEffect(() => {
+    const contactChanged = prevActiveConvRef.current !== activeConv?.id;
+    const newCount = messages.length;
+    const newMessageAdded = newCount > prevMessageCountRef.current;
+
+    if (contactChanged || newMessageAdded) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      prevMessageCountRef.current = newCount;
+      prevActiveConvRef.current = activeConv?.id;
+    } else {
+      prevMessageCountRef.current = newCount;
+    }
+  }, [messages, activeConv]);
+
+  // mark as read when new messages arrive
+  useEffect(() => {
+    if (activeConv && messages.length > 0) {
+      const hasUnread = messages.some(m => m.sender !== currentUser.id && !m.is_read);
+      if (hasUnread) {
+        authAPI.markMessagesAsRead({ conversation_id: activeConv.id })
+          .then(() => fetchConversationsList())
+          .catch(() => {});
+      }
+    }
+  }, [messages, activeConv]);
+
+  // show widget when conversation selected
+  useEffect(() => {
+    if (activeConv) setIsChatOpen(true);
+  }, [activeConv]);
+
+  // if widget is closed reset minimized flag
+  useEffect(() => {
+    if (!isChatOpen) setIsChatMinimized(false);
+  }, [isChatOpen]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleEmojiClick = (emojiObject: any) => {
+    setText(prev => prev + emojiObject.emoji);
+  };
+
+  const handleImageChange = (e: any) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedImage(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSend = (e: any) => {
+    e?.preventDefault();
+    if ((!text.trim() && !selectedImage) || !activeConv) return;
+    sendMessage(text, selectedImage);
+    setText('');
+    setSelectedImage(null);
+    setPreviewUrl(null);
+    setShowEmojiPicker(false);
+  };
+
+  const sendMessage = async (text: string, image?: File | null) => {
     try {
       let res: any;
-      if (activeConv && activeConv.id) {
-        res = await authAPI.sendDirectMessage(undefined, text, activeConv.id);
-      } else if (chatUser && chatUser.id) {
-        res = await authAPI.sendDirectMessage(chatUser.id, text);
+      if (image) {
+        const fd = new FormData();
+        if (text) fd.append("text", text);
+        fd.append("image", image);
+        if (activeConv && activeConv.id) {
+          fd.append("conversation", String(activeConv.id));
+        }
+        res = await authAPI.sendDirectMessageForm(fd);
       } else {
-        throw new Error("No active chat target");
+        if (activeConv && activeConv.id) {
+          res = await authAPI.sendDirectMessage(undefined, text, activeConv.id);
+        } else {
+          throw new Error("No active chat target");
+        }
       }
       setMessages(prev => [...prev, {
         id: res.id,
@@ -2020,134 +2196,169 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
         </footer>
       </div>
 
-      {/* ═══ CHAT WINDOW ═══ */}
-      {(activeConv || chatUser) && (
-        <ChatWindow
-          conversation={activeConv}
-          targetUser={chatUser}
-          currentUser={currentUser}
-          messages={messages}
-          onSendMessage={sendMessage}
-          onClose={() => { setActiveConv(null); setChatUser(null); }}
-        />
+      {/* ═══ CHAT WIDGET ═══ */}
+      {/* floating action button to open chat */}
+      {currentUser && !isChatOpen && (
+        <button className="chat-fab" onClick={() => setIsChatOpen(true)}>
+          <div className="fab-icon-wrapper">
+            <MessageSquare size={26} />
+            {totalUnread > 0 && <span className="unread-badge-global">{totalUnread}</span>}
+          </div>
+        </button>
       )}
 
+      {/* main chat panel */}
+      {isChatOpen && <div className="chat-mobile-backdrop" onClick={() => { setIsChatOpen(false); setActiveConv(null); }} />}
+      {isChatOpen && (
+        <div className={`chat-panel ${isChatMinimized ? 'minimized' : ''}`}>
+          <div className="chat-header">
+            <div className="chat-header-info">
+              {activeConv ? (
+                <>
+                  <div className="chat-header-avatar">
+                    {chatContacts.find(c => c.id === activeConv.id)?.username.slice(0,2).toUpperCase()}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="chat-header-name">
+                      {chatContacts.find(c => c.id === activeConv.id)?.username}
+                    </div>
+                    <div className="chat-header-status">
+                      <span className="chat-online-dot" />
+                      Active
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div style={{ fontWeight: 700 }}>Chats</div>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button className="chat-minimize-btn" onClick={() => setIsChatMinimized(v => !v)}><Minus size={16} /></button>
+              <button className="chat-close-btn" onClick={() => { setIsChatOpen(false); setActiveConv(null); }}><X size={16} /></button>
+            </div>
+          </div>
+
+          {!activeConv ? (
+            <div className="chat-contacts">
+              <div className="search-bar">
+                <Search size={16} className="search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search chats..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <div className="contacts-list">
+                {chatContacts.filter(c => c.username.toLowerCase().includes(searchQuery.toLowerCase())).map(contact => (
+                  <div
+                    key={contact.id}
+                    className="contact-card"
+                    onClick={() => {
+                      const conv = conversations.find((c: any) => c.id === contact.id);
+                      if (conv) {
+                        setActiveConv(conv);
+                        setIsChatOpen(true);
+                        setIsChatMinimized(false);
+                      }
+                    }}
+                  >
+                    <span>{contact.username}</span>
+                    {chatUnreadCounts[contact.id] > 0 && (
+                      <span className="unread-pill">{chatUnreadCounts[contact.id]}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="chat-body" id="chat-body">
+                {messages.length === 0 && (
+                  <div className="chat-empty-state">
+                    <div className="chat-empty-icon"><MessageSquare size={32} /></div>
+                    <p>Say hello to {chatContacts.find(c => c.id === activeConv.id)?.username || '...'}!</p>
+                  </div>
+                )}
+                {messages.map((m: any, idx: number) => {
+                  const isMe = Number(m.senderId) === Number(currentUser.id);
+                  return (
+                    <div
+                      key={m.id || idx}
+                      className={`msg-wrap ${isMe ? 'msg-me' : 'msg-them'}`}
+                    >
+                      {!isMe && <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text4)", marginLeft: 8, marginBottom: 2 }}>{m.sender_name || m.sender}</div>}
+                      <div className="msg">
+                        {m.image && (
+                          <img src={m.image} style={{ maxWidth: 200, display: "block", marginTop: 8, borderRadius: 8 }} alt="Upload" />
+                        )}
+                        {m.content && <div>{m.content}</div>}
+                      </div>
+                      <span className="msg-time">
+                        {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  );
+                })}
+                <div ref={messagesEndRef} />
+              </div>
+
+              <div className="chat-footer" style={{ position: 'relative' }}>
+                {previewUrl && (
+                  <div className="image-preview-bar">
+                    <img src={previewUrl} alt="Preview" />
+                    <button onClick={() => { setSelectedImage(null); setPreviewUrl(null); }}>
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+
+                {showEmojiPicker && (
+                  <div style={{ position: 'absolute', bottom: '100%', left: '1rem', zIndex: 50, marginBottom: '0.5rem' }}>
+                    <EmojiPicker 
+                      theme="dark"
+                      onEmojiClick={handleEmojiClick}
+                      disableAutoFocus
+                    />
+                  </div>
+                )}
+
+                <form onSubmit={handleSend} style={{ display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type="file"
+                    hidden
+                    ref={fileInputRef}
+                    accept="image/*"
+                    onChange={handleImageChange}
+                  />
+                  <button type="button" className="ib" onClick={() => fileInputRef.current?.click()} style={{ padding: '0 0.5rem' }}>
+                    <Paperclip size={20} />
+                  </button>
+                  <button type="button" className="ib" onClick={() => setShowEmojiPicker(!showEmojiPicker)} style={{ padding: '0 0.5rem' }}>
+                    <Smile size={20} />
+                  </button>
+                  <input
+                    className="chat-input"
+                    type="text"
+                    placeholder="Type message..."
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    autoFocus
+                    style={{ margin: '0 0.5rem' }}
+                  />
+                  <button type="submit" className="chat-send" disabled={!text.trim() && !selectedImage}>
+                    <Send size={18} />
+                  </button>
+                </form>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
     </div>
   );
 }
-
-/* ═══════════════════ CHAT WINDOW ═══════════════════ */
-function ChatWindow({ conversation, targetUser, currentUser, messages, onSendMessage, onClose }: any) {
-  const [text, setText] = useState("");
-
-  useEffect(() => {
-    const el = document.getElementById("chat-body");
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [messages]);
-
-  const handleSend = () => {
-    if (!text.trim()) return;
-    onSendMessage(text);
-    setText("");
-  };
-
-  // decide header display
-  const headerName = conversation
-    ? (Array.isArray(conversation.participants)
-        ? conversation.participants
-            .filter((p: any) => Number(p.id) !== Number(currentUser.id))
-            .map((p: any) => p.username || p.email || p.id)
-            .join(", ")
-        : "")
-    : (targetUser?.username || "");
-
-  const headerAvatar = conversation
-    ? (headerName.slice(0,2).toUpperCase())
-    : (targetUser?.username?.slice(0, 2).toUpperCase());
-
-  return (
-    <>
-      {/* Mobile backdrop — click to close */}
-      <div className="chat-mobile-backdrop" onClick={onClose} />
-
-      <div className="chat-panel">
-        {/* Header */}
-        <div className="chat-header">
-          <div className="chat-header-info">
-            <div className="chat-header-avatar">
-              {headerAvatar}
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div className="chat-header-name">{headerName}</div>
-              <div className="chat-header-status">
-                <span className="chat-online-dot" />
-                Online
-              </div>
-            </div>
-          </div>
-          <button className="chat-close-btn" onClick={onClose}>
-            <I n="x" s={16} c="rgba(255,255,255,0.9)" />
-          </button>
-        </div>
-
-        {/* Messages */}
-        <div className="chat-body" id="chat-body">
-          {messages.length === 0 && (
-            <div className="chat-empty-state">
-              <div className="chat-empty-icon">
-                <I n="bl" s={22} c="var(--text4)" />
-              </div>
-              <div className="chat-empty-text">{targetUser.username} bilan suhbat</div>
-              <div className="chat-empty-sub">Birinchi xabarni yuboring 👋</div>
-            </div>
-          )}
-          {messages.map((m: any, i: number) => {
-            const isMe = Number(m.senderId) === Number(currentUser.id);
-            return (
-              <div key={i} className={`msg - wrap ${isMe ? "msg-me" : "msg-them"} `}>
-                {!isMe && <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text4)", marginLeft: 8, marginBottom: 2 }}>{m.sender}</div>}
-                <div className="msg">
-                  {m.text}
-                  {m.attachment && (() => {
-                    let url = m.attachment;
-                    if (!url.startsWith("http")) {
-                      if (!url.startsWith("/")) url = `/ ${url} `;
-                      url = `${BASE}${url} `;
-                    }
-                    return url.match(/\.(jpe?g|png|gif|bmp|webp)$/i)
-                      ? <img src={url} style={{ maxWidth: 200, display: "block", marginTop: 8, borderRadius: 8 }} alt="attachment" />
-                      : <a href={url} target="_blank" rel="noreferrer"
-                        style={{ color: isMe ? "rgba(255,255,255,0.85)" : "var(--blue)", fontSize: 12, marginTop: 6, display: "block" }}>
-                        {url.split("/").pop()}
-                      </a>;
-                  })()}
-                </div>
-                <span className="msg-time">{m.time}</span>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Footer input */}
-        <div className="chat-footer">
-          <input
-            className="chat-input"
-            placeholder="Xabar yozing..."
-            value={text}
-            onChange={e => setText(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && handleSend()}
-            autoFocus
-          />
-          <button className="chat-send" onClick={handleSend}>
-            <I n="ck" s={15} c="#fff" />
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
-
 /* ═══════════════════ REFERENCE PAGE ═══════════════════ */
 function RefPage({ title, icon, data, setData, api, normalize, fields, addToast, T }: any) {
   const [showAdd, setShowAdd] = useState(false);
