@@ -1680,9 +1680,8 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
   const [chatUser, setChatUser] = useState<any>(null); // legacy: single user click
   const [conversations, setConversations] = useState<any[]>([]);
   const [activeConv, setActiveConv] = useState<any>(null); // currently open conversation
-  const [showConvList, setShowConvList] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
-  const [notifCount, setNotifCount] = useState(0);
+
   const [shipments, setShipments] = useState([
     { id: 20, item: "Premium Wall Latex Paint", batch: "#902-X", from: "Warehouse 1", to: "Construction", date: "2024-10-24", status: "Delivered", val: "+$1,200", pos: true },
     { id: 21, item: "Oak Flooring Planks", batch: "#122-O", from: "Warehouse 2", to: "Base", date: "2024-10-23", status: "In Transit", val: "-$4,500", pos: false },
@@ -1757,21 +1756,6 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
     } catch (err) { console.warn("Chat fetch error:", err); }
   }, [chatUser, currentUser.id]);
 
-  const fetchUnreadCount = useCallback(async () => {
-    try {
-      const res = await authAPI.getUnreadCount();
-      if (res && typeof res.count === "number") {
-        setNotifCount(prev => {
-          // Show toast if count increased and chat is not open
-          if (res.count > prev && !chatUser && !activeConv) {
-            addToast(T.newMessage || "New message received!", "info");
-          }
-          return res.count;
-        });
-      }
-    } catch { }
-  }, [chatUser, activeConv, addToast, T.newMessage]);
-
   const fetchConversationsList = useCallback(async () => {
     try {
       const res = await authAPI.getConversations();
@@ -1781,12 +1765,10 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
   }, []);
 
   useEffect(() => {
-    fetchUnreadCount();
     fetchConversationsList();
-    const interval1 = setInterval(fetchUnreadCount, 4000); // poll unread count
     const interval2 = setInterval(fetchConversationsList, 8000); // refresh conversation list
-    return () => { clearInterval(interval1); clearInterval(interval2); };
-  }, [fetchUnreadCount, fetchConversationsList]);
+    return () => { clearInterval(interval2); };
+  }, [fetchConversationsList]);
 
   // helper: open direct chat with a specific user, converting to conversation object
   const openChatWithUser = useCallback(async (payload: any) => {
@@ -2000,11 +1982,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
             <button className="ib" title="Refresh" onClick={() => { fetchWarehouses(); refreshBuylist(); fetchItemler(); fetchMoneytypes(); fetchUnitler(); }}>
               <I n="refresh" s={15} />
             </button>
-            <div className="notif" title="Chati ochish" onClick={() => setShowConvList(true)}>
-              <button className="ib"><I n="bl" s={16} /></button>
-              {(lowItems > 0 || notifCount > 0) && <div className="notif-dot" />}
-              {notifCount > 0 && <div className="notif-badge">{notifCount}</div>}
-            </div>
+
             <div className="av" style={{ width: 34, height: 34, fontSize: 12, cursor: "pointer" }} onClick={() => setPage("settings")}>
               {currentUser.username?.slice(0, 2).toUpperCase()}
             </div>
@@ -2054,31 +2032,7 @@ function Dashboard({ currentUser, onUserUpdate, onLogout, lang, onLang, accent, 
         />
       )}
 
-      {/* ═══ Conversation list modal ═══ */}
-      {showConvList && (
-        <Modal title={T.chats || "Chats"} onClose={() => setShowConvList(false)} wide>
-          <div className="chat-list" style={{ maxHeight: "60vh", overflowY: "auto" }}>
-            {conversations.length === 0 ? (
-              <div style={{ padding: 20, textAlign: "center", color: "var(--text3)" }}>No conversations yet.</div>
-            ) : conversations.map((c: any) => {
-              const others = (Array.isArray(c.participants) ? c.participants : [])
-                .filter((p: any) => Number(p.id) !== Number(currentUser.id))
-                .map((p: any) => p.username || p.email || p.id)
-                .join(", ");
-              const unread = Array.isArray(c.messages)
-                ? c.messages.filter((m: any) => !m.is_read && Number(m.sender) !== Number(currentUser.id)).length
-                : 0;
-              return (
-                <div key={c.id} className="n-item" style={{ justifyContent: "space-between" }}
-                     onClick={() => { setActiveConv(c); setChatUser(null); setShowConvList(false); }}>
-                  <span>{others || "(you)"}</span>
-                  {unread > 0 && <span className="notif-badge" style={{ marginRight: 0 }}>{unread}</span>}
-                </div>
-              );
-            })}
-          </div>
-        </Modal>
-      )}
+
     </div>
   );
 }
